@@ -273,13 +273,13 @@ function renderDashboard() {
             <div>${last.km.toLocaleString('de-DE')} km</div>
           </div>
         </button>` : `
-        <button type="button" class="list-row" onclick="openAddEntry()">
-          <div class="list-icon"><i class="ph-light ph-plus" data-fb="➕" aria-hidden="true"></i></div>
+        <div class="list-row">
+          <div class="list-icon"><i class="ph-light ph-clock-counter-clockwise" data-fb="🕘" aria-hidden="true"></i></div>
           <div class="list-body">
             <div class="list-title">Noch keine Einträge</div>
-            <div class="list-sub">Ersten Service eintragen</div>
+            <div class="list-sub">Mit + den ersten Service eintragen</div>
           </div>
-        </button>`;
+        </div>`;
   }
 }
 
