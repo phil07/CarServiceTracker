@@ -398,9 +398,19 @@ function catIcon(cat) {
   return `<span class="cat-badge" style="--cat-l:${c.light};--cat-d:${c.dark}"><i class="ph-light ${c.icon}" data-fb="${c.fb}" aria-hidden="true"></i></span>`;
 }
 
-function miniBars(series) {
-  const max = Math.max(...series), min = Math.min(...series) * .9;
-  return `<span class="mini-bars" aria-hidden="true">${series.map(v => `<i style="height:${Math.round(22 + 78 * (v - min) / (max - min || 1))}%"></i>`).join('')}</span>`;
+// Balkendiagramm der letzten Verbräuche (Dashboard) mit Wertbeschriftung, Datum und Durchschnittslinie
+function fuelChart(points, avg) {
+  const pts = points.slice(-8);
+  const vals = pts.map(p => p.v), hi = Math.max(...vals, avg), lo = Math.min(...vals, avg) * .85;
+  const pct = v => Math.round(12 + 78 * (v - lo) / (hi - lo || 1));
+  const mon = d => d.slice(5, 7) + '/' + d.slice(2, 4);
+  return `<span class="fc" aria-hidden="true">
+    <span class="fc-plot">
+      <span class="fc-avg" style="bottom:${pct(avg)}%"><em>Ø ${fmtNum(avg)}</em></span>
+      ${pts.map((p, i) => `<span class="fc-col${i === pts.length - 1 ? ' last' : ''}"><b style="bottom:calc(${pct(p.v)}% + 3px)">${fmtNum(p.v)}</b><i style="height:${pct(p.v)}%"></i></span>`).join('')}
+    </span>
+    <span class="fc-dates">${pts.map(p => `<u>${mon(p.date)}</u>`).join('')}</span>
+  </span>`;
 }
 
 function renderDashboard() {
@@ -430,8 +440,8 @@ function renderDashboard() {
     if (state.fuelLog.length) {
       const sub = fs.avg == null ? 'Noch zu wenig Daten – ab dem 2. vollen Tankstopp'
         : [fs.last != null ? 'Zuletzt ' + fmtNum(fs.last) + ' l/100 km' : '', fs.pricePerL != null ? 'Ø ' + fmtNum(fs.pricePerL, 2) + ' €/l' : ''].filter(Boolean).join(' · ');
-      fuelCard.innerHTML = `<span class="cat-badge" style="--cat-l:#0E7490;--cat-d:#22D3EE"><i class="ph-light ph-gas-pump" data-fb="⛽" aria-hidden="true"></i></span>
-        <span class="fuel-card-main"><span class="fuel-card-num">${fs.avg != null ? fmtNum(fs.avg) : '–'}<small>Ø l/100 km</small></span><br><span class="fuel-card-sub">${esc(sub)}</span></span>${fs.series.length > 1 ? miniBars(fs.series.slice(-9)) : ''}`;
+      fuelCard.innerHTML = `<span class="fuel-card-top"><span class="cat-badge" style="--cat-l:#0E7490;--cat-d:#22D3EE"><i class="ph-light ph-gas-pump" data-fb="⛽" aria-hidden="true"></i></span>
+        <span class="fuel-card-main"><span class="fuel-card-num">${fs.avg != null ? fmtNum(fs.avg) : '–'}<small>Ø l/100 km</small></span><br><span class="fuel-card-sub">${esc(sub)}</span></span></span>${fs.points.length > 1 ? fuelChart(fs.points, fs.avg) : ''}`;
     }
   }
 
@@ -737,6 +747,7 @@ function fuelStats() {
     avg: sumKm ? sumL / sumKm * 100 : null,
     last: log.filter(e => seg.has(e.id)).map(e => seg.get(e.id).l100).pop() ?? null,
     series: log.filter(e => seg.has(e.id)).map(e => seg.get(e.id).l100),
+    points: log.filter(e => seg.has(e.id)).map(e => ({ date: e.date, v: seg.get(e.id).l100 })),
     totalLiters: state.fuelLog.reduce((t, e) => t + e.liters, 0),
     totalCost: priced.reduce((t, e) => t + e.cost, 0),
     pricePerL: pl ? priced.reduce((t, e) => t + e.cost, 0) / pl : null,
