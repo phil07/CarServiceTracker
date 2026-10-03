@@ -606,3 +606,51 @@ html.icons-fb i.ph-light[data-fb]::before { filter: grayscale(1); opacity: .85; 
 .fuel-card-num small { font-size: 12px; font-weight: 600; color: var(--muted); margin-left: 4px; }
 .fuel-card-sub { font-size: var(--fs-footnote); color: var(--muted); overflow-wrap: anywhere; }
 html.icons-fb .theme-btn i.ph-light[data-fb]::before { filter: none; opacity: 1; }
+
+/* ═══ Wagenfarbe im Design – einzeln schaltbare Bausteine (html.d-…) ═══ */
+/* Getönter Hintergrund */
+html.d-tint { --bg: color-mix(in srgb, var(--primary) 7%, #EEF0F3); --bg-elevated: color-mix(in srgb, var(--primary) 3.5%, #FFFFFF); --bg-secondary: color-mix(in srgb, var(--primary) 6%, #F1F2F5); }
+:root[data-theme="dark"].d-tint { --bg: color-mix(in srgb, var(--primary) 9%, #0B0C0F); --bg-elevated: color-mix(in srgb, var(--primary) 4.5%, #16181D); --bg-secondary: color-mix(in srgb, var(--primary) 7%, #1F2228); }
+/* Verlauf im Kilometer-Feld */
+html.d-hero .hero-card { background:
+    radial-gradient(110% 100% at 100% 0%, color-mix(in srgb, var(--primary) 30%, transparent), transparent 62%),
+    linear-gradient(160deg, color-mix(in srgb, var(--primary) 11%, var(--bg-elevated)), var(--bg-elevated)); }
+/* Silhouette */
+.hero-car { display: none; position: absolute; right: -6px; bottom: -7px; width: 42%; max-width: 170px; height: auto; pointer-events: none; }
+html.d-car .hero-car { display: block; }
+html.d-car .dash-scroll .hero-card, html.d-car .hero-card { padding-bottom: calc(clamp(12px, 2dvh, 20px) + 26px); }
+/* Fortschrittsbalken */
+.meter { display: none; height: 5px; margin-top: 4px; border-radius: 999px; background: color-mix(in srgb, var(--label) 9%, transparent); overflow: hidden; }
+.meter i { display: block; height: 100%; border-radius: inherit; background: var(--primary-fill); transition: width .6s var(--ease-out); }
+html.d-bars .meter { display: block; }
+.status-warn .meter i { background: var(--warn); }
+.status-alert .meter i { background: var(--alert); }
+/* Diagramme */
+.mini-bars { display: flex; align-items: flex-end; gap: 3px; height: 30px; flex-shrink: 0; }
+.mini-bars i { width: 5px; border-radius: 3px; background: color-mix(in srgb, var(--label) 22%, transparent); }
+html:not(.d-chart) .fuel-bars span { background: color-mix(in srgb, var(--label) 22%, transparent); }
+html:not(.d-chart) .fuel-bars span:last-child { background: color-mix(in srgb, var(--label) 45%, transparent); }
+html.d-chart .mini-bars i { background: color-mix(in srgb, var(--primary-fill) 40%, var(--bg-elevated)); }
+html.d-chart .mini-bars i:last-child { background: var(--primary-fill); }
+/* Kopfzeile und Menü */
+html.d-head .app-header { background: linear-gradient(90deg, color-mix(in srgb, var(--primary) 20%, var(--bg-elevated)), var(--bg-elevated) 70%);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 30%, transparent), 0 8px 20px color-mix(in srgb, var(--primary) 14%, transparent); }
+html.d-head .menu-open .app-header { background: transparent; box-shadow: none; }
+html.d-head .header-btn { background: var(--primary-fill); color: var(--on-primary); }
+html.d-head .drawer { background: linear-gradient(180deg, color-mix(in srgb, var(--primary) 12%, var(--bg)), color-mix(in srgb, var(--bg) 96%, transparent)); }
+html.d-head .menu-item.active { background: color-mix(in srgb, var(--primary) 16%, var(--bg-elevated)); box-shadow: inset 3px 0 0 var(--primary), inset 0 0 0 1px color-mix(in srgb, var(--primary) 25%, transparent); }
+html.d-head .menu-item.active .menu-icon { background: var(--primary-fill); color: var(--on-primary); }
+html.d-head .theme-btn.active { background: color-mix(in srgb, var(--primary) 16%, var(--bg-elevated)); }
+/* Einstellungen: Schalter */
+.toggle-card { padding: 4px 16px; }
+.toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 0; min-height: 56px; cursor: pointer; }
+.toggle-row + .toggle-row { border-top: 1px solid var(--shell-ring); }
+.toggle-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.toggle-text strong { font-size: 14px; font-weight: 700; }
+.toggle-text small { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.switch { appearance: none; -webkit-appearance: none; flex-shrink: 0; width: 46px; height: 28px; border-radius: 999px; border: 0; position: relative; cursor: pointer;
+    background: color-mix(in srgb, var(--label) 18%, transparent); transition: background .25s; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: transform .25s var(--ease-out); }
+.switch:checked { background: var(--primary-fill); }
+.switch:checked::after { transform: translateX(18px); }
+.switch:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }

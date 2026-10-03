@@ -137,6 +137,17 @@
                     </button>
                 </div>
                 <div class="hero-sub" id="heroChassisInfo"></div>
+                <svg class="hero-car" viewBox="0 0 300 92" aria-hidden="true">
+                    <defs><linearGradient id="carGloss" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".28"/></linearGradient></defs>
+                    <path id="carBody" d="M10 64 L10 52 Q11 46 20 45 L58 41 Q72 24 100 21 L176 21 Q204 23 222 41 L264 45 Q287 47 290 57 L290 64 Q290 68 284 68 L16 68 Q10 68 10 64 Z" fill="var(--car-paint)"/>
+                    <path d="M10 64 L10 52 Q11 46 20 45 L58 41 Q72 24 100 21 L176 21 Q204 23 222 41 L264 45 Q287 47 290 57 L290 64 Q290 68 284 68 L16 68 Q10 68 10 64 Z" fill="url(#carGloss)"/>
+                    <path d="M74 40 Q84 28 102 26 L124 26 L124 40 Z M132 26 L174 26 Q194 28 210 40 L132 40 Z" fill="#0b1018" fill-opacity=".72"/>
+                    <path d="M20 56 L280 56" stroke="#000" stroke-opacity=".18" stroke-width="1.4"/>
+                    <rect x="268" y="48" width="18" height="5" rx="2" fill="#fff" fill-opacity=".8"/>
+                    <rect x="12" y="49" width="14" height="5" rx="2" fill="#e11" fill-opacity=".8"/>
+                    <g><circle cx="66" cy="68" r="19" fill="#0b1018"/><circle cx="66" cy="68" r="14" fill="#14171c"/><circle cx="66" cy="68" r="9.5" fill="#c9ced6"/><circle cx="66" cy="68" r="3" fill="#6b7280"/>
+                    <circle cx="236" cy="68" r="19" fill="#0b1018"/><circle cx="236" cy="68" r="14" fill="#14171c"/><circle cx="236" cy="68" r="9.5" fill="#c9ced6"/><circle cx="236" cy="68" r="3" fill="#6b7280"/></g>
+                </svg>
             </div>
 
             <button type="button" class="card fuel-card" id="fuelCard" onclick="switchTab('fuel')" hidden></button>
@@ -183,6 +194,10 @@
 
             <h3 class="section-title">Lackfarbe &amp; Design</h3>
             <div class="color-picker-grid" id="settingsColorGrid"></div>
+
+            <h3 class="section-title">Design-Bausteine</h3>
+            <p class="settings-hint">Schalte einzeln ein, wie stark die Lackfarbe im Design vorkommt.</p>
+            <div class="card toggle-card" id="designToggles"></div>
 
             <h3 class="section-title">Wartungsintervalle</h3>
             <p class="settings-hint">Lege fest, wann eine Wartung wieder fällig wird. Leer lassen = wird nicht auf dem Dashboard verfolgt. Die Fälligkeit rechnet sich aus dem letzten Eintrag.</p>

@@ -53,6 +53,17 @@ const CATEGORIES = {
   'Anderes':          { icon: 'ph-wrench',         fb: '🔧', light: '#52525B', dark: '#A1A1AA', label: 'Anderes (Sonstiges)' },
 };
 
+// Design-Bausteine (einzeln in den Einstellungen schaltbar)
+const DESIGN_FEATURES = [
+  ['tint',  'Getönter Hintergrund',        'Seiten und Karten bekommen einen Hauch der Lackfarbe'],
+  ['hero',  'Verlauf im Kilometer-Feld',   'Farbverlauf auf der großen Kilometerkarte'],
+  ['car',   'Auto-Silhouette',             'Stufenheck-Skizze in Lackfarbe im Kilometer-Feld'],
+  ['bars',  'Fortschrittsbalken',          'Zeigt bei jeder Wartung, wie viel vom Intervall verbraucht ist'],
+  ['chart', 'Diagramme in Lackfarbe',      'Verbrauchsbalken in der Akzentfarbe statt in Grau'],
+  ['head',  'Farbiges Menü und Kopfzeile', 'Akzent in Kopfzeile, Menü-Symbol und aktivem Menüpunkt'],
+];
+const DEFAULT_DESIGN = Object.fromEntries(DESIGN_FEATURES.map(f => [f[0], true]));
+
 // Wartungsintervalle (vom Nutzer einstellbar): km und/oder Monate; leer = nicht verfolgt
 const DEFAULT_INTERVALS = {
   'Öl':               { km: 12000, months: 12 },
@@ -166,6 +177,7 @@ function normalizeState(raw) {
       vehicleColor: BMW_COLORS[st.vehicleColor] ? st.vehicleColor : 'titansilber',
       onboardingDone: st.onboardingDone === true || hasVehicle,
       intervals: normalizeIntervals(st.intervals),
+      design: Object.fromEntries(DESIGN_FEATURES.map(f => [f[0], !(st.design && st.design[f[0]] === false)])),
     },
   };
 }
@@ -215,7 +227,14 @@ function applyTheme(colorKey) {
   const r = document.documentElement.style;
   r.setProperty('--car-light', c.light);
   r.setProperty('--car-dark',  c.dark);
+  r.setProperty('--car-paint', c.hex);
   document.documentElement.setAttribute('data-vehicle-color', colorKey);
+  applyDesign();
+}
+
+function applyDesign() {
+  const d = (typeof state !== 'undefined' && state && state.settings && state.settings.design) || DEFAULT_DESIGN;
+  DESIGN_FEATURES.forEach(([k]) => document.documentElement.classList.toggle('d-' + k, d[k] !== false));
   updateMetaThemeColor();
 }
 
@@ -329,6 +348,15 @@ function getServiceStatus(svc) {
   return ['ok', 'warn', 'alert'][worst];
 }
 
+// Anteil des Intervalls, der seit dem letzten Eintrag verbraucht ist (0–100)
+function intervalUsed(svc) {
+  if (!svc.last) return 0;
+  let used = 0;
+  if (svc.interval.km) used = Math.max(used, (state.vehicle.currentKm - svc.last.km) / svc.interval.km);
+  if (svc.interval.months) used = Math.max(used, -daysUntil(svc.last.date) / (svc.interval.months * 30.44));
+  return Math.round(Math.min(1, Math.max(0, used)) * 100);
+}
+
 function isOverdue(svc) {
   if (!svc.last) return false;
   return (svc.dueKm != null && svc.dueKm - state.vehicle.currentKm <= 0) ||
@@ -355,6 +383,11 @@ function lastEntryForCat(cat) {
 function catIcon(cat) {
   const c = CATEGORIES[cat] || CATEGORIES['Anderes'];
   return `<span class="cat-badge" style="--cat-l:${c.light};--cat-d:${c.dark}"><i class="ph-light ${c.icon}" data-fb="${c.fb}" aria-hidden="true"></i></span>`;
+}
+
+function miniBars(series) {
+  const max = Math.max(...series), min = Math.min(...series) * .9;
+  return `<span class="mini-bars" aria-hidden="true">${series.map(v => `<i style="height:${Math.round(22 + 78 * (v - min) / (max - min || 1))}%"></i>`).join('')}</span>`;
 }
 
 function renderDashboard() {
@@ -385,7 +418,7 @@ function renderDashboard() {
       const sub = fs.avg == null ? 'Noch zu wenig Daten – ab dem 2. vollen Tankstopp'
         : [fs.last != null ? 'Zuletzt ' + fmtNum(fs.last) + ' l/100 km' : '', fs.pricePerL != null ? 'Ø ' + fmtNum(fs.pricePerL, 2) + ' €/l' : ''].filter(Boolean).join(' · ');
       fuelCard.innerHTML = `<span class="cat-badge" style="--cat-l:#0E7490;--cat-d:#22D3EE"><i class="ph-light ph-gas-pump" data-fb="⛽" aria-hidden="true"></i></span>
-        <span class="fuel-card-main"><span class="fuel-card-num">${fs.avg != null ? fmtNum(fs.avg) : '–'}<small>Ø l/100 km</small></span><br><span class="fuel-card-sub">${esc(sub)}</span></span>`;
+        <span class="fuel-card-main"><span class="fuel-card-num">${fs.avg != null ? fmtNum(fs.avg) : '–'}<small>Ø l/100 km</small></span><br><span class="fuel-card-sub">${esc(sub)}</span></span>${fs.series.length > 1 ? miniBars(fs.series.slice(-9)) : ''}`;
     }
   }
 
@@ -408,6 +441,7 @@ function renderDashboard() {
             <div class="stat-num">${esc(svc.category).replace('flüssigkeit', '&shy;flüssigkeit')}</div>
             <div class="stat-lbl">Fällig: ${esc(dueText(svc))}</div>
             <div class="stat-lbl">${lastText(svc.category)}</div>
+            ${svc.last ? `<div class="meter" role="img" aria-label="${intervalUsed(svc)} % des Intervalls verbraucht"><i style="width:${intervalUsed(svc)}%"></i></div>` : ''}
           </div>
         </div>`;
     }).join('') : `
@@ -816,6 +850,12 @@ function renderSettings() {
   renderVehicleInfo('settingsVehicleInfo', state.vehicle);
   renderStats();
   renderIntervalEditor();
+  const dt = document.getElementById('designToggles');
+  if (dt) dt.innerHTML = DESIGN_FEATURES.map(([k, label, hint]) => `
+    <label class="toggle-row">
+      <span class="toggle-text"><strong>${label}</strong><small>${hint}</small></span>
+      <input type="checkbox" class="switch" data-design="${k}" ${state.settings.design[k] ? 'checked' : ''}>
+    </label>`).join('');
 
   buildColorGrid('settingsColorGrid', state.settings.vehicleColor, (key) => {
     state.settings.vehicleColor = key;
@@ -954,6 +994,16 @@ function renderIntervalEditor() {
         <label class="interval-field"><input type="number" inputmode="numeric" min="1" step="1" data-field="months" value="${iv.months || ''}" placeholder="–" aria-label="${esc(cat)}: Intervall in Monaten"><span>Mon.</span></label>
       </div>`;
   }).join('');
+}
+
+function bindDesignToggles() {
+  document.getElementById('designToggles').addEventListener('change', ev => {
+    const input = ev.target.closest('input[data-design]');
+    if (!input) return;
+    state.settings.design[input.dataset.design] = input.checked;
+    saveState();
+    applyDesign();
+  });
 }
 
 function bindIntervalEditor() {
@@ -1575,6 +1625,7 @@ function init() {
   if (!saved) saveState();
   buildCategoryOptions();
   bindHistoryEvents();
+  bindDesignToggles();
   bindFuelEvents();
   bindIntervalEditor();
 
