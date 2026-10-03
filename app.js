@@ -298,6 +298,7 @@ const TAB_TITLES = {
   'dashboard': 'Dashboard',
   'history':   'Service-Historie',
   'fuel':      'Tankprotokoll',
+  'stats':     'Statistik',
   'settings':  'Fahrzeug & Design',
 };
 
@@ -322,6 +323,7 @@ function switchTab(tab) {
   if (tab === 'history')   renderHistory();
   if (tab === 'settings')  renderSettings();
   if (tab === 'fuel')      renderFuel();
+  if (tab === 'stats')     renderStatsPage();
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
@@ -399,8 +401,8 @@ function catIcon(cat) {
 }
 
 // Balkendiagramm der letzten Verbräuche (Dashboard) mit Wertbeschriftung, Datum und Durchschnittslinie
-function fuelChart(points, avg) {
-  const pts = points.slice(-8);
+function fuelChart(points, avg, max = 8) {
+  const pts = points.slice(-max);
   const vals = pts.map(p => p.v), hi = Math.max(...vals, avg), lo = Math.min(...vals, avg) * .85;
   const pct = v => Math.round(12 + 78 * (v - lo) / (hi - lo || 1));
   const mon = d => d.slice(5, 7) + '/' + d.slice(2, 4);
@@ -901,6 +903,101 @@ function renderStats() {
     rows.push(['Kosten', 'noch keine erfasst']);
   }
   el.innerHTML = rows.map(([k, v]) => `<div class="info-row"><span>${esc(k)}</span><strong>${esc(v)}</strong></div>`).join('');
+}
+
+// ─── Statistik ────────────────────────────────────────────────────────────────
+function hbars(rows, unit) {
+  const max = Math.max(...rows.map(r => r.value), 1);
+  return rows.map(r => `
+    <div class="hb">
+      <div class="hb-head"><span class="hb-label">${r.icon || ''}${esc(r.label)}</span><strong>${esc(r.text)}</strong></div>
+      <div class="hb-track"><i style="width:${Math.max(2, Math.round(r.value / max * 100))}%${r.color ? ';background:' + r.color : ''}"></i></div>
+      ${r.sub ? `<div class="hb-sub">${esc(r.sub)}</div>` : ''}
+    </div>`).join('');
+}
+
+function renderStatsPage() {
+  const el = document.getElementById('statsPage');
+  if (!el) return;
+  const svc = state.serviceHistory, fuel = state.fuelLog;
+  if (!svc.length && !fuel.length) {
+    el.innerHTML = `<div class="empty-state"><i class="ph-light ph-chart-bar" data-fb="📊" aria-hidden="true"></i><p>Noch keine Daten für eine Statistik.<br>Trage Services oder Tankstopps ein.</p></div>`;
+    return;
+  }
+  const yearNow = String(new Date().getFullYear());
+  const svcCost = svc.reduce((t, e) => t + (e.cost || 0), 0);
+  const fuelCost = fuel.reduce((t, e) => t + (e.cost || 0), 0);
+  const total = svcCost + fuelCost;
+  const kms = [...svc, ...fuel].map(e => e.km).concat(state.vehicle.currentKm || []).filter(k => k > 0);
+  const driven = kms.length ? Math.max(...kms) - Math.min(...kms) : 0;
+  const thisYear = [...svc, ...fuel].filter(e => e.date.startsWith(yearNow)).reduce((t, e) => t + (e.cost || 0), 0);
+  const tile = (lbl, val, sub) => `<div class="card stat-tile"><span>${lbl}</span><strong>${val}</strong>${sub ? `<small>${sub}</small>` : ''}</div>`;
+
+  // Kosten pro Jahr (Service + Tanken gestapelt)
+  const years = {};
+  svc.forEach(e => { if (e.cost) (years[e.date.slice(0, 4)] ||= { s: 0, f: 0 }).s += e.cost; });
+  fuel.forEach(e => { if (e.cost) (years[e.date.slice(0, 4)] ||= { s: 0, f: 0 }).f += e.cost; });
+  const yKeys = Object.keys(years).sort();
+  const yMax = Math.max(...yKeys.map(y => years[y].s + years[y].f), 1);
+  const yearHtml = yKeys.length ? `
+    <div class="card stat-block">
+      ${yKeys.map(y => { const v = years[y], t = v.s + v.f; return `
+        <div class="hb"><div class="hb-head"><span class="hb-label">${y}</span><strong>${fmtEur(t)}</strong></div>
+        <div class="hb-track stack" style="width:${Math.max(4, Math.round(t / yMax * 100))}%"><i class="s" style="flex:${v.s}"></i><i class="f" style="flex:${v.f}"></i></div></div>`; }).join('')}
+      <div class="hb-legend"><span><i class="s"></i>Service ${fmtEur(svcCost)}</span><span><i class="f"></i>Tanken ${fmtEur(fuelCost)}</span></div>
+    </div>` : `<p class="settings-hint">Noch keine Kosten erfasst.</p>`;
+
+  // Service nach Kategorie
+  const cats = {};
+  svc.forEach(e => { const c = (cats[e.category] ||= { n: 0, cost: 0 }); c.n++; c.cost += e.cost || 0; });
+  const catRows = Object.entries(cats).sort((x, y) => y[1].cost - x[1].cost || y[1].n - x[1].n).map(([k, c]) => ({
+    icon: catIcon(k), label: (CATEGORIES[k] || CATEGORIES.Anderes).label, value: c.cost || c.n * 0.0001 + 0.0001,
+    text: c.cost ? fmtEur(c.cost) : '–', sub: c.n + (c.n === 1 ? ' Eintrag' : ' Einträge'),
+    color: 'var(--cat-bar-' + (CATEGORIES[k] ? Object.keys(CATEGORIES).indexOf(k) : 0) + ')',
+  }));
+
+  // Kilometer pro Jahr (letzter bekannter Stand je Jahresende)
+  const pts = [...svc, ...fuel].map(e => ({ y: e.date.slice(0, 4), km: e.km }));
+  if (state.vehicle.currentKm > 0) pts.push({ y: yearNow, km: state.vehicle.currentKm });
+  const maxKmByYear = {};
+  pts.forEach(p => { maxKmByYear[p.y] = Math.max(maxKmByYear[p.y] || 0, p.km); });
+  const kmYears = Object.keys(maxKmByYear).sort();
+  const kmRows = [];
+  kmYears.forEach((y, i) => {
+    const prev = i ? maxKmByYear[kmYears[i - 1]] : Math.min(...pts.filter(p => p.y === y).map(p => p.km));
+    const d = maxKmByYear[y] - prev;
+    if (d > 0) kmRows.push({ label: y, value: d, text: d.toLocaleString('de-DE') + ' km' });
+  });
+
+  // Verbrauch
+  const fs = fuelStats();
+  const fuelBlock = fs.points.length ? `
+    <div class="card stat-block">
+      ${fuelChart(fs.points, fs.avg, 14)}
+    </div>
+    <div class="card info-card">
+      ${[['Ø Verbrauch', fmtNum(fs.avg) + ' l/100 km'],
+         ['Bester Wert', fmtNum(Math.min(...fs.series)) + ' l/100 km'],
+         ['Höchster Wert', fmtNum(Math.max(...fs.series)) + ' l/100 km'],
+         ['Getankt gesamt', fmtNum(fs.totalLiters, 0) + ' l'],
+         fs.pricePerL != null ? ['Ø Preis', fmtNum(fs.pricePerL, 2) + ' €/l'] : null,
+         fuelCost && driven ? ['Spritkosten', fmtNum(fuelCost / driven * 100, 2) + ' € / 100 km'] : null,
+      ].filter(Boolean).map(([k, v]) => `<div class="info-row"><span>${k}</span><strong>${esc(v)}</strong></div>`).join('')}
+    </div>` : `<p class="settings-hint">Ein Verbrauch wird ab dem zweiten vollen Tankstopp berechnet.</p>`;
+
+  el.innerHTML = `
+    <div class="stat-tiles">
+      ${tile('Kosten gesamt', total ? fmtEur(total) : '–', total ? 'Service + Tanken' : 'noch keine erfasst')}
+      ${tile('Dieses Jahr', thisYear ? fmtEur(thisYear) : '–', yearNow)}
+      ${tile('Gefahren', driven ? driven.toLocaleString('de-DE') + ' km' : '–', 'seit dem ersten Eintrag')}
+      ${tile('Kosten / 100 km', total && driven ? fmtEur(total / driven * 100) : '–', 'Service + Tanken')}
+    </div>
+    <h3 class="section-title">Kosten pro Jahr</h3>
+    ${yearHtml}
+    ${catRows.length ? `<h3 class="section-title">Service nach Kategorie</h3><div class="card stat-block">${hbars(catRows)}</div>` : ''}
+    ${kmRows.length ? `<h3 class="section-title">Kilometer pro Jahr</h3><div class="card stat-block">${hbars(kmRows)}</div><p class="settings-hint">Aus dem jeweils höchsten bekannten Kilometerstand je Jahr, daher ungefähr.</p>` : ''}
+    <h3 class="section-title">Verbrauch</h3>
+    ${fuelBlock}`;
 }
 
 function download(name, text, type) {
@@ -1659,7 +1756,7 @@ function init() {
   // Manifest-Shortcuts (?view=…) und Benachrichtigungen (?action=update)
   const params = new URLSearchParams(location.search);
   const view = params.get('view');
-  switchTab({ history: 'history', fuel: 'fuel', settings: 'settings' }[view] || 'dashboard');
+  switchTab({ history: 'history', fuel: 'fuel', stats: 'stats', settings: 'settings' }[view] || 'dashboard');
   if (view === 'new') openAddEntry();
   if (view === 'tank') { switchTab('fuel'); openFuelDialog(); }
   if (params.get('action') === 'update') setTimeout(() => window.checkForUpdate?.(), 1500);

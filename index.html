@@ -172,6 +172,11 @@
         <button class="fab" onclick="openFuelDialog()" aria-label="Tankstopp eintragen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></button>
     </div>
 
+    <!-- STATISTIK -->
+    <div class="view" id="view-stats">
+        <div class="scroll-content no-fab" id="statsPage"></div>
+    </div>
+
     <!-- FAHRZEUG / EINSTELLUNGEN -->
     <div class="view" id="view-settings">
         <div class="scroll-content no-fab">
@@ -325,6 +330,7 @@
             <div class="menu-group-label">Service</div>
             <button type="button" class="menu-item active" id="nav-dashboard" onclick="switchTab('dashboard')"><span aria-hidden="true" class="menu-icon"><i class="ph-light ph-gauge" data-fb="⏱️"></i></span> Dashboard</button>
             <button type="button" class="menu-item" id="nav-history" onclick="switchTab('history')"><span aria-hidden="true" class="menu-icon"><i class="ph-light ph-clock-counter-clockwise" data-fb="🕘"></i></span> Historie</button>
+            <button type="button" class="menu-item" id="nav-stats" onclick="switchTab('stats')"><span aria-hidden="true" class="menu-icon"><i class="ph-light ph-chart-bar" data-fb="📊"></i></span> Statistik</button>
             <div class="menu-group-label">Fahrzeug</div>
             <button type="button" class="menu-item" id="nav-fuel" onclick="switchTab('fuel')"><span aria-hidden="true" class="menu-icon"><i class="ph-light ph-gas-pump" data-fb="⛽"></i></span> Tanken</button>
             <button type="button" class="menu-item" id="nav-settings" onclick="switchTab('settings')"><span aria-hidden="true" class="menu-icon"><i class="ph-light ph-car-simple" data-fb="🚗"></i></span> Fahrzeug &amp; Design</button>
