@@ -552,6 +552,15 @@ function normalizeVin(v) {
     .replace(/[IOQ]/g, c => (c === 'I' ? '1' : '0')).slice(0, 17);
 }
 
+// BMW-Typschlüssel (VIN-Stellen 4–7) → Baureihe, Schriftzug (inkl. „A“ = Automatik), Karosserie.
+// Europäische BMW-VINs kennt die NHTSA-Datenbank meist nicht – diese Tabelle füllt die Lücke.
+// Nur gesicherte Einträge aufnehmen (Quelle: BMW-Teilekatalog / bimmerarchiv.de).
+const BMW_TYPE_CODES = {
+  DT61: { series: 'E39', badge: '530iA', body: 'Limousine' },
+  DL91: { series: 'E39', badge: '525d',  body: 'Limousine' },
+  DD11: { series: 'E39', badge: '520i',  body: 'Limousine' },
+};
+
 function decodeVinLocal(vin) {
   const out = { vin };
   out.make = WMI_MAKES[vin.slice(0, 3)] || WMI2_MAKES[vin.slice(0, 2)] || '';
@@ -559,6 +568,13 @@ function decodeVinLocal(vin) {
   if (region) out.plant = region[1];
   // BMW/MINI: „kurze“ Fahrgestellnummer = letzte 7 Stellen
   if (/^(BMW|MINI)/.test(out.make)) out.chassis = vin.slice(-7);
+  const tc = /^BMW/.test(out.make) && BMW_TYPE_CODES[vin.slice(3, 7)];
+  if (tc) {
+    out.series = tc.series;
+    out.model = [tc.series, tc.badge].filter(Boolean).join(' ');
+    if (tc.body) out.body = tc.body;
+    if (/A$/.test(tc.badge)) out.transmission = 'Automatik';
+  }
   // Modelljahr (Stelle 10) ist nur in Nordamerika verbindlich – offline nur dort verwenden
   if (/^[1-5]/.test(vin)) {
     const idx = MODEL_YEAR_CODES.indexOf(vin[9]);
@@ -714,8 +730,11 @@ async function decodeVin(vin) {
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const json = await res.json();
     const online = mapVpic((json.Results && json.Results[0]) || {});
-    if (!online.make && !online.model) return { vehicle: local, source: 'unknown' };
-    return { vehicle: Object.assign({}, local, online), source: 'online' };
+    if (!online.make && !online.model) return { vehicle: local, source: local.model ? 'local' : 'unknown' };
+    // Typschlüssel-Tabelle ist bei BMW genauer als die (US-)Datenbank
+    const merged = Object.assign({}, local, online);
+    if (local.model) ['model', 'series', 'body', 'transmission'].forEach(k => { if (local[k]) merged[k] = local[k]; });
+    return { vehicle: merged, source: merged.model ? 'online' : 'nomodel' };
   } catch (e) {
     console.warn('VIN-Abfrage fehlgeschlagen:', e);
     return { vehicle: local, source: 'offline' };
@@ -796,19 +815,22 @@ function showOnboardingDetails(decoded, source) {
 
   const notes = {
     online:  'Diese Daten wurden über die VIN ermittelt. Ergänze, was fehlt.',
+    local:   'Modell über den Typschlüssel in der VIN erkannt. Ergänze, was fehlt.',
+    nomodel: 'Hersteller erkannt, das Modell ließ sich aus der VIN aber nicht ermitteln. Bitte Modellbezeichnung ergänzen (z.B. E39 530iA).',
     unknown: 'Zu dieser VIN wurden online keine Modelldaten gefunden – Hersteller und Herkunft stammen direkt aus der VIN. Bitte Modell ergänzen.',
     offline: 'Die Online-Abfrage war nicht möglich (offline?). Hersteller und Herkunft stammen direkt aus der VIN – du kannst die VIN später unter „Fahrzeug & Design“ erneut abrufen.',
     manual:  'Trage die Daten deines Fahrzeugs ein.',
   };
   document.getElementById('onboardingDecodeNote').textContent = notes[source] || '';
-  document.getElementById('onboardingVehicleTitle').textContent = vehicleTitle(decoded) || 'Dein Fahrzeug';
+  document.getElementById('onboardingVehicleTitle').textContent = decoded.model ? vehicleTitle(decoded) : 'Dein Fahrzeug';
   const infoCard = document.getElementById('onboardingVehicleInfo');
   infoCard.hidden = source === 'manual';
   renderVehicleInfo('onboardingVehicleInfo', decoded);
 
   // Vorbelegen: dekodierte Werte, sonst vorhandene (bei gleicher VIN / ohne VIN)
   const keep = sameVin || !decoded.vin;
-  document.getElementById('onboardingModel').value    = vehicleTitle(decoded) || (keep ? vehicleTitle(cur) : '');
+  // Nur den Hersteller (z.B. „BMW“) nicht als Modellbezeichnung vorbelegen
+  document.getElementById('onboardingModel').value    = decoded.model ? vehicleTitle(decoded) : (keep && cur.model ? vehicleTitle(cur) : '');
   document.getElementById('onboardingFirstReg').value = cur.firstRegistration || '';
   document.getElementById('onboardingKm').value       = cur.currentKm || '';
 
@@ -840,8 +862,10 @@ function finishOnboarding(event) {
 
   // Manuell geänderte Modellbezeichnung übernehmen
   if (modelInput && modelInput !== vehicleTitle(decoded)) {
-    vehicle.model = modelInput;
-    if (vehicle.make && !modelInput.toLowerCase().startsWith(vehicle.make.toLowerCase())) vehicle.make = '';
+    // „BMW E39 530iA“ oder nur „E39 530iA“ – Hersteller bleibt erhalten, nicht doppelt
+    const make = vehicle.make || '';
+    vehicle.model = make && modelInput.toLowerCase().startsWith(make.toLowerCase() + ' ')
+      ? modelInput.slice(make.length + 1).trim() : modelInput;
   }
   vehicle.firstRegistration = document.getElementById('onboardingFirstReg').value || '';
   if (!isNaN(km) && km >= 0) vehicle.currentKm = km;
