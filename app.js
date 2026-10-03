@@ -20,17 +20,17 @@ const BMW_COLORS = {
 
 // ─── Kategorien ───────────────────────────────────────────────────────────────
 const CATEGORIES = {
-  'Öl':               { icon: 'ph-drop',           fb: '🛢️', label: 'Öl' },
-  'Bremsflüssigkeit': { icon: 'ph-disc',           fb: '💧', label: 'Bremsflüssigkeit' },
-  'Kühlmittel':       { icon: 'ph-thermometer',    fb: '🌡️', label: 'Kühlmittel' },
-  'Zündkerzen':       { icon: 'ph-lightning',      fb: '⚡', label: 'Zündkerzen' },
-  'Inspektion':       { icon: 'ph-clipboard-text', fb: '📋', label: 'Inspektion' },
-  'Filter':           { icon: 'ph-funnel',         fb: '🌀', label: 'Filter' },
-  'Bremsen':          { icon: 'ph-stop-circle',    fb: '🛑', label: 'Bremsen' },
-  'Getriebe':         { icon: 'ph-gear',           fb: '⚙️', label: 'Getriebe / Differential' },
-  'Reifen':           { icon: 'ph-tire',           fb: '🛞', label: 'Reifen / Räder' },
-  'TÜV':              { icon: 'ph-seal-check',     fb: '✅', label: 'TÜV (HU/AU)' },
-  'Anderes':          { icon: 'ph-wrench',         fb: '🔧', label: 'Anderes (Sonstiges)' },
+  'Öl':               { icon: 'ph-drop',           fb: '🛢️', light: '#B45309', dark: '#FBBF24', label: 'Öl' },
+  'Bremsflüssigkeit': { icon: 'ph-disc',           fb: '💧', light: '#0369A1', dark: '#38BDF8', label: 'Bremsflüssigkeit' },
+  'Kühlmittel':       { icon: 'ph-thermometer',    fb: '🌡️', light: '#0E7490', dark: '#22D3EE', label: 'Kühlmittel' },
+  'Zündkerzen':       { icon: 'ph-lightning',      fb: '⚡', light: '#A16207', dark: '#FACC15', label: 'Zündkerzen' },
+  'Inspektion':       { icon: 'ph-clipboard-text', fb: '📋', light: '#4338CA', dark: '#A5B4FC', label: 'Inspektion' },
+  'Filter':           { icon: 'ph-funnel',         fb: '🌀', light: '#15803D', dark: '#4ADE80', label: 'Filter' },
+  'Bremsen':          { icon: 'ph-stop-circle',    fb: '🛑', light: '#B91C1C', dark: '#F87171', label: 'Bremsen' },
+  'Getriebe':         { icon: 'ph-gear',           fb: '⚙️', light: '#6D28D9', dark: '#C4B5FD', label: 'Getriebe / Differential' },
+  'Reifen':           { icon: 'ph-tire',           fb: '🛞', light: '#334155', dark: '#CBD5E1', label: 'Reifen / Räder' },
+  'TÜV':              { icon: 'ph-seal-check',     fb: '✅', light: '#047857', dark: '#34D399', label: 'TÜV (HU/AU)' },
+  'Anderes':          { icon: 'ph-wrench',         fb: '🔧', light: '#52525B', dark: '#A1A1AA', label: 'Anderes (Sonstiges)' },
 };
 
 // Wartungsintervalle (vom Nutzer einstellbar): km und/oder Monate; leer = nicht verfolgt
@@ -316,7 +316,7 @@ function lastEntryForCat(cat) {
 
 function catIcon(cat) {
   const c = CATEGORIES[cat] || CATEGORIES['Anderes'];
-  return `<i class="ph-light ${c.icon}" data-fb="${c.fb}" aria-hidden="true"></i>`;
+  return `<span class="cat-badge" style="--cat-l:${c.light};--cat-d:${c.dark}"><i class="ph-light ${c.icon}" data-fb="${c.fb}" aria-hidden="true"></i></span>`;
 }
 
 function renderDashboard() {

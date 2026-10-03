@@ -551,3 +551,14 @@ i.ph-light[data-fb]::before { filter: grayscale(1); opacity: .85; }
     #printArea th, #printArea td { border-bottom: 1px solid #bbb; padding: 4px 6px; text-align: left; vertical-align: top; }
     #printArea tr { break-inside: avoid; }
 }
+
+/* ── Farbige Kategorie-Icons ── */
+.cat-badge { --cat: var(--cat-l); display: grid; place-items: center; width: 100%; height: 100%; border-radius: 999px;
+    color: var(--cat); background: color-mix(in srgb, var(--cat) 15%, var(--bg-elevated)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cat) 22%, transparent); }
+:root[data-theme="dark"] .cat-badge { --cat: var(--cat-d); background: color-mix(in srgb, var(--cat) 18%, var(--bg-elevated)); }
+.cat-badge i { line-height: 1; }
+.list-icon:has(> .cat-badge) { background: none; box-shadow: none; }
+.stat-ico { width: 30px; height: 30px; display: inline-block; }
+.stat-ico .cat-badge { font-size: 17px; }
+.interval-name .stat-ico, .interval-name > .cat-badge { width: 30px; height: 30px; flex-shrink: 0; font-size: 16px; }
+.interval-name i { color: inherit; font-size: inherit; }
