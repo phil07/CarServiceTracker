@@ -687,6 +687,43 @@ function printHistory() {
   window.print();
 }
 
+// Stichwort-Zuordnung für Einträge in „Anderes“ (Reihenfolge = Vorrang bei mehreren Treffern)
+const CATEGORY_KEYWORDS = [
+  ['Inspektion',       /inspektion|ölservice/i],
+  ['Zündkerzen',       /zündkerz/i],
+  ['Bremsflüssigkeit', /bremsflüssigkeit/i],
+  ['Bremsen',          /bremsen|bremsbel|bremsscheib|bremssattel|ankerblech/i],
+  ['Getriebe',         /getriebe|differential|wandler|hardyscheibe|mittellager|antriebswelle|gleichlaufgelenk|servo/i],
+  ['Reifen',           /reifen|rondell|felge|spureinstellung|achsteile/i],
+  ['TÜV',              /tüv|\bhu\b|\bau\b|hauptuntersuchung/i],
+  ['Kühlmittel',       /kühlmittel|kühler|thermostat/i],
+  ['Filter',           /filter/i],
+];
+
+function guessCategory(text) {
+  const hit = CATEGORY_KEYWORDS.find(([, re]) => re.test(text));
+  return hit ? hit[0] : null;
+}
+
+async function autoCategorize() {
+  const todo = state.serviceHistory.filter(e => e.category === 'Anderes')
+    .map(e => ({ e, cat: guessCategory(e.description) })).filter(x => x.cat);
+  if (!todo.length) { showToast('Keine passenden Einträge in „Anderes“ gefunden', 'warn'); return; }
+  const counts = {};
+  todo.forEach(x => { counts[x.cat] = (counts[x.cat] || 0) + 1; });
+  const summary = Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([c, n]) => `${c} ${n}`).join(' · ');
+  const ok = await confirmDialog({
+    title: `${todo.length} Einträge zuordnen?`,
+    text: `Anhand von Stichwörtern in der Beschreibung werden Einträge aus „Anderes“ verschoben: ${summary}. Bei mehreren Stichwörtern entscheidet die wichtigste Kategorie. Einzelne Einträge kannst du danach jederzeit ändern.`,
+    ok: 'Zuordnen',
+  });
+  if (!ok) return;
+  todo.forEach(x => { x.e.category = x.cat; });
+  saveState();
+  showToast(todo.length + ' Einträge zugeordnet ✓', 'ok');
+  renderSettings();
+}
+
 // Intervall-Editor: eine Zeile je Kategorie (km und Monate), Änderungen werden sofort gespeichert
 function renderIntervalEditor() {
   const el = document.getElementById('intervalEditor');
