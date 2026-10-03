@@ -6,15 +6,35 @@
 // light = Akzent im hellen Design (weiße Schrift darauf, ≥ 4.5:1)
 // dark  = Akzent im dunklen Design (dunkle Schrift darauf)
 const BMW_COLORS = {
-  titansilber:  { label: 'Titansilber',  hex: '#8a8f98', light: '#B45309', dark: '#FF9F43' },
-  orientblau:   { label: 'Orientblau',   hex: '#1e3a8a', light: '#1D4ED8', dark: '#60A5FA' },
-  calypsorot:   { label: 'Calypsorot',   hex: '#8b1a1a', light: '#C81E1E', dark: '#F87171' },
-  dakargelb:    { label: 'Dakargelb',    hex: '#d9a521', light: '#A16207', dark: '#FACC15' },
-  bostongruen:  { label: 'Bostongrün',   hex: '#14532d', light: '#15803D', dark: '#4ADE80' },
-  imperialblau: { label: 'Imperialblau', hex: '#1e2f6b', light: '#3730A3', dark: '#A5B4FC' },
-  schwarz:      { label: 'Schwarz',      hex: '#1c1c1f', light: '#27272A', dark: '#E4E4E7' },
-  alpinweiss:   { label: 'Alpinweiß',    hex: '#e5e7eb', light: '#475569', dark: '#E2E8F0' },
+  // Silber / Grau
+  alpinweiss:   { label: 'Alpinweiß',    hex: '#e8e8e6', light: '#475569', dark: '#E2E8F0' },
+  arktissilber: { label: 'Arktissilber', hex: '#a9adb3', light: '#52525B', dark: '#D4D4D8' },
   hellsilber:   { label: 'Hellsilber',   hex: '#b8bec7', light: '#52525B', dark: '#CBD5E1' },
+  kashmirsilber:{ label: 'Kashmirsilber',hex: '#b1b4ae', light: '#57534E', dark: '#D6D3D1' },
+  titansilber:  { label: 'Titansilber',  hex: '#8a8f98', light: '#B45309', dark: '#FF9F43' },
+  sterlinggrau: { label: 'Sterlinggrau', hex: '#7b7f86', light: '#475569', dark: '#CBD5E1' },
+  stahlgrau:    { label: 'Stahlgrau',    hex: '#656a72', light: '#374151', dark: '#D1D5DB' },
+  fjordgrau:    { label: 'Fjordgrau',    hex: '#5b6672', light: '#334155', dark: '#CBD5E1' },
+  // Schwarz
+  schwarz:      { label: 'Schwarz',      hex: '#1c1c1f', light: '#27272A', dark: '#E4E4E7' },
+  diamantschwarz:{label: 'Diamantschwarz',hex:'#1b1d22', light: '#1F2937', dark: '#E5E7EB' },
+  cosmosschwarz:{ label: 'Cosmosschwarz',hex: '#101216', light: '#18181B', dark: '#E4E4E7' },
+  carbonschwarz:{ label: 'Carbonschwarz',hex: '#202328', light: '#27272A', dark: '#E4E4E7' },
+  // Blau
+  orientblau:   { label: 'Orientblau',   hex: '#1e3a8a', light: '#1D4ED8', dark: '#60A5FA' },
+  imperialblau: { label: 'Imperialblau', hex: '#1e2f6b', light: '#3730A3', dark: '#A5B4FC' },
+  topasblau:    { label: 'Topasblau',    hex: '#3a6ea5', light: '#1D4ED8', dark: '#7DB4F0' },
+  montrealblau: { label: 'Montrealblau', hex: '#2c4a78', light: '#1E40AF', dark: '#93C5FD' },
+  biarritzblau: { label: 'Biarritzblau', hex: '#6f93b8', light: '#0369A1', dark: '#7DD3FC' },
+  avusblau:     { label: 'Avusblau',     hex: '#1f4fa8', light: '#1D4ED8', dark: '#60A5FA' },
+  // Rot
+  calypsorot:   { label: 'Calypsorot',   hex: '#8b1a1a', light: '#C81E1E', dark: '#F87171' },
+  sienarot:     { label: 'Sienarot',     hex: '#6e1f22', light: '#B91C1C', dark: '#FCA5A5' },
+  // Grün
+  bostongruen:  { label: 'Bostongrün',   hex: '#14532d', light: '#15803D', dark: '#4ADE80' },
+  oxfordgruen:  { label: 'Oxfordgrün',   hex: '#1f3f2e', light: '#166534', dark: '#6EE7A0' },
+  // Gelb / Beige
+  dakargelb:    { label: 'Dakargelb',    hex: '#d9a521', light: '#A16207', dark: '#FACC15' },
   mojavesand:   { label: 'Mojavesand',   hex: '#a8875c', light: '#92400E', dark: '#E3A869' },
 };
 
