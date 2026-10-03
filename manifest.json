@@ -27,6 +27,10 @@
     {
       "name": "Neuer Eintrag",
       "url": "./?view=new"
+    },
+    {
+      "name": "Tanken",
+      "url": "./?view=tank"
     }
   ]
 }

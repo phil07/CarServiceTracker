@@ -52,6 +52,7 @@ const EMPTY_DATA = {
     currentKm: 0,
   },
   serviceHistory: [],
+  fuelLog: [],
   settings: { vehicleColor: 'titansilber', onboardingDone: false, intervals: DEFAULT_INTERVALS },
 };
 
@@ -121,11 +122,26 @@ function normalizeState(raw) {
     serviceHistory.push(entry);
   });
 
+  const fuelLog = [];
+  (Array.isArray(raw.fuelLog) ? raw.fuelLog : []).forEach(f => {
+    if (!f || typeof f !== 'object') return;
+    const km = toInt(f.km, 0), liters = Number(f.liters);
+    if (!parseDate(String(f.date || '')) || km === null || !isFinite(liters) || liters <= 0) return;
+    let id = String(f.id || '');
+    if (!/^[\w-]+$/.test(id) || seen.has(id)) id = uid();
+    seen.add(id);
+    const entry = { id, date: String(f.date), km, liters: Math.round(liters * 100) / 100, full: f.full !== false };
+    const cost = Number(f.cost);
+    if (f.cost !== '' && f.cost != null && isFinite(cost) && cost >= 0) entry.cost = Math.round(cost * 100) / 100;
+    fuelLog.push(entry);
+  });
+
   const st = raw.settings && typeof raw.settings === 'object' ? raw.settings : {};
   const hasVehicle = !!(vehicle.vin || vehicle.make || vehicle.model || vehicle.chassis);
   return {
     vehicle,
     serviceHistory,
+    fuelLog,
     settings: {
       vehicleColor: BMW_COLORS[st.vehicleColor] ? st.vehicleColor : 'titansilber',
       onboardingDone: st.onboardingDone === true || hasVehicle,
@@ -229,6 +245,7 @@ document.addEventListener('keydown', e => {
 const TAB_TITLES = {
   'dashboard': 'Dashboard',
   'history':   'Service-Historie',
+  'fuel':      'Tankprotokoll',
   'settings':  'Fahrzeug & Design',
 };
 
@@ -252,6 +269,7 @@ function switchTab(tab) {
   if (tab === 'dashboard') renderDashboard();
   if (tab === 'history')   renderHistory();
   if (tab === 'settings')  renderSettings();
+  if (tab === 'fuel')      renderFuel();
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
@@ -609,6 +627,156 @@ async function handleFormSubmit(event) {
   editingId = null;
   renderHeader();
   switchTab(activeTab === 'history' ? 'history' : 'dashboard');
+}
+
+// ─── Tankprotokoll ────────────────────────────────────────────────────────────
+const fmtNum = (n, d = 1) => n.toLocaleString('de-DE', { minimumFractionDigits: d, maximumFractionDigits: d });
+
+// Verbrauch nach der Voll-zu-Voll-Methode: Liter seit der letzten vollen Betankung (ohne diese)
+// geteilt durch die gefahrenen Kilometer. Teilbetankungen werden aufsummiert.
+function fuelStats() {
+  const log = [...state.fuelLog].sort((a, b) => a.km - b.km || a.date.localeCompare(b.date));
+  const seg = new Map();
+  let anchor = null, liters = 0;
+  log.forEach(e => {
+    if (anchor) {
+      liters += e.liters;
+      if (e.full) {
+        const km = e.km - anchor.km;
+        if (km > 0) seg.set(e.id, { km, liters, l100: liters / km * 100 });
+        anchor = e; liters = 0;
+      }
+    } else if (e.full) { anchor = e; liters = 0; }
+  });
+  const segs = [...seg.values()];
+  const sumKm = segs.reduce((t, x) => t + x.km, 0);
+  const sumL = segs.reduce((t, x) => t + x.liters, 0);
+  const priced = state.fuelLog.filter(e => e.cost != null);
+  const pl = priced.reduce((t, e) => t + e.liters, 0);
+  return {
+    seg,
+    avg: sumKm ? sumL / sumKm * 100 : null,
+    last: log.filter(e => seg.has(e.id)).map(e => seg.get(e.id).l100).pop() ?? null,
+    series: log.filter(e => seg.has(e.id)).map(e => seg.get(e.id).l100),
+    totalLiters: state.fuelLog.reduce((t, e) => t + e.liters, 0),
+    totalCost: priced.reduce((t, e) => t + e.cost, 0),
+    pricePerL: pl ? priced.reduce((t, e) => t + e.cost, 0) / pl : null,
+  };
+}
+
+function renderFuel() {
+  const st = fuelStats();
+  const sum = document.getElementById('fuelSummary');
+  const stat = (lbl, val) => `<div class="fuel-stat"><span>${lbl}</span><strong>${val}</strong></div>`;
+  const bars = st.series.slice(-14);
+  const max = Math.max(...bars, 1), min = Math.min(...bars);
+  sum.innerHTML = `
+    <div class="fuel-hero">
+      <div class="hero-eyebrow">Ø Verbrauch</div>
+      <div class="hero-num-row"><span class="hero-num">${st.avg != null ? fmtNum(st.avg) : '–'}</span><span class="hero-unit">l/100 km</span></div>
+    </div>
+    ${bars.length > 1 ? `<div class="fuel-bars" role="img" aria-label="Verbrauch der letzten Tankstopps">${bars.map(v =>
+      `<span style="height:${Math.round(25 + 75 * (v - min * .9) / (max - min * .9 || 1))}%" title="${fmtNum(v)} l/100 km"></span>`).join('')}</div>` : ''}
+    <div class="fuel-stats">
+      ${stat('Letzter', st.last != null ? fmtNum(st.last) + ' l/100 km' : '–')}
+      ${stat('Ø Preis', st.pricePerL != null ? fmtNum(st.pricePerL, 3) + ' €/l' : '–')}
+      ${stat('Getankt', fmtNum(st.totalLiters, 0) + ' l')}
+      ${stat('Kosten', st.totalCost ? fmtEur(st.totalCost) : '–')}
+    </div>
+    ${state.fuelLog.length && st.avg == null ? '<p class="fuel-note">Der Verbrauch wird ab dem zweiten vollen Tankstopp berechnet.</p>' : ''}`;
+
+  const list = document.getElementById('fuelList');
+  const items = [...state.fuelLog].sort((a, b) => b.km - a.km || b.date.localeCompare(a.date));
+  if (!items.length) {
+    list.classList.add('is-empty');
+    list.innerHTML = '<div class="empty-state"><i class="ph-light ph-gas-pump" data-fb="⛽"></i><p>Noch keine Tankstopps – tippe auf +<br>und tanke beim nächsten Mal voll.</p></div>';
+    return;
+  }
+  list.classList.remove('is-empty');
+  list.innerHTML = items.map(e => {
+    const s = st.seg.get(e.id);
+    return `
+      <button type="button" class="list-row" data-id="${esc(e.id)}">
+        <div class="list-icon"><span class="cat-badge" style="--cat-l:#C2410C;--cat-d:#FB923C"><i class="ph-light ph-gas-pump" data-fb="⛽" aria-hidden="true"></i></span></div>
+        <div class="list-body">
+          <div class="list-title">${fmtNum(e.liters, 2)} l${e.full ? '' : ' <small class="muted-tag">teilgetankt</small>'}</div>
+          <div class="list-sub">${formatDate(e.date)} · ${e.km.toLocaleString('de-DE')} km</div>
+        </div>
+        <div class="list-meta">
+          <div>${s ? fmtNum(s.l100) + ' l/100' : '–'}</div>
+          <div>${e.cost != null ? fmtEur(e.cost) : ''}</div>
+        </div>
+      </button>`;
+  }).join('');
+}
+
+let editingFuelId = null;
+
+function openFuelDialog(entry) {
+  setMenuOpen(false);
+  const edit = entry && entry.id ? entry : null;
+  editingFuelId = edit ? edit.id : null;
+  document.getElementById('fuelForm').reset();
+  document.getElementById('fuelDialogTitle').textContent = edit ? 'Tankstopp bearbeiten' : 'Tankstopp';
+  document.getElementById('fuel-date').max   = todayIso();
+  document.getElementById('fuel-date').value = edit ? edit.date : todayIso();
+  document.getElementById('fuel-km').value   = edit ? edit.km : (state.vehicle.currentKm || '');
+  document.getElementById('fuel-liters').value = edit ? edit.liters : '';
+  document.getElementById('fuel-cost').value   = edit && edit.cost != null ? edit.cost : '';
+  document.getElementById('fuel-full').checked = edit ? edit.full : true;
+  document.getElementById('fuelDeleteBtn').hidden = !edit;
+  document.getElementById('modal-fuel').showModal();
+}
+
+async function handleFuelSubmit(event) {
+  event.preventDefault();
+  const date = document.getElementById('fuel-date').value;
+  const km = parseInt(document.getElementById('fuel-km').value, 10);
+  const liters = Math.round(parseFloat(document.getElementById('fuel-liters').value) * 100) / 100;
+  const costRaw = document.getElementById('fuel-cost').value;
+  const cost = costRaw === '' ? null : Math.round(parseFloat(costRaw) * 100) / 100;
+  const full = document.getElementById('fuel-full').checked;
+  if (!date) { showToast('Datum fehlt', 'err'); return; }
+  if (isNaN(km) || km < 0) { showToast('Ungültiger KM-Stand', 'err'); return; }
+  if (isNaN(liters) || liters <= 0 || liters > 300) { showToast('Ungültige Literzahl', 'err'); return; }
+  if (cost !== null && (isNaN(cost) || cost < 0)) { showToast('Ungültiger Betrag', 'err'); return; }
+
+  const cur = state.vehicle.currentKm;
+  if (cur && km > cur + KM_JUMP) {
+    const ok = await confirmDialog({ title: 'Stimmt das?', text: `Der Kilometerstand liegt ${(km - cur).toLocaleString('de-DE')} km über dem aktuellen Stand (${cur.toLocaleString('de-DE')} km).`, ok: 'Trotzdem speichern' });
+    if (!ok) return;
+  }
+  const fields = { date, km, liters, full };
+  if (cost !== null) fields.cost = cost;
+  const existing = editingFuelId && state.fuelLog.find(x => x.id === editingFuelId);
+  if (existing) { delete existing.cost; Object.assign(existing, fields); }
+  else state.fuelLog.push(Object.assign({ id: uid() }, fields));
+  if (km > state.vehicle.currentKm) state.vehicle.currentKm = km;
+  saveState();
+  document.getElementById('modal-fuel').close();
+  showToast(existing ? 'Änderungen gespeichert ✓' : 'Tankstopp gespeichert ✓', 'ok');
+  editingFuelId = null;
+  renderHeader();
+  renderFuel();
+}
+
+async function deleteFuel() {
+  const ok = await confirmDialog({ title: 'Tankstopp löschen?', text: 'Der Eintrag wird entfernt und der Verbrauch neu berechnet.', ok: 'Löschen', danger: true });
+  if (!ok) return;
+  state.fuelLog = state.fuelLog.filter(x => x.id !== editingFuelId);
+  saveState();
+  document.getElementById('modal-fuel').close();
+  showToast('Tankstopp gelöscht', 'warn');
+  editingFuelId = null;
+  renderFuel();
+}
+
+function bindFuelEvents() {
+  document.getElementById('fuelList').addEventListener('click', ev => {
+    const row = ev.target.closest('[data-id]');
+    const e = row && state.fuelLog.find(x => x.id === row.dataset.id);
+    if (e) openFuelDialog(e);
+  });
 }
 
 // ─── Settings ─────────────────────────────────────────────────────────────────
@@ -1352,6 +1520,7 @@ function init() {
   if (!saved) saveState();
   buildCategoryOptions();
   bindHistoryEvents();
+  bindFuelEvents();
   bindIntervalEditor();
 
   let themeSaved = 'auto';
@@ -1378,8 +1547,9 @@ function init() {
   // Manifest-Shortcuts (?view=…) und Benachrichtigungen (?action=update)
   const params = new URLSearchParams(location.search);
   const view = params.get('view');
-  switchTab({ history: 'history', settings: 'settings' }[view] || 'dashboard');
+  switchTab({ history: 'history', fuel: 'fuel', settings: 'settings' }[view] || 'dashboard');
   if (view === 'new') openAddEntry();
+  if (view === 'tank') { switchTab('fuel'); openFuelDialog(); }
   if (params.get('action') === 'update') setTimeout(() => window.checkForUpdate?.(), 1500);
   if (params.has('view') || params.has('action')) history.replaceState(null, '', location.pathname);
 }
