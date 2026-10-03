@@ -437,7 +437,7 @@ function renderHistory() {
   if (historySearchVal.trim()) {
     const q = historySearchVal.toLowerCase();
     items = items.filter(e =>
-      [e.category, e.description, formatDate(e.date), String(e.km), e.km.toLocaleString('de-DE')]
+      [e.category, e.description, e.shop || '', formatDate(e.date), String(e.km), e.km.toLocaleString('de-DE')]
         .join(' ').toLowerCase().includes(q)
     );
   }
@@ -501,7 +501,9 @@ function openHistoryDetail(id) {
   document.getElementById('detailCat').textContent = e.category;
   document.getElementById('detailDesc').textContent = e.description;
   document.getElementById('detailMeta').innerHTML =
-    `<span class="meta-chip">${formatDate(e.date)}</span><span class="meta-chip">${e.km.toLocaleString('de-DE')} km</span>`;
+    `<span class="meta-chip">${formatDate(e.date)}</span><span class="meta-chip">${e.km.toLocaleString('de-DE')} km</span>` +
+    (e.cost != null ? `<span class="meta-chip">${fmtEur(e.cost)}</span>` : '') +
+    (e.shop ? `<span class="meta-chip"><span>${esc(e.shop)}</span></span>` : '');
   resetDeleteConfirm();
   document.getElementById('modal-entry-detail').showModal();
 }
@@ -550,6 +552,8 @@ function openAddEntry(entry) {
   document.getElementById('form-date').value        = edit ? edit.date : todayIso();
   document.getElementById('form-km').value          = edit ? edit.km : (state.vehicle.currentKm || '');
   document.getElementById('form-description').value = edit ? edit.description : '';
+  document.getElementById('form-cost').value        = edit && edit.cost != null ? edit.cost : '';
+  document.getElementById('form-shop').value        = edit ? (edit.shop || '') : '';
   document.getElementById('modal-add-entry').showModal();
 }
 
@@ -578,8 +582,12 @@ async function handleFormSubmit(event) {
   const date        = document.getElementById('form-date').value;
   const km          = parseInt(document.getElementById('form-km').value, 10);
   const description = document.getElementById('form-description').value.trim();
+  const costRaw     = document.getElementById('form-cost').value;
+  const cost        = costRaw === '' ? null : Math.round(parseFloat(costRaw) * 100) / 100;
+  const shop        = document.getElementById('form-shop').value.trim();
 
   if (!date)               { showToast('Datum fehlt', 'err'); return; }
+  if (cost !== null && (isNaN(cost) || cost < 0)) { showToast('Ungültiger Betrag', 'err'); return; }
   if (isNaN(km) || km < 0) { showToast('Ungültiger KM-Stand', 'err'); return; }
   if (!description)        { showToast('Beschreibung fehlt', 'err'); return; }
 
@@ -587,8 +595,13 @@ async function handleFormSubmit(event) {
   if (warn && !(await confirmDialog({ title: 'Stimmt das?', text: warn, ok: 'Trotzdem speichern' }))) return;
 
   const existing = editingId && state.serviceHistory.find(x => x.id === editingId);
-  if (existing) Object.assign(existing, { date, km, category, description });
-  else state.serviceHistory.push({ id: uid(), date, km, category, description });
+  const fields = { date, km, category, description };
+  if (cost !== null) fields.cost = cost;
+  if (shop) fields.shop = shop;
+  if (existing) {
+    delete existing.cost; delete existing.shop;
+    Object.assign(existing, fields);
+  } else state.serviceHistory.push(Object.assign({ id: uid() }, fields));
   if (km > state.vehicle.currentKm) state.vehicle.currentKm = km;
   saveState();
   closeAddEntry();
@@ -601,6 +614,7 @@ async function handleFormSubmit(event) {
 // ─── Settings ─────────────────────────────────────────────────────────────────
 function renderSettings() {
   renderVehicleInfo('settingsVehicleInfo', state.vehicle);
+  renderStats();
   renderIntervalEditor();
 
   buildColorGrid('settingsColorGrid', state.settings.vehicleColor, (key) => {
@@ -610,6 +624,67 @@ function renderSettings() {
     renderSettings();
     showToast('Farbe geändert: ' + BMW_COLORS[key].label, 'ok');
   });
+}
+
+const fmtEur = n => n.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+
+function renderStats() {
+  const el = document.getElementById('statsCard');
+  if (!el) return;
+  const h = state.serviceHistory;
+  const withCost = h.filter(e => e.cost != null);
+  const total = withCost.reduce((t, e) => t + e.cost, 0);
+  const rows = [['Einträge', String(h.length)]];
+  if (withCost.length) {
+    const year = String(new Date().getFullYear());
+    const thisYear = withCost.filter(e => e.date.startsWith(year)).reduce((t, e) => t + e.cost, 0);
+    rows.push(['Gesamtkosten', fmtEur(total) + ' (' + withCost.length + (withCost.length === 1 ? ' Eintrag' : ' Einträge') + ')']);
+    rows.push(['Kosten ' + year, fmtEur(thisYear)]);
+  } else {
+    rows.push(['Kosten', 'noch keine erfasst']);
+  }
+  el.innerHTML = rows.map(([k, v]) => `<div class="info-row"><span>${esc(k)}</span><strong>${esc(v)}</strong></div>`).join('');
+}
+
+function download(name, text, type) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = Object.assign(document.createElement('a'), { href: url, download: name });
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+function historyFileTag() {
+  return (vehicleTitle(state.vehicle) || 'fahrzeug').replace(/[^\w]+/g, '-').replace(/^-|-$/g, '');
+}
+
+// CSV für Excel (Semikolon, UTF-8-BOM, Zahlen im deutschen Format)
+function exportCsv() {
+  const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+  const rows = [['Datum', 'Kilometer', 'Kategorie', 'Beschreibung', 'Kosten (EUR)', 'Werkstatt']];
+  [...state.serviceHistory].sort(byRecent).forEach(e => rows.push([
+    formatDate(e.date), e.km, e.category, e.description, e.cost != null ? String(e.cost).replace('.', ',') : '', e.shop || '',
+  ]));
+  download('service-tracker-' + historyFileTag() + '-' + todayIso() + '.csv',
+    '\ufeff' + rows.map(r => r.map(q).join(';')).join('\r\n'), 'text/csv;charset=utf-8');
+  showToast('CSV exportiert', 'ok');
+}
+
+// Druckansicht (Scheckheft) – über „Als PDF speichern“ im Druckdialog
+function printHistory() {
+  const v = state.vehicle;
+  const sorted = [...state.serviceHistory].sort(byRecent);
+  const total = sorted.reduce((t, e) => t + (e.cost || 0), 0);
+  document.getElementById('printArea').innerHTML = `
+    <h1>${esc(vehicleTitle(v) || 'Service-Historie')}</h1>
+    <p>${esc([v.vin ? 'VIN ' + v.vin : v.chassis ? 'Chassis ' + v.chassis : '', v.firstRegistration ? 'EZ ' + formatDate(v.firstRegistration) : '', v.currentKm.toLocaleString('de-DE') + ' km', 'Stand ' + formatDate(todayIso())].filter(Boolean).join(' · '))}</p>
+    <table>
+      <thead><tr><th>Datum</th><th>km</th><th>Kategorie</th><th>Arbeiten</th><th>Werkstatt</th><th>Kosten</th></tr></thead>
+      <tbody>${sorted.map(e => `<tr><td>${formatDate(e.date)}</td><td>${e.km.toLocaleString('de-DE')}</td><td>${esc(e.category)}</td><td>${esc(e.description)}</td><td>${esc(e.shop || '')}</td><td>${e.cost != null ? fmtEur(e.cost) : ''}</td></tr>`).join('')}</tbody>
+    </table>
+    ${total ? `<p><strong>Gesamtkosten: ${fmtEur(total)}</strong></p>` : ''}`;
+  window.print();
 }
 
 // Intervall-Editor: eine Zeile je Kategorie (km und Monate), Änderungen werden sofort gespeichert

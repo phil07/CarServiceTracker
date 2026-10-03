@@ -175,6 +175,13 @@
             <h3 class="section-title">Wartungsintervalle</h3>
             <p class="settings-hint">Lege fest, wann eine Wartung wieder fällig wird. Leer lassen = wird nicht auf dem Dashboard verfolgt. Die Fälligkeit rechnet sich aus dem letzten Eintrag.</p>
             <div class="card interval-card" id="intervalEditor"></div>
+
+            <h3 class="section-title">Kosten &amp; Export</h3>
+            <div class="card info-card" id="statsCard"></div>
+            <div class="btn-pair">
+                <button type="button" class="btn btn-secondary" onclick="exportCsv()"><i class="ph-light ph-file-csv" data-fb="📄" aria-hidden="true"></i> CSV</button>
+                <button type="button" class="btn btn-secondary" onclick="printHistory()"><i class="ph-light ph-printer" data-fb="🖨️" aria-hidden="true"></i> Drucken / PDF</button>
+            </div>
         </div>
     </div>
 
@@ -210,6 +217,16 @@
                     <div class="form-group">
                         <label for="form-km">Kilometerstand</label>
                         <input type="number" id="form-km" min="0" inputmode="numeric" placeholder="km" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="form-cost">Kosten (€) <span class="opt">optional</span></label>
+                        <input type="number" id="form-cost" min="0" step="0.01" inputmode="decimal" placeholder="€">
+                    </div>
+                    <div class="form-group">
+                        <label for="form-shop">Werkstatt <span class="opt">optional</span></label>
+                        <input type="text" id="form-shop" maxlength="80" placeholder="z.B. selbst">
                     </div>
                 </div>
                 <div class="form-group">
@@ -282,6 +299,8 @@
         </div>
     </nav>
 </div>
+
+<div id="printArea" aria-hidden="true"></div>
 
 <script src="version.js"></script>
 <script src="app.js"></script>
