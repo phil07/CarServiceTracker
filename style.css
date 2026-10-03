@@ -78,7 +78,7 @@ h1, h2, h3, .home-headline, .menu-title { text-wrap: balance; }
 
 /* Phosphor-Icons: Offline-Fallback-Zeichen, falls das Icon-CSS nicht geladen ist */
 i.ph-light { font-style: normal; line-height: 1; display: inline-block; }
-i.ph-light[data-fb]::before { content: attr(data-fb); }
+html.icons-fb i.ph-light[data-fb]::before { content: attr(data-fb); }
 
 /* Offline-Hinweis */
 #offline-bar { display: none; background: #9A4A00; color: #fff; text-align: center; font-size: 12px; font-weight: 600; padding: 6px; flex-shrink: 0; }
@@ -532,7 +532,7 @@ dialog > h3 { margin: 0 0 14px; font-size: 22px; font-weight: 800; letter-spacin
 .menu-item:focus:not(:focus-visible) { outline: none; }
 /* Karten, Fallback-Icons, Onboarding */
 .stat-num { hyphens: auto; overflow-wrap: anywhere; }
-i.ph-light[data-fb]::before { filter: grayscale(1); opacity: .85; }
+html.icons-fb i.ph-light[data-fb]::before { filter: grayscale(1); opacity: .85; }
 .onboarding-card .form-row { margin-bottom: 0; }
 @media (max-height: 700px) {
     .onboarding-step .eyebrow { display: inline-flex; margin-bottom: 4px; }
@@ -596,3 +596,13 @@ i.ph-light[data-fb]::before { filter: grayscale(1); opacity: .85; }
 .theme-btn.active[data-theme="light"] { background: color-mix(in srgb, #F59E0B 18%, var(--bg-elevated)); }
 .theme-btn.active[data-theme="dark"] { background: color-mix(in srgb, #6366F1 16%, var(--bg-elevated)); }
 .theme-btn.active[data-theme="auto"] { background: color-mix(in srgb, var(--primary) 14%, var(--bg-elevated)); }
+
+/* Dashboard: Verbrauchskarte */
+.fuel-card { display: flex; margin-top: 10px !important; align-items: center; gap: 14px; width: 100%; margin: 0 0 8px; padding: 14px 16px; border-radius: 22px; text-align: left; cursor: pointer; color: inherit; font: inherit; }
+.fuel-card:active { transform: scale(.985); }
+.fuel-card .cat-badge { width: 40px; height: 40px; font-size: 20px; flex-shrink: 0; }
+.fuel-card-main { flex: 1; min-width: 0; }
+.fuel-card-num { font-size: 22px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.fuel-card-num small { font-size: 12px; font-weight: 600; color: var(--muted); margin-left: 4px; }
+.fuel-card-sub { font-size: var(--fs-footnote); color: var(--muted); overflow-wrap: anywhere; }
+html.icons-fb .theme-btn i.ph-light[data-fb]::before { filter: none; opacity: 1; }

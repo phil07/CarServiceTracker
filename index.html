@@ -52,7 +52,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/light/style.css" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/light/style.css" crossorigin="anonymous" onerror="document.documentElement.classList.add('icons-fb')">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -138,6 +138,8 @@
                 </div>
                 <div class="hero-sub" id="heroChassisInfo"></div>
             </div>
+
+            <button type="button" class="card fuel-card" id="fuelCard" onclick="switchTab('fuel')" hidden></button>
 
             <h3 class="section-title" id="upcomingTitle">Wartungen</h3>
             <div class="upcoming-grid" id="upcomingGrid"></div>

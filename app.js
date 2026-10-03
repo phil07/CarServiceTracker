@@ -377,6 +377,18 @@ function renderDashboard() {
     chassisEl.textContent = parts.join(' · ');
   }
 
+  const fuelCard = document.getElementById('fuelCard');
+  if (fuelCard) {
+    const fs = fuelStats();
+    fuelCard.hidden = !state.fuelLog.length;
+    if (state.fuelLog.length) {
+      const sub = fs.avg == null ? 'Noch zu wenig Daten – ab dem 2. vollen Tankstopp'
+        : [fs.last != null ? 'Zuletzt ' + fmtNum(fs.last) + ' l/100 km' : '', fs.pricePerL != null ? 'Ø ' + fmtNum(fs.pricePerL, 2) + ' €/l' : ''].filter(Boolean).join(' · ');
+      fuelCard.innerHTML = `<span class="cat-badge" style="--cat-l:#0E7490;--cat-d:#22D3EE"><i class="ph-light ph-gas-pump" data-fb="⛽" aria-hidden="true"></i></span>
+        <span class="fuel-card-main"><span class="fuel-card-num">${fs.avg != null ? fmtNum(fs.avg) : '–'}<small>Ø l/100 km</small></span><br><span class="fuel-card-sub">${esc(sub)}</span></span>`;
+    }
+  }
+
   const grid = document.getElementById('upcomingGrid');
   if (grid) {
     const tracked = trackedServices();
@@ -1550,6 +1562,13 @@ function buildCategoryOptions() {
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
+// Icon-Schrift fehlt (offline/blockiert) → Emoji-Fallback aktivieren
+window.addEventListener('load', () => {
+  document.fonts?.load('16px "Phosphor-Light"').then(f => {
+    if (!f.length) document.documentElement.classList.add('icons-fb');
+  }).catch(() => document.documentElement.classList.add('icons-fb'));
+});
+
 function init() {
   const saved = loadState();
   state = saved ? saved : JSON.parse(JSON.stringify(EMPTY_DATA));
