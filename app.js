@@ -251,7 +251,7 @@ function renderDashboard() {
             <span class="status-badge badge-${status}">${statusLabel}</span>
           </div>
           <div>
-            <div class="stat-num">${esc(svc.category)}</div>
+            <div class="stat-num">${esc(svc.category).replace('flüssigkeit', '&shy;flüssigkeit')}</div>
             <div class="stat-lbl">${esc(dueText(svc))}</div>
           </div>
         </div>`;
@@ -445,6 +445,7 @@ function renderVehicleInfo(containerId, v) {
   const rows = [
     ['Modell',         vehicleTitle(v)],
     ['Hersteller',     v.make],
+    ['Baureihe',       v.series],
     ['Modelljahr',     v.modelYear],
     ['Karosserie',     v.body],
     ['Motor',          v.engine],
@@ -581,6 +582,86 @@ const FUEL_DE = { 'Gasoline': 'Benzin', 'Diesel': 'Diesel', 'Electric': 'Elektro
 const COUNTRY_DE = { 'GERMANY': 'Deutschland', 'AUSTRIA': 'Österreich', 'UNITED STATES (USA)': 'USA', 'FRANCE': 'Frankreich', 'ITALY': 'Italien', 'SPAIN': 'Spanien', 'UNITED KINGDOM (UK)': 'Großbritannien', 'CZECH REPUBLIC': 'Tschechien', 'HUNGARY': 'Ungarn', 'SWEDEN': 'Schweden', 'BELGIUM': 'Belgien', 'NETHERLANDS': 'Niederlande', 'SOUTH AFRICA': 'Südafrika', 'MEXICO': 'Mexiko', 'CHINA': 'China', 'JAPAN': 'Japan', 'SOUTH KOREA': 'Südkorea', 'SLOVAKIA': 'Slowakei', 'POLAND': 'Polen', 'PORTUGAL': 'Portugal', 'FINLAND': 'Finnland', 'BRAZIL': 'Brasilien', 'CANADA': 'Kanada', 'INDIA': 'Indien' };
 const TRANS_DE = { 'Automatic': 'Automatik', 'Manual/Standard': 'Schaltgetriebe', 'Continuously Variable Transmission (CVT)': 'CVT', 'Dual-Clutch Transmission (DCT)': 'Doppelkupplung', 'Automated Manual Transmission (AMT)': 'Automatisiert' };
 
+// ─── BMW: Baureihe (E39 …) + Typ-Schriftzug (530i, 520d …) + „A“ für Automatik ──
+// Baureihen nach Modelljahr (Grenzen ≈ Modellwechsel). Karosserie-Varianten
+// mit eigenem Code (Touring, Coupé, Cabrio, GT) über tour/coupe/cabrio/gt.
+const BMW_GENERATIONS = {
+  '1': [[2004, 2011, 'E87', { coupe: 'E82', cabrio: 'E88' }], [2012, 2019, 'F20'], [2020, 9999, 'F40']],
+  '2': [[2014, 2021, 'F22', { cabrio: 'F23', van: 'F45' }], [2022, 9999, 'G42', { van: 'U06' }]],
+  '3': [[1976, 1983, 'E21'], [1984, 1991, 'E30'], [1992, 1998, 'E36'], [1999, 2005, 'E46'],
+        [2006, 2012, 'E90', { tour: 'E91', coupe: 'E92', cabrio: 'E93' }], [2013, 2019, 'F30', { tour: 'F31', gt: 'F34' }],
+        [2020, 9999, 'G20', { tour: 'G21' }]],
+  '4': [[2014, 2020, 'F32', { cabrio: 'F33', gt: 'F36' }], [2021, 9999, 'G22', { cabrio: 'G23', gt: 'G26' }]],
+  '5': [[1973, 1981, 'E12'], [1982, 1988, 'E28'], [1989, 1996, 'E34'], [1997, 2003, 'E39'],
+        [2004, 2010, 'E60', { tour: 'E61' }], [2011, 2016, 'F10', { tour: 'F11', gt: 'F07' }],
+        [2017, 2023, 'G30', { tour: 'G31' }], [2024, 9999, 'G60', { tour: 'G61' }]],
+  '6': [[1977, 1989, 'E24'], [2004, 2010, 'E63', { cabrio: 'E64' }], [2011, 2018, 'F12', { cabrio: 'F13', gt: 'F06' }], [2018, 9999, 'G32']],
+  '7': [[1978, 1986, 'E23'], [1987, 1994, 'E32'], [1995, 2001, 'E38'], [2002, 2008, 'E65'], [2009, 2015, 'F01'], [2016, 2022, 'G11'], [2023, 9999, 'G70']],
+  '8': [[1990, 1999, 'E31'], [2019, 9999, 'G15', { cabrio: 'G14', gt: 'G16' }]],
+  'X1': [[2009, 2015, 'E84'], [2016, 2022, 'F48'], [2023, 9999, 'U11']],
+  'X3': [[2004, 2010, 'E83'], [2011, 2017, 'F25'], [2018, 2024, 'G01'], [2025, 9999, 'G45']],
+  'X4': [[2015, 2018, 'F26'], [2019, 9999, 'G02']],
+  'X5': [[2000, 2006, 'E53'], [2007, 2013, 'E70'], [2014, 2018, 'F15'], [2019, 9999, 'G05']],
+  'X6': [[2008, 2014, 'E71'], [2015, 2019, 'F16'], [2020, 9999, 'G06']],
+  'Z3': [[1996, 2002, 'E36/7']],
+  'Z4': [[2003, 2008, 'E85'], [2009, 2016, 'E89'], [2019, 9999, 'G29']],
+};
+// Hubraum (l, eine Nachkommastelle) → Ziffern im Schriftzug, wo sie vom Hubraum abweichen
+const BMW_BADGE_DISP = { '2.2': '20', '2.9': '30', '4.4': '40', '4.8': '50', '1.6': '16', '1.9': '18', '1.8': '18' };
+
+function bmwSeriesKey(model) {
+  const m = String(model).match(/\b([1-8])[-\s]?(?:er|series|serie)\b/i) || String(model).match(/^([1-8])\d{2}/);
+  if (m) return m[1];
+  const x = String(model).match(/\b([XZ]\d)\b/i);
+  return x ? x[1].toUpperCase() : '';
+}
+
+function bmwChassisCode(seriesKey, year, bodyClass, isGt) {
+  const gens = BMW_GENERATIONS[seriesKey];
+  if (!gens || !year) return '';
+  const gen = gens.find(([from, to]) => year >= from && year <= to);
+  if (!gen) return '';
+  const v = gen[3] || {};
+  if (isGt && v.gt) return v.gt;
+  if (/Wagon/i.test(bodyClass) && v.tour) return v.tour;
+  if (/Convertible|Cabrio|Roadster/i.test(bodyClass) && v.cabrio) return v.cabrio;
+  if (/Coupe/i.test(bodyClass) && v.coupe) return v.coupe;
+  if (/Minivan|MPV/i.test(bodyClass) && v.van) return v.van;
+  return gen[2];
+}
+
+// Liefert z.B. { series: 'E39', badge: '530iA' } – oder null, wenn nicht ermittelbar
+function bmwDesignation({ model, series, trim, year, disp, fuel, transmission, drive, bodyClass }) {
+  const raw = [series, trim, model].find(t => /\b(\d{3}|[XZ]\d\s?\d{2}|M\d{3})(x?[ide]|e|Li|Ci|i|d)\b/i.test(t || '')) || '';
+  const mModel = String(model).match(/^M([1-8])\b/i);           // M3, M5 …
+  const seriesKey = mModel ? mModel[1] : (bmwSeriesKey(model) || bmwSeriesKey(raw));
+  const chassis = bmwChassisCode(seriesKey, parseInt(year, 10), bodyClass, /\bGT\b|Gran Turismo/i.test(model + ' ' + series + ' ' + trim));
+
+  // Typ-Schriftzug: bevorzugt aus den API-Feldern (530i, 520d, 330xi …)
+  let badge = '';
+  const xz = /^[XZ]\d$/.test(seriesKey);
+  if (mModel) badge = 'M' + mModel[1];
+  // X/Z: Modellname + Motorisierung, z.B. „X5 3.0i“ bzw. „X3 xDrive20d“
+  else if (xz) badge = [seriesKey, [series, trim].find(t => /\d\.\d[id]|[sx]Drive\d{2}[ide]/i.test(t || '')) || ''].filter(Boolean).join(' ');
+  const m = badge ? null : raw.match(/\b(M?\d{3})(x?)([a-z]{1,2})\b/i);
+  if (m) {
+    badge = m[1] + m[2].toLowerCase() + m[3].replace(/^L(i)$/i, 'Li').replace(/^C(i)$/i, 'Ci');
+    if (!/^(Li|Ci)$/.test(badge.slice(-2))) badge = badge.toLowerCase().replace(/^m/, 'M');
+  } else if (!badge && /^[1-8]$/.test(seriesKey) && disp > 0 && parseInt(year, 10) < 2011) {
+    // Ältere Modelle: Schriftzug folgt (fast immer) dem Hubraum
+    const l = disp.toFixed(1);
+    const digits = BMW_BADGE_DISP[l] || String(Math.round(disp * 10)).padStart(2, '0');
+    const awd = /AWD|4WD|All/i.test(drive);
+    badge = seriesKey + digits + (awd ? 'x' : '') + (/Diesel/i.test(fuel) ? 'd' : 'i');
+  }
+  // „A“ für Automatik (nur am klassischen Schriftzug, nicht bei M-Modellen)
+  if (badge && /^\d{3}/.test(badge) && /Automatic/i.test(transmission) && !/A$/.test(badge)) badge += 'A';
+  if (badge && /^\d{3}/.test(badge) && /xDrive/i.test(raw)) badge += ' xDrive';
+
+  if (!chassis && !badge) return null;
+  return { series: chassis, badge };
+}
+
 function prettyMake(s) {
   return s.length <= 4 ? s : s.toLowerCase().replace(/(^|[\s-])\S/g, m => m.toUpperCase());
 }
@@ -592,6 +673,17 @@ function mapVpic(r) {
   const model = g('Model'), detail = g('Series') || g('Trim');
   out.model = [model, detail && !model.toLowerCase().includes(detail.toLowerCase()) ? detail : ''].filter(Boolean).join(' ');
   if (g('ModelYear')) out.modelYear = g('ModelYear');
+  // BMW: „E39 530iA“ statt „5-Series 530i“
+  if (/^BMW/i.test(g('Make'))) {
+    const d = bmwDesignation({
+      model, series: g('Series'), trim: g('Trim'), year: g('ModelYear'), disp: parseFloat(g('DisplacementL')),
+      fuel: g('FuelTypePrimary'), transmission: g('TransmissionStyle'), drive: g('DriveType'), bodyClass: g('BodyClass'),
+    });
+    if (d) {
+      out.series = d.series;
+      out.model = [d.series, d.badge].filter(Boolean).join(' ') || out.model;
+    }
+  }
   if (g('BodyClass')) out.body = BODY_DE[g('BodyClass')] || g('BodyClass');
   const disp = parseFloat(g('DisplacementL'));
   const hp = parseFloat(g('EngineHP')), kw = parseFloat(g('EngineKW'));

@@ -163,7 +163,7 @@ body.offline #offline-bar { display: block; }
 .status-ok .stat-ico { color: var(--ok); }
 .status-warn .stat-ico { color: var(--warn); }
 .status-alert .stat-ico { color: var(--alert); }
-.stat-num { font-size: 17px; font-weight: 800; letter-spacing: -.02em; line-height: 1.15; color: var(--label); hyphens: auto; -webkit-hyphens: auto; overflow-wrap: break-word; }
+.stat-num { font-size: 16px; font-weight: 800; letter-spacing: -.02em; line-height: 1.15; color: var(--label); hyphens: auto; -webkit-hyphens: auto; overflow-wrap: break-word; }
 .stat-lbl { font-size: 12px; font-weight: 500; color: var(--muted); margin-top: 4px; }
 .status-badge { border-radius: 999px; padding: 4px 9px; font-size: 10.5px; font-weight: 700; white-space: nowrap; }
 .badge-none { background: var(--bg-secondary); color: var(--muted); }
