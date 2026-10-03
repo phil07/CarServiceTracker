@@ -683,3 +683,8 @@ html.d-head .theme-btn.active { background: color-mix(in srgb, var(--primary) 16
 /* Kachel-Ränder (Double-Bezel) in der Wagenfarbe */
 :root { --card-shell: color-mix(in srgb, var(--primary) 10%, transparent); --card-ring: color-mix(in srgb, var(--primary) 32%, transparent); }
 :root[data-theme="dark"] { --card-shell: color-mix(in srgb, var(--primary) 14%, transparent); --card-ring: color-mix(in srgb, var(--primary) 40%, transparent); }
+
+/* Benachrichtigungs-Button: Icon in Akzentfarbe, aktiver Zustand getönt */
+.btn-notify i, .btn-row .btn-icon i { color: var(--primary-text); }
+.btn-notify i { font-size: 18px; }
+.btn-notify[aria-pressed="true"] { background: color-mix(in srgb, var(--primary) 14%, var(--bg-secondary)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 30%, transparent); }

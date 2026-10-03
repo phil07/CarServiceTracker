@@ -345,7 +345,7 @@
                 <span id="appVersion" class="version-label">–</span>
                 <button type="button" id="btnCheckUpdate" onclick="checkForUpdate()" aria-label="Auf Update prüfen">Prüfen</button>
             </div>
-            <button type="button" id="btnNotifyUpdates" class="btn-icon btn-notify" onclick="enableUpdateNotifications()" aria-pressed="false">🔕 Bei neuer Version benachrichtigen</button>
+            <button type="button" id="btnNotifyUpdates" class="btn-icon btn-notify" onclick="enableUpdateNotifications()" aria-pressed="false"><i class="ph-light ph-bell-slash" data-fb="🔕" aria-hidden="true"></i> <span>Bei neuer Version benachrichtigen</span></button>
             <div class="btn-row">
                 <button type="button" class="btn-icon" onclick="exportData()"><i class="ph-light ph-download-simple" aria-hidden="true"></i> Backup</button>
                 <button type="button" class="btn-icon" onclick="document.getElementById('importFile').click()"><i class="ph-light ph-upload-simple" aria-hidden="true"></i> Wiederherstellen</button>
@@ -443,7 +443,7 @@
       updateNotifyButton();
       if (perm === 'granted') {
         await registerBackgroundUpdateCheck();
-        showResultToast('🔔 Du wirst über neue Versionen benachrichtigt', 'ok');
+        showResultToast('Du wirst über neue Versionen benachrichtigt', 'ok');
       } else {
         showResultToast('Benachrichtigungen blockiert – in den Browser-Einstellungen erlauben', 'err');
       }
@@ -453,7 +453,10 @@
       const b = document.getElementById('btnNotifyUpdates');
       if (!b) return;
       const on = 'Notification' in window && Notification.permission === 'granted';
-      b.textContent = on ? '🔔 Update-Benachrichtigungen aktiv' : '🔕 Bei neuer Version benachrichtigen';
+      const ic = b.querySelector('i');
+      if (ic) { ic.className = 'ph-light ' + (on ? 'ph-bell-ringing' : 'ph-bell-slash'); ic.dataset.fb = on ? '🔔' : '🔕'; }
+      const tx = b.querySelector('span');
+      if (tx) tx.textContent = on ? 'Update-Benachrichtigungen aktiv' : 'Bei neuer Version benachrichtigen';
       b.setAttribute('aria-pressed', String(on));
     }
     window.addEventListener('load', () => {
