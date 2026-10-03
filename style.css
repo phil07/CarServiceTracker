@@ -1,12 +1,12 @@
 /* ═══ Service-Tracker – Design wie Japan2026 („Bezel“: Plus Jakarta Sans, Double-Bezel-Flächen, ein Akzent) ═══
-   Der Akzent kommt aus der gewählten Fahrzeugfarbe (--car-light / --car-dark, gesetzt in app.js). */
+   Der Akzent kommt aus der gewählten Fahrzeugfarbe (--car-fill = exakte Lackfarbe, gesetzt in app.js). */
 
 :root {
     color-scheme: light;
     --font: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-    --primary: var(--car-light, #3F5A78);
+    --primary: var(--car-fill, #8a8f98);
     --primary-soft: color-mix(in srgb, var(--primary) 9%, transparent);
-    --primary-fill: var(--primary); --primary-text: var(--primary); --on-primary: #FFFFFF;
+    --primary-fill: var(--primary); --primary-text: var(--car-text-l, #3F5A78); --on-primary: var(--car-on, #14161a); --primary-edge: var(--car-edge-l, transparent);
     --accent-soft: var(--primary-soft);
     --bg: #EEF0F3; --bg-elevated: #FFFFFF; --bg-secondary: #F1F2F5; --bg-secondary-press: #E4E6EB;
     --border: rgba(15,23,42,.09); --scrim: rgba(255,255,255,.78);
@@ -20,7 +20,7 @@
     --ok: #1E7B34; --warn: #B45309; --alert: #C40013;
     --ok-soft: rgba(30,123,52,.1); --warn-soft: rgba(180,83,9,.1); --alert-soft: rgba(196,0,19,.09);
     /* Füllfarben für weiße Toast-Schrift (AA ≥ 4.5:1, in beiden Themes gleich) */
-    --accent-fill: var(--car-light, #3F5A78); --ok-fill: #1E7B34; --err-fill: #A3000F;
+    --accent-fill: var(--car-fill, #8a8f98); --ok-fill: #1E7B34; --err-fill: #A3000F;
     --fs-headline: 17px; --fs-body: 16px; --fs-callout: 15px; --fs-subhead: 14px; --fs-footnote: 13px; --fs-caption: 11px;
     --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px;
     --radius-sm: 10px; --radius-md: 14px; --radius-lg: 20px;
@@ -29,9 +29,9 @@
 }
 :root[data-theme="dark"] {
     color-scheme: dark;
-    --primary: var(--car-dark, #8FB0D3);
+    --primary: var(--car-fill, #8a8f98);
+    --primary-text: var(--car-text-d, #8FB0D3); --primary-edge: var(--car-edge-d, transparent);
     --primary-soft: color-mix(in srgb, var(--primary) 14%, transparent);
-    --on-primary: #111318;
     --bg: #0B0C0F; --bg-elevated: #16181D; --bg-secondary: #1F2228; --bg-secondary-press: #292C33;
     --border: rgba(255,255,255,.08); --scrim: rgba(22,24,29,.78);
     --label: #F3F4F6; --muted: #A9AEB9; --label-tertiary: #8F95A2;
@@ -375,7 +375,7 @@ dialog > h3 { margin: 0 0 14px; font-size: 22px; font-weight: 800; letter-spacin
 }
 .sys-toast--ok { background: var(--ok-fill); }
 .sys-toast--err { background: var(--err-fill); }
-.sys-toast--update { background: var(--accent-fill); cursor: pointer; }
+.sys-toast--update { background: var(--accent-fill); color: var(--on-primary); cursor: pointer; }
 
 /* Fokus sichtbar (Tastatur) */
 :focus-visible { outline: 2.5px solid var(--primary); outline-offset: 3px; }
@@ -637,3 +637,8 @@ html.d-head .drawer { background: linear-gradient(180deg, color-mix(in srgb, var
 html.d-head .menu-item.active { background: color-mix(in srgb, var(--primary) 16%, var(--bg-elevated)); box-shadow: inset 3px 0 0 var(--primary), inset 0 0 0 1px color-mix(in srgb, var(--primary) 25%, transparent); }
 html.d-head .menu-item.active .menu-icon { background: var(--primary-fill); color: var(--on-primary); }
 html.d-head .theme-btn.active { background: color-mix(in srgb, var(--primary) 16%, var(--bg-elevated)); }
+
+/* Helle/dunkle Lackfarben: dünner Rand, damit Akzent-Flächen auf dem Hintergrund sichtbar bleiben */
+.fab, .btn-cta, .chip.active, html.d-head .header-btn, html.d-head .menu-item.active .menu-icon { outline: 1.5px solid var(--primary-edge); outline-offset: -1.5px; }
+.meter i { box-shadow: inset 0 0 0 1px var(--primary-edge); }
+.status-warn .meter i, .status-alert .meter i { box-shadow: none; }

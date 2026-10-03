@@ -209,12 +209,37 @@ function setTheme(t) {
 }
 darkMQ?.addEventListener?.('change', () => { if (themePref === 'auto') applyThemeMode('auto'); });
 
+// Farb-Hilfen (WCAG-Kontrast)
+function hexToRgb(h) { const n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
+function rgbToHex(c) { return '#' + c.map(v => Math.round(v).toString(16).padStart(2, '0')).join(''); }
+function relLum(h) {
+  const [r, g, b] = hexToRgb(h).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); });
+  return .2126 * r + .7152 * g + .0722 * b;
+}
+function contrastRatio(a, b) { const x = relLum(a), y = relLum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); }
+// mischt die Farbe Schritt für Schritt zu Schwarz (dir -1) oder Weiß (dir 1), bis sie als Text auf bg lesbar ist
+function contrastAdjust(hex, bg, dir) {
+  const target = dir < 0 ? [0, 0, 0] : [255, 255, 255], base = hexToRgb(hex);
+  for (let t = 0; t <= 1.001; t += .05) {
+    const h = rgbToHex(base.map((v, i) => v + (target[i] - v) * t));
+    if (contrastRatio(h, bg) >= 4.5) return h;
+  }
+  return rgbToHex(target);
+}
+
 // Fahrzeugfarbe → Akzentfarbe der App
 function applyTheme(colorKey) {
   const c = BMW_COLORS[colorKey] || BMW_COLORS.titansilber;
   const r = document.documentElement.style;
-  r.setProperty('--car-light', c.light);
-  r.setProperty('--car-dark',  c.dark);
+  // Lackfarbe exakt als Akzent (Flächen); Text-/Kontrastfarben werden daraus abgeleitet
+  const bgL = '#EEF0F3', bgD = '#0B0C0F';
+  const textL = contrastAdjust(c.hex, bgL, -1), textD = contrastAdjust(c.hex, bgD, 1);
+  r.setProperty('--car-fill', c.hex);
+  r.setProperty('--car-on', contrastRatio(c.hex, '#FFFFFF') >= contrastRatio(c.hex, '#111318') ? '#FFFFFF' : '#111318');
+  r.setProperty('--car-text-l', textL);
+  r.setProperty('--car-text-d', textD);
+  r.setProperty('--car-edge-l', contrastRatio(c.hex, bgL) < 2.5 ? textL : 'transparent');
+  r.setProperty('--car-edge-d', contrastRatio(c.hex, bgD) < 2.5 ? textD : 'transparent');
   document.documentElement.setAttribute('data-vehicle-color', colorKey);
   applyDesign();
 }
