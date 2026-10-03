@@ -8,13 +8,13 @@
 const BMW_COLORS = {
   // Silber / Grau
   alpinweiss:   { label: 'Alpinweiß',    hex: '#e8e8e6', light: '#475569', dark: '#E2E8F0' },
-  arktissilber: { label: 'Arktissilber', hex: '#a9adb3', light: '#52525B', dark: '#D4D4D8' },
-  hellsilber:   { label: 'Hellsilber',   hex: '#b8bec7', light: '#52525B', dark: '#CBD5E1' },
-  kashmirsilber:{ label: 'Kashmirsilber',hex: '#b1b4ae', light: '#57534E', dark: '#D6D3D1' },
-  titansilber:  { label: 'Titansilber',  hex: '#8a8f98', light: '#B45309', dark: '#FF9F43' },
-  sterlinggrau: { label: 'Sterlinggrau', hex: '#7b7f86', light: '#475569', dark: '#CBD5E1' },
-  stahlgrau:    { label: 'Stahlgrau',    hex: '#656a72', light: '#374151', dark: '#D1D5DB' },
-  fjordgrau:    { label: 'Fjordgrau',    hex: '#5b6672', light: '#334155', dark: '#CBD5E1' },
+  arktissilber: { label: 'Arktissilber', hex: '#a9adb3', light: '#4A6A8A', dark: '#A9C4DE' },
+  hellsilber:   { label: 'Hellsilber',   hex: '#b8bec7', light: '#52637A', dark: '#BCCADB' },
+  kashmirsilber:{ label: 'Kashmirsilber',hex: '#b1b4ae', light: '#5B6572', dark: '#C3CAD3' },
+  titansilber:  { label: 'Titansilber',  hex: '#8a8f98', light: '#3F5A78', dark: '#8FB0D3' },
+  sterlinggrau: { label: 'Sterlinggrau', hex: '#7b7f86', light: '#475569', dark: '#AEBBCB' },
+  stahlgrau:    { label: 'Stahlgrau',    hex: '#656a72', light: '#3B4A5C', dark: '#A3B1C2' },
+  fjordgrau:    { label: 'Fjordgrau',    hex: '#5b6672', light: '#36556E', dark: '#8FB4CF' },
   // Schwarz
   schwarz:      { label: 'Schwarz',      hex: '#1c1c1f', light: '#27272A', dark: '#E4E4E7' },
   diamantschwarz:{label: 'Diamantschwarz',hex:'#1b1d22', light: '#1F2937', dark: '#E5E7EB' },
@@ -52,17 +52,6 @@ const CATEGORIES = {
   'TÜV':              { icon: 'ph-seal-check',     fb: '✅', light: '#047857', dark: '#34D399', label: 'TÜV (HU/AU)' },
   'Anderes':          { icon: 'ph-wrench',         fb: '🔧', light: '#52525B', dark: '#A1A1AA', label: 'Anderes (Sonstiges)' },
 };
-
-// Design-Bausteine (einzeln in den Einstellungen schaltbar)
-const DESIGN_FEATURES = [
-  ['tint',  'Getönter Hintergrund',        'Seiten und Karten bekommen einen Hauch der Lackfarbe'],
-  ['hero',  'Verlauf im Kilometer-Feld',   'Farbverlauf auf der großen Kilometerkarte'],
-  ['car',   'Auto-Silhouette',             'Stufenheck-Skizze in Lackfarbe im Kilometer-Feld'],
-  ['bars',  'Fortschrittsbalken',          'Zeigt bei jeder Wartung, wie viel vom Intervall verbraucht ist'],
-  ['chart', 'Diagramme in Lackfarbe',      'Verbrauchsbalken in der Akzentfarbe statt in Grau'],
-  ['head',  'Farbiges Menü und Kopfzeile', 'Akzent in Kopfzeile, Menü-Symbol und aktivem Menüpunkt'],
-];
-const DEFAULT_DESIGN = Object.fromEntries(DESIGN_FEATURES.map(f => [f[0], true]));
 
 // Wartungsintervalle (vom Nutzer einstellbar): km und/oder Monate; leer = nicht verfolgt
 const DEFAULT_INTERVALS = {
@@ -177,7 +166,6 @@ function normalizeState(raw) {
       vehicleColor: BMW_COLORS[st.vehicleColor] ? st.vehicleColor : 'titansilber',
       onboardingDone: st.onboardingDone === true || hasVehicle,
       intervals: normalizeIntervals(st.intervals),
-      design: Object.fromEntries(DESIGN_FEATURES.map(f => [f[0], !(st.design && st.design[f[0]] === false)])),
     },
   };
 }
@@ -227,14 +215,14 @@ function applyTheme(colorKey) {
   const r = document.documentElement.style;
   r.setProperty('--car-light', c.light);
   r.setProperty('--car-dark',  c.dark);
-  r.setProperty('--car-paint', c.hex);
   document.documentElement.setAttribute('data-vehicle-color', colorKey);
   applyDesign();
 }
 
+// Wagenfarbe im Design: alle Bausteine immer aktiv (Klassen d-… steuern das CSS)
+const DESIGN_CLASSES = ['tint', 'hero', 'bars', 'chart', 'head'];
 function applyDesign() {
-  const d = (typeof state !== 'undefined' && state && state.settings && state.settings.design) || DEFAULT_DESIGN;
-  DESIGN_FEATURES.forEach(([k]) => document.documentElement.classList.toggle('d-' + k, d[k] !== false));
+  DESIGN_CLASSES.forEach(k => document.documentElement.classList.add('d-' + k));
   updateMetaThemeColor();
 }
 
@@ -850,13 +838,6 @@ function renderSettings() {
   renderVehicleInfo('settingsVehicleInfo', state.vehicle);
   renderStats();
   renderIntervalEditor();
-  const dt = document.getElementById('designToggles');
-  if (dt) dt.innerHTML = DESIGN_FEATURES.map(([k, label, hint]) => `
-    <label class="toggle-row">
-      <span class="toggle-text"><strong>${label}</strong><small>${hint}</small></span>
-      <input type="checkbox" class="switch" data-design="${k}" ${state.settings.design[k] ? 'checked' : ''}>
-    </label>`).join('');
-
   buildColorGrid('settingsColorGrid', state.settings.vehicleColor, (key) => {
     state.settings.vehicleColor = key;
     saveState();
@@ -994,16 +975,6 @@ function renderIntervalEditor() {
         <label class="interval-field"><input type="number" inputmode="numeric" min="1" step="1" data-field="months" value="${iv.months || ''}" placeholder="–" aria-label="${esc(cat)}: Intervall in Monaten"><span>Mon.</span></label>
       </div>`;
   }).join('');
-}
-
-function bindDesignToggles() {
-  document.getElementById('designToggles').addEventListener('change', ev => {
-    const input = ev.target.closest('input[data-design]');
-    if (!input) return;
-    state.settings.design[input.dataset.design] = input.checked;
-    saveState();
-    applyDesign();
-  });
 }
 
 function bindIntervalEditor() {
@@ -1625,7 +1596,6 @@ function init() {
   if (!saved) saveState();
   buildCategoryOptions();
   bindHistoryEvents();
-  bindDesignToggles();
   bindFuelEvents();
   bindIntervalEditor();
 

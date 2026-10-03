@@ -4,7 +4,7 @@
 :root {
     color-scheme: light;
     --font: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-    --primary: var(--car-light, #B45309);
+    --primary: var(--car-light, #3F5A78);
     --primary-soft: color-mix(in srgb, var(--primary) 9%, transparent);
     --primary-fill: var(--primary); --primary-text: var(--primary); --on-primary: #FFFFFF;
     --accent-soft: var(--primary-soft);
@@ -20,7 +20,7 @@
     --ok: #1E7B34; --warn: #B45309; --alert: #C40013;
     --ok-soft: rgba(30,123,52,.1); --warn-soft: rgba(180,83,9,.1); --alert-soft: rgba(196,0,19,.09);
     /* Füllfarben für weiße Toast-Schrift (AA ≥ 4.5:1, in beiden Themes gleich) */
-    --accent-fill: var(--car-light, #B45309); --ok-fill: #1E7B34; --err-fill: #A3000F;
+    --accent-fill: var(--car-light, #3F5A78); --ok-fill: #1E7B34; --err-fill: #A3000F;
     --fs-headline: 17px; --fs-body: 16px; --fs-callout: 15px; --fs-subhead: 14px; --fs-footnote: 13px; --fs-caption: 11px;
     --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px;
     --radius-sm: 10px; --radius-md: 14px; --radius-lg: 20px;
@@ -29,7 +29,7 @@
 }
 :root[data-theme="dark"] {
     color-scheme: dark;
-    --primary: var(--car-dark, #FF9F43);
+    --primary: var(--car-dark, #8FB0D3);
     --primary-soft: color-mix(in srgb, var(--primary) 14%, transparent);
     --on-primary: #111318;
     --bg: #0B0C0F; --bg-elevated: #16181D; --bg-secondary: #1F2228; --bg-secondary-press: #292C33;
@@ -615,10 +615,6 @@ html.d-tint { --bg: color-mix(in srgb, var(--primary) 7%, #EEF0F3); --bg-elevate
 html.d-hero .hero-card { background:
     radial-gradient(110% 100% at 100% 0%, color-mix(in srgb, var(--primary) 30%, transparent), transparent 62%),
     linear-gradient(160deg, color-mix(in srgb, var(--primary) 11%, var(--bg-elevated)), var(--bg-elevated)); }
-/* Silhouette */
-.hero-car { display: none; position: absolute; right: -6px; bottom: -7px; width: 42%; max-width: 170px; height: auto; pointer-events: none; }
-html.d-car .hero-car { display: block; }
-html.d-car .dash-scroll .hero-card, html.d-car .hero-card { padding-bottom: calc(clamp(12px, 2dvh, 20px) + 26px); }
 /* Fortschrittsbalken */
 .meter { display: none; height: 5px; margin-top: 4px; border-radius: 999px; background: color-mix(in srgb, var(--label) 9%, transparent); overflow: hidden; }
 .meter i { display: block; height: 100%; border-radius: inherit; background: var(--primary-fill); transition: width .6s var(--ease-out); }
@@ -641,16 +637,3 @@ html.d-head .drawer { background: linear-gradient(180deg, color-mix(in srgb, var
 html.d-head .menu-item.active { background: color-mix(in srgb, var(--primary) 16%, var(--bg-elevated)); box-shadow: inset 3px 0 0 var(--primary), inset 0 0 0 1px color-mix(in srgb, var(--primary) 25%, transparent); }
 html.d-head .menu-item.active .menu-icon { background: var(--primary-fill); color: var(--on-primary); }
 html.d-head .theme-btn.active { background: color-mix(in srgb, var(--primary) 16%, var(--bg-elevated)); }
-/* Einstellungen: Schalter */
-.toggle-card { padding: 4px 16px; }
-.toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 0; min-height: 56px; cursor: pointer; }
-.toggle-row + .toggle-row { border-top: 1px solid var(--shell-ring); }
-.toggle-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.toggle-text strong { font-size: 14px; font-weight: 700; }
-.toggle-text small { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
-.switch { appearance: none; -webkit-appearance: none; flex-shrink: 0; width: 46px; height: 28px; border-radius: 999px; border: 0; position: relative; cursor: pointer;
-    background: color-mix(in srgb, var(--label) 18%, transparent); transition: background .25s; }
-.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: transform .25s var(--ease-out); }
-.switch:checked { background: var(--primary-fill); }
-.switch:checked::after { transform: translateX(18px); }
-.switch:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
