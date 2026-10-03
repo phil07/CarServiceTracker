@@ -139,9 +139,10 @@
                 <div class="hero-sub" id="heroChassisInfo"></div>
             </div>
 
-            <h3 class="section-title">Wartungen</h3>
+            <h3 class="section-title" id="upcomingTitle">Wartungen</h3>
             <div class="upcoming-grid" id="upcomingGrid"></div>
 
+            <h3 class="section-title section-title--last">Zuletzt</h3>
             <div class="list-card last-entry" id="lastEntry"></div>
         </div>
         <button class="fab" onclick="openAddEntry()" aria-label="Neuen Service eintragen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></button>
@@ -161,7 +162,7 @@
 
     <!-- FAHRZEUG / EINSTELLUNGEN -->
     <div class="view" id="view-settings">
-        <div class="scroll-content fit-screen no-fab">
+        <div class="scroll-content no-fab">
             <h3 class="section-title section-title--first">Fahrzeug-Stammdaten</h3>
             <div class="card info-card" id="settingsVehicleInfo"></div>
             <button type="button" class="btn btn-secondary" onclick="editVehicleData()">
@@ -170,6 +171,10 @@
 
             <h3 class="section-title">Lackfarbe &amp; Design</h3>
             <div class="color-picker-grid" id="settingsColorGrid"></div>
+
+            <h3 class="section-title">Wartungsintervalle</h3>
+            <p class="settings-hint">Lege fest, wann eine Wartung wieder fällig wird. Leer lassen = wird nicht auf dem Dashboard verfolgt. Die Fälligkeit rechnet sich aus dem letzten Eintrag.</p>
+            <div class="card interval-card" id="intervalEditor"></div>
         </div>
     </div>
 
@@ -195,13 +200,7 @@
             <div class="dialog-body">
                 <div class="form-group">
                     <label for="form-category">Kategorie</label>
-                    <select id="form-category" required>
-                        <option value="Öl">Öl-Service</option>
-                        <option value="Bremsflüssigkeit">Bremsflüssigkeit</option>
-                        <option value="Kühlmittel">Kühlmittel</option>
-                        <option value="Zündkerzen">Zündkerzen</option>
-                        <option value="Anderes">Anderes (Sonstiges)</option>
-                    </select>
+                    <select id="form-category" required></select>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
@@ -240,6 +239,16 @@
         </div>
     </dialog>
 
+    <!-- BESTÄTIGUNG (ersetzt window.confirm) -->
+    <dialog id="modal-confirm" aria-labelledby="confirmTitle">
+        <h3 id="confirmTitle"></h3>
+        <p class="dialog-text" id="confirmText"></p>
+        <div class="dialog-actions">
+            <button type="button" class="btn" id="confirmOk">OK</button>
+            <button type="button" class="btn btn-secondary" id="confirmCancel">Abbrechen</button>
+        </div>
+    </dialog>
+
     <!-- Menü (Vollbild wie Japan2026) -->
     <nav class="drawer" id="drawer" aria-label="Hauptmenü" inert>
         <div class="menu-header">
@@ -257,7 +266,7 @@
             <div class="theme-switcher" id="themeSwitcher" role="group" aria-label="Design">
                 <button type="button" class="theme-btn" data-theme="light" onclick="setTheme('light')" title="Helles Design" aria-label="Helles Design" aria-pressed="false"><i class="ph-light ph-sun" data-fb="☀️" aria-hidden="true"></i></button>
                 <button type="button" class="theme-btn" data-theme="dark" onclick="setTheme('dark')" title="Dunkles Design" aria-label="Dunkles Design" aria-pressed="false"><i class="ph-light ph-moon" data-fb="🌙" aria-hidden="true"></i></button>
-                <button type="button" class="theme-btn" data-theme="auto" onclick="setTheme('auto')" title="Wie System" aria-label="Design wie System" aria-pressed="false">Auto</button>
+                <button type="button" class="theme-btn" data-theme="auto" onclick="setTheme('auto')" title="Wie System" aria-label="Design wie System" aria-pressed="false"><i class="ph-light ph-circle-half" data-fb="◐" aria-hidden="true"></i></button>
             </div>
             <div class="drawer-version-row">
                 <span id="appVersion" class="version-label">–</span>
@@ -282,7 +291,7 @@
     var from = null;
     try { from = localStorage.getItem('pendingUpdateFrom'); } catch (e) {}
     if (from === null) return;
-    localStorage.removeItem('pendingUpdateFrom');
+    try { localStorage.removeItem('pendingUpdateFrom'); } catch (e) {}
     var now = self.APP_VERSION;
     if (now !== from) {
       showResultToast('✅ Update erfolgreich – jetzt ' + now, 'ok');
@@ -292,6 +301,8 @@
   })();
 
   if ('serviceWorker' in navigator) {
+    // Bei der Erstinstallation (noch kein Controller) darf der claim() kein Neuladen auslösen
+    const hadController = !!navigator.serviceWorker.controller;
     window.addEventListener('load', () => {
       // updateViaCache 'none': sw.js + version.js immer frisch vom Server prüfen (kein HTTP-Cache)
       navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
@@ -311,7 +322,7 @@
       // Reload, sobald der neue SW die Kontrolle übernimmt
       let refreshing = false;
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (refreshing) return;
+        if (refreshing || !hadController) return;
         refreshing = true;
         window.location.reload();
       });
@@ -388,9 +399,11 @@
     t.className = 'sys-toast sys-toast--update';
     t.addEventListener('click', () => {
       // Aktuelle (alte) Version merken, um nach dem Reload den Erfolg zu prüfen
-      localStorage.setItem('pendingUpdateFrom', self.APP_VERSION);
-      // Wartenden SW aktivieren -> controllerchange -> reload
-      if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      // Wartenden SW aktivieren -> controllerchange -> reload (Flag nur setzen, wenn auch ein Reload folgt)
+      if (reg.waiting) {
+        try { localStorage.setItem('pendingUpdateFrom', self.APP_VERSION); } catch (e) {}
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      }
       t.remove();
     });
     document.body.appendChild(t);

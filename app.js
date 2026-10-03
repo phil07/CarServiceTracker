@@ -20,11 +20,25 @@ const BMW_COLORS = {
 
 // ─── Kategorien ───────────────────────────────────────────────────────────────
 const CATEGORIES = {
-  'Öl':               { icon: 'ph-drop',        fb: '🛢️', label: 'Öl' },
-  'Bremsflüssigkeit': { icon: 'ph-disc',        fb: '🛑', label: 'Bremsflüssigkeit' },
-  'Kühlmittel':       { icon: 'ph-thermometer', fb: '🌡️', label: 'Kühlmittel' },
-  'Zündkerzen':       { icon: 'ph-lightning',   fb: '⚡', label: 'Zündkerzen' },
-  'Anderes':          { icon: 'ph-wrench',      fb: '🔧', label: 'Anderes' },
+  'Öl':               { icon: 'ph-drop',           fb: '🛢️', label: 'Öl' },
+  'Bremsflüssigkeit': { icon: 'ph-disc',           fb: '💧', label: 'Bremsflüssigkeit' },
+  'Kühlmittel':       { icon: 'ph-thermometer',    fb: '🌡️', label: 'Kühlmittel' },
+  'Zündkerzen':       { icon: 'ph-lightning',      fb: '⚡', label: 'Zündkerzen' },
+  'Inspektion':       { icon: 'ph-clipboard-text', fb: '📋', label: 'Inspektion' },
+  'Filter':           { icon: 'ph-funnel',         fb: '🌀', label: 'Filter' },
+  'Bremsen':          { icon: 'ph-stop-circle',    fb: '🛑', label: 'Bremsen' },
+  'Getriebe':         { icon: 'ph-gear',           fb: '⚙️', label: 'Getriebe / Differential' },
+  'Reifen':           { icon: 'ph-tire',           fb: '🛞', label: 'Reifen / Räder' },
+  'TÜV':              { icon: 'ph-seal-check',     fb: '✅', label: 'TÜV (HU/AU)' },
+  'Anderes':          { icon: 'ph-wrench',         fb: '🔧', label: 'Anderes (Sonstiges)' },
+};
+
+// Wartungsintervalle (vom Nutzer einstellbar): km und/oder Monate; leer = nicht verfolgt
+const DEFAULT_INTERVALS = {
+  'Öl':               { km: 12000, months: 12 },
+  'Bremsflüssigkeit': { km: null,  months: 24 },
+  'Kühlmittel':       { km: null,  months: 48 },
+  'Zündkerzen':       { km: 60000, months: null },
 };
 
 // ─── Leere Startdaten ─────────────────────────────────────────────────────────
@@ -37,14 +51,8 @@ const EMPTY_DATA = {
     firstRegistration: '',
     currentKm: 0,
   },
-  upcomingServices: [
-    { category: 'Öl',               dueDate: '', dueKm: null },
-    { category: 'Bremsflüssigkeit', dueDate: '', dueKm: null },
-    { category: 'Kühlmittel',       dueDate: '', dueKm: null },
-    { category: 'Zündkerzen',       dueDate: '', dueKm: null },
-  ],
   serviceHistory: [],
-  settings: { vehicleColor: 'titansilber', onboardingDone: false },
+  settings: { vehicleColor: 'titansilber', onboardingDone: false, intervals: DEFAULT_INTERVALS },
 };
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -57,17 +65,90 @@ let historySearchVal  = '';
 let toastTimer = null;
 
 // ─── Persistenz ───────────────────────────────────────────────────────────────
+function uid() {
+  return (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+    : 'h' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+function toInt(x, min) {
+  const n = Math.round(Number(x));
+  return isFinite(n) && n >= min ? n : null;
+}
+
+function normalizeIntervals(raw) {
+  const src = raw && typeof raw === 'object' ? raw : DEFAULT_INTERVALS;
+  const out = {};
+  Object.keys(CATEGORIES).forEach(cat => {
+    if (cat === 'Anderes') return;
+    const iv = src[cat];
+    if (!iv || typeof iv !== 'object') return;
+    const km = toInt(iv.km, 1), months = toInt(iv.months, 1);
+    if (km || months) out[cat] = { km, months };
+  });
+  return out;
+}
+
+// Prüft und bereinigt Daten (Import, localStorage). Wirft bei unbrauchbarem Format.
+function normalizeState(raw) {
+  if (!raw || typeof raw !== 'object' || !raw.vehicle || typeof raw.vehicle !== 'object' || !Array.isArray(raw.serviceHistory)) {
+    throw new Error('Ungültiges Format');
+  }
+  const vehicle = Object.assign({}, EMPTY_DATA.vehicle, raw.vehicle);
+  Object.keys(vehicle).forEach(k => {
+    if (k !== 'currentKm') vehicle[k] = vehicle[k] == null ? '' : String(vehicle[k]);
+  });
+  vehicle.currentKm = toInt(vehicle.currentKm, 0) || 0;
+
+  const seen = new Set();
+  const serviceHistory = [];
+  raw.serviceHistory.forEach(e => {
+    if (!e || typeof e !== 'object') return;
+    const date = String(e.date || '');
+    const km = toInt(e.km, 0);
+    if (!parseDate(date) || km === null) return;
+    let id = String(e.id || '');
+    if (!/^[\w-]+$/.test(id) || seen.has(id)) id = uid();
+    seen.add(id);
+    const entry = {
+      id, date, km,
+      category: CATEGORIES[e.category] ? e.category : 'Anderes',
+      description: String(e.description == null ? '' : e.description).trim(),
+    };
+    const cost = Number(e.cost);
+    if (e.cost !== '' && e.cost != null && isFinite(cost) && cost >= 0) entry.cost = Math.round(cost * 100) / 100;
+    if (e.shop) entry.shop = String(e.shop).trim();
+    if (e.note) entry.note = String(e.note).trim();
+    serviceHistory.push(entry);
+  });
+
+  const st = raw.settings && typeof raw.settings === 'object' ? raw.settings : {};
+  const hasVehicle = !!(vehicle.vin || vehicle.make || vehicle.model || vehicle.chassis);
+  return {
+    vehicle,
+    serviceHistory,
+    settings: {
+      vehicleColor: BMW_COLORS[st.vehicleColor] ? st.vehicleColor : 'titansilber',
+      onboardingDone: st.onboardingDone === true || hasVehicle,
+      intervals: normalizeIntervals(st.intervals),
+    },
+  };
+}
+
 function loadState() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch (e) { console.warn('loadState:', e); }
-  return null;
+  let raw = null;
+  try { raw = localStorage.getItem(STORAGE_KEY); } catch (e) { console.warn('loadState:', e); }
+  if (!raw) return null;
+  try { return normalizeState(JSON.parse(raw)); }
+  catch (e) {
+    console.warn('loadState: beschädigte Daten, Sicherung unter ' + STORAGE_KEY + '_broken', e);
+    try { localStorage.setItem(STORAGE_KEY + '_broken', raw); } catch (e2) {}
+    return null;
+  }
 }
 
 function saveState() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
-  catch (e) { console.warn('saveState:', e); }
+  catch (e) { console.warn('saveState:', e); showToast('Speichern fehlgeschlagen (Speicher voll?)', 'err'); }
 }
 
 // ─── Theme (Hell / Dunkel / System) ───────────────────────────────────────────
@@ -174,42 +255,63 @@ function switchTab(tab) {
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
+const byRecent = (a, b) => b.date.localeCompare(a.date) || b.km - a.km || String(b.id).localeCompare(String(a.id));
+
+// Verfolgte Wartungen: Kategorien mit Intervall; Fälligkeit = letzter Eintrag + Intervall
+function trackedServices() {
+  const ivs = state.settings.intervals || {};
+  return Object.keys(CATEGORIES).filter(cat => ivs[cat] && (ivs[cat].km || ivs[cat].months)).map(cat => {
+    const interval = ivs[cat];
+    const last = lastEntryForCat(cat);
+    const svc = { category: cat, interval, last, dueKm: null, dueDate: '' };
+    if (last) {
+      if (interval.km)     svc.dueKm = last.km + interval.km;
+      if (interval.months) svc.dueDate = addMonths(last.date, interval.months);
+    }
+    return svc;
+  });
+}
+
+// 'none' (noch kein Eintrag) | 'ok' | 'warn' | 'alert'; Schwellen relativ zum Intervall
 function getServiceStatus(svc) {
-  const km = state.vehicle.currentKm;
-  if (svc.dueKm == null && !svc.dueDate) return 'none';
-  let worst = 'ok';
-
+  if (!svc.last) return 'none';
+  let worst = 0;
   if (svc.dueKm != null) {
-    const diff = svc.dueKm - km;
-    if (diff <= 500)       worst = 'alert';
-    else if (diff <= 2000) worst = worst === 'ok' ? 'warn' : worst;
+    const diff = svc.dueKm - state.vehicle.currentKm;
+    const iv = svc.interval.km;
+    if (diff <= Math.max(300, iv * 0.05))       worst = 2;
+    else if (diff <= Math.max(1000, iv * 0.15)) worst = Math.max(worst, 1);
   }
-
   if (svc.dueDate) {
-    const days = Math.round((new Date(svc.dueDate) - new Date()) / 86400000);
-    if (days <= 30)       worst = 'alert';
-    else if (days <= 90)  worst = worst === 'ok' ? 'warn' : worst;
+    const days = daysUntil(svc.dueDate);
+    const ivDays = svc.interval.months * 30;
+    if (days <= Math.max(14, ivDays * 0.05))      worst = 2;
+    else if (days <= Math.max(30, ivDays * 0.15)) worst = Math.max(worst, 1);
   }
+  return ['ok', 'warn', 'alert'][worst];
+}
 
-  return worst;
+function isOverdue(svc) {
+  if (!svc.last) return false;
+  return (svc.dueKm != null && svc.dueKm - state.vehicle.currentKm <= 0) ||
+         (!!svc.dueDate && daysUntil(svc.dueDate) < 0);
 }
 
 function dueText(svc) {
+  if (!svc.last) return 'nach dem ersten Eintrag';
   const parts = [];
   if (svc.dueDate) parts.push(formatDate(svc.dueDate));
   if (svc.dueKm != null) {
     parts.push(svc.dueKm.toLocaleString('de-DE') + ' km');
     const diff = svc.dueKm - state.vehicle.currentKm;
     if (diff > 0) parts.push('(noch ' + diff.toLocaleString('de-DE') + ' km)');
-    else parts.push('(überfällig!)');
   }
+  if (isOverdue(svc)) parts.push('(überfällig!)');
   return parts.join(' · ') || '–';
 }
 
 function lastEntryForCat(cat) {
-  return [...state.serviceHistory]
-    .filter(e => e.category === cat)
-    .sort((a, b) => b.date.localeCompare(a.date))[0] || null;
+  return [...state.serviceHistory].filter(e => e.category === cat).sort(byRecent)[0] || null;
 }
 
 function catIcon(cat) {
@@ -239,9 +341,13 @@ function renderDashboard() {
 
   const grid = document.getElementById('upcomingGrid');
   if (grid) {
-    grid.innerHTML = state.upcomingServices.map(svc => {
+    const tracked = trackedServices();
+    const title = document.getElementById('upcomingTitle');
+    if (title) title.hidden = !tracked.length;
+    grid.classList.toggle('is-empty', !tracked.length);
+    grid.innerHTML = tracked.length ? tracked.map(svc => {
       const status = getServiceStatus(svc);
-      const statusLabel = { none: 'Kein Termin', ok: 'OK', warn: 'Bald fällig', alert: 'Dringend' }[status];
+      const statusLabel = { none: 'Offen', ok: 'OK', warn: 'Bald fällig', alert: isOverdue(svc) ? 'Überfällig' : 'Dringend' }[status];
       return `
         <div class="card stat-card status-${status}">
           <div class="stat-top">
@@ -254,18 +360,22 @@ function renderDashboard() {
             <div class="stat-lbl">${lastText(svc.category)}</div>
           </div>
         </div>`;
-    }).join('');
+    }).join('') : `
+        <button type="button" class="empty-state empty-state--action" onclick="switchTab('settings')">
+          <i class="ph-light ph-timer" data-fb="⏱️" aria-hidden="true"></i>
+          <p>Noch keine Wartungsintervalle festgelegt.<br><strong>Intervalle einstellen</strong></p>
+        </button>`;
   }
 
   // Letzter Eintrag insgesamt (kompakt, öffnet die Historie)
   const lastEl = document.getElementById('lastEntry');
   if (lastEl) {
-    const last = [...state.serviceHistory].sort((a, b) => b.date.localeCompare(a.date))[0];
+    const last = [...state.serviceHistory].sort(byRecent)[0];
     lastEl.innerHTML = last ? `
         <button type="button" class="list-row" onclick="switchTab('history')">
           <div class="list-icon">${catIcon(last.category)}</div>
           <div class="list-body">
-            <div class="list-title">Zuletzt: ${esc(last.category)}</div>
+            <div class="list-title">${esc(last.category)}</div>
             <div class="list-sub">${esc(last.description)}</div>
           </div>
           <div class="list-meta">
@@ -295,13 +405,19 @@ function openKmEdit() {
   document.getElementById('modal-km-edit').showModal();
 }
 
-function saveKmEdit() {
+async function saveKmEdit() {
   const val = parseInt(document.getElementById('edit-km-val').value, 10);
   if (isNaN(val) || val < 0) { showToast('Ungültiger KM-Stand', 'err'); return; }
+  const maxEntry = state.serviceHistory.reduce((m, e) => Math.max(m, e.km), 0);
+  let warn = '';
+  if (val < maxEntry) warn = `Der Stand liegt unter dem höchsten Eintrag in der Historie (${maxEntry.toLocaleString('de-DE')} km).`;
+  else if (state.vehicle.currentKm && val > state.vehicle.currentKm + KM_JUMP) warn = `Der Stand liegt ${(val - state.vehicle.currentKm).toLocaleString('de-DE')} km über dem bisherigen.`;
+  if (warn && !(await confirmDialog({ title: 'Stimmt das?', text: warn, ok: 'Trotzdem übernehmen' }))) return;
   state.vehicle.currentKm = val;
   saveState();
   document.getElementById('modal-km-edit').close();
   showToast('KM-Stand aktualisiert', 'ok');
+  renderHeader();
   renderDashboard();
 }
 
@@ -312,16 +428,17 @@ function renderHistory() {
     const cats = ['Alle', ...Object.keys(CATEGORIES)];
     chipBar.innerHTML = cats.map(c => `
       <button type="button" class="chip${historyFilterCat === c ? ' active' : ''}"
-              onclick="setHistoryCat('${esc(c)}')">${esc(c)}</button>`
+              data-cat="${esc(c)}">${esc(c)}</button>`
     ).join('');
   }
 
-  let items = [...state.serviceHistory].sort((a, b) => b.date.localeCompare(a.date));
+  let items = [...state.serviceHistory].sort(byRecent);
   if (historyFilterCat !== 'Alle') items = items.filter(e => e.category === historyFilterCat);
   if (historySearchVal.trim()) {
     const q = historySearchVal.toLowerCase();
     items = items.filter(e =>
-      e.description.toLowerCase().includes(q) || e.category.toLowerCase().includes(q)
+      [e.category, e.description, formatDate(e.date), String(e.km), e.km.toLocaleString('de-DE')]
+        .join(' ').toLowerCase().includes(q)
     );
   }
 
@@ -330,13 +447,14 @@ function renderHistory() {
 
   if (!items.length) {
     listEl.classList.add('is-empty');
-    listEl.innerHTML = `<div class="empty-state"><i class="ph-light ph-magnifying-glass" data-fb="🔍"></i><p>Keine Einträge gefunden</p></div>`;
+    const none = !state.serviceHistory.length;
+    listEl.innerHTML = `<div class="empty-state"><i class="ph-light ${none ? 'ph-clock-counter-clockwise' : 'ph-magnifying-glass'}" data-fb="${none ? '🕘' : '🔍'}"></i><p>${none ? 'Noch keine Einträge – tippe auf +' : 'Keine Einträge gefunden'}</p></div>`;
     return;
   }
   listEl.classList.remove('is-empty');
 
   listEl.innerHTML = items.map(e => `
-      <button type="button" class="list-row" onclick="openHistoryDetail('${esc(e.id)}')">
+      <button type="button" class="list-row" data-id="${esc(e.id)}">
         <div class="list-icon">${catIcon(e.category)}</div>
         <div class="list-body">
           <div class="list-title">${esc(e.category)}</div>
@@ -348,6 +466,18 @@ function renderHistory() {
         </div>
       </button>`
   ).join('');
+}
+
+// Event-Delegation statt inline-onclick (keine Werte in JS-Strings)
+function bindHistoryEvents() {
+  document.getElementById('historyList').addEventListener('click', ev => {
+    const row = ev.target.closest('[data-id]');
+    if (row) openHistoryDetail(row.dataset.id);
+  });
+  document.getElementById('categoryFilterChips').addEventListener('click', ev => {
+    const chip = ev.target.closest('[data-cat]');
+    if (chip) setHistoryCat(chip.dataset.cat);
+  });
 }
 
 function setHistoryCat(cat) {
@@ -416,6 +546,7 @@ function openAddEntry(entry) {
   document.getElementById('addEntryForm').reset();
   document.getElementById('addEntryTitle').textContent = edit ? 'Eintrag bearbeiten' : 'Neuer Service';
   document.getElementById('form-category').value    = edit ? edit.category : 'Öl';
+  document.getElementById('form-date').max          = todayIso();
   document.getElementById('form-date').value        = edit ? edit.date : todayIso();
   document.getElementById('form-km').value          = edit ? edit.km : (state.vehicle.currentKm || '');
   document.getElementById('form-description').value = edit ? edit.description : '';
@@ -426,7 +557,22 @@ function closeAddEntry() {
   document.getElementById('modal-add-entry').close();
 }
 
-function handleFormSubmit(event) {
+// Hinweistext, wenn ein Kilometerstand auffällig ist (sonst '')
+const KM_JUMP = 25000;
+function kmWarning(km, date, ignoreId) {
+  const cur = state.vehicle.currentKm;
+  if (cur && km > cur + KM_JUMP) {
+    return `Der Kilometerstand liegt ${(km - cur).toLocaleString('de-DE')} km über dem aktuellen Stand (${cur.toLocaleString('de-DE')} km).`;
+  }
+  const clash = state.serviceHistory.find(e => e.id !== ignoreId &&
+    ((e.date < date && e.km > km) || (e.date > date && e.km < km)));
+  if (clash) {
+    return `Passt nicht zur Historie: Am ${formatDate(clash.date)} stand der Kilometerzähler bei ${clash.km.toLocaleString('de-DE')} km.`;
+  }
+  return '';
+}
+
+async function handleFormSubmit(event) {
   event.preventDefault();
   const category    = document.getElementById('form-category').value;
   const date        = document.getElementById('form-date').value;
@@ -437,9 +583,12 @@ function handleFormSubmit(event) {
   if (isNaN(km) || km < 0) { showToast('Ungültiger KM-Stand', 'err'); return; }
   if (!description)        { showToast('Beschreibung fehlt', 'err'); return; }
 
+  const warn = kmWarning(km, date, editingId);
+  if (warn && !(await confirmDialog({ title: 'Stimmt das?', text: warn, ok: 'Trotzdem speichern' }))) return;
+
   const existing = editingId && state.serviceHistory.find(x => x.id === editingId);
   if (existing) Object.assign(existing, { date, km, category, description });
-  else state.serviceHistory.push({ id: 'h' + Date.now(), date, km, category, description });
+  else state.serviceHistory.push({ id: uid(), date, km, category, description });
   if (km > state.vehicle.currentKm) state.vehicle.currentKm = km;
   saveState();
   closeAddEntry();
@@ -452,6 +601,7 @@ function handleFormSubmit(event) {
 // ─── Settings ─────────────────────────────────────────────────────────────────
 function renderSettings() {
   renderVehicleInfo('settingsVehicleInfo', state.vehicle);
+  renderIntervalEditor();
 
   buildColorGrid('settingsColorGrid', state.settings.vehicleColor, (key) => {
     state.settings.vehicleColor = key;
@@ -459,6 +609,38 @@ function renderSettings() {
     applyTheme(key);
     renderSettings();
     showToast('Farbe geändert: ' + BMW_COLORS[key].label, 'ok');
+  });
+}
+
+// Intervall-Editor: eine Zeile je Kategorie (km und Monate), Änderungen werden sofort gespeichert
+function renderIntervalEditor() {
+  const el = document.getElementById('intervalEditor');
+  if (!el) return;
+  const ivs = state.settings.intervals || {};
+  el.innerHTML = Object.keys(CATEGORIES).filter(c => c !== 'Anderes').map(cat => {
+    const iv = ivs[cat] || {};
+    return `
+      <div class="interval-row" data-cat="${esc(cat)}">
+        <div class="interval-name">${catIcon(cat)}<span>${esc(CATEGORIES[cat].label)}</span></div>
+        <label class="interval-field"><input type="number" inputmode="numeric" min="1" step="1" data-field="km" value="${iv.km || ''}" placeholder="–" aria-label="${esc(cat)}: Intervall in Kilometern"><span>km</span></label>
+        <label class="interval-field"><input type="number" inputmode="numeric" min="1" step="1" data-field="months" value="${iv.months || ''}" placeholder="–" aria-label="${esc(cat)}: Intervall in Monaten"><span>Mon.</span></label>
+      </div>`;
+  }).join('');
+}
+
+function bindIntervalEditor() {
+  document.getElementById('intervalEditor').addEventListener('change', ev => {
+    const input = ev.target.closest('input[data-field]');
+    const row = ev.target.closest('[data-cat]');
+    if (!input || !row) return;
+    const cat = row.dataset.cat;
+    const iv = Object.assign({ km: null, months: null }, state.settings.intervals[cat]);
+    iv[input.dataset.field] = toInt(input.value, 1);
+    if (iv.km || iv.months) state.settings.intervals[cat] = iv;
+    else delete state.settings.intervals[cat];
+    input.value = iv[input.dataset.field] || '';
+    saveState();
+    showToast('Intervall gespeichert', 'ok');
   });
 }
 
@@ -525,12 +707,15 @@ function exportData() {
   const json = JSON.stringify(state, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
   const url  = URL.createObjectURL(blob);
+  const tag  = (vehicleTitle(state.vehicle) || 'fahrzeug').replace(/[^\w]+/g, '-').replace(/^-|-$/g, '');
   const a    = Object.assign(document.createElement('a'), {
     href: url,
-    download: 'service-tracker-' + todayIso() + '.json',
+    download: 'service-tracker-' + tag + '-' + todayIso() + '.json',
   });
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
   showToast('Export erfolgreich', 'ok');
 }
 
@@ -538,17 +723,24 @@ function importData(input) {
   const file = input.files && input.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = ev => {
+  reader.onload = async ev => {
     try {
-      const imported = JSON.parse(ev.target.result);
-      if (!imported.serviceHistory || !imported.vehicle) throw new Error('Ungültiges Format');
-      state = imported;
-      state.settings = Object.assign({ vehicleColor: 'titansilber' }, state.settings, { onboardingDone: true });
+      const next = normalizeState(JSON.parse(ev.target.result));
+      const ok = await confirmDialog({
+        title: 'Backup einspielen?',
+        text: `${next.serviceHistory.length} Einträge werden geladen. Die aktuellen Daten (${state.serviceHistory.length} Einträge) werden dabei ersetzt.`,
+        ok: 'Einspielen', danger: true,
+      });
+      if (!ok) return;
+      const previous = state;
+      state = next;
+      try {
+        applyTheme(state.settings.vehicleColor);
+        renderHeader();
+        switchTab('dashboard');
+      } catch (err) { state = previous; throw err; }
       saveState();
-      applyTheme(state.settings.vehicleColor);
-      renderHeader();
       showToast('Import erfolgreich', 'ok');
-      switchTab('dashboard');
     } catch (e) {
       showToast('Import fehlgeschlagen: ' + e.message, 'err');
     }
@@ -557,16 +749,38 @@ function importData(input) {
   input.value = '';
 }
 
-function resetDataPrompt() {
-  if (window.confirm('Alle App-Daten zurücksetzen? Dies kann nicht rückgängig gemacht werden.')) {
-    localStorage.removeItem(STORAGE_KEY);
-    state = JSON.parse(JSON.stringify(EMPTY_DATA));
-    saveState();
-    applyTheme(state.settings.vehicleColor);
-    renderHeader();
-    showToast('Daten zurückgesetzt', 'warn');
-    showOnboarding();
-  }
+async function resetDataPrompt() {
+  const ok = await confirmDialog({
+    title: 'Alles zurücksetzen?',
+    text: 'Alle Einträge und Einstellungen werden gelöscht. Das kann nicht rückgängig gemacht werden – lege vorher ein Backup an.',
+    ok: 'Zurücksetzen', danger: true,
+  });
+  if (!ok) return;
+  localStorage.removeItem(STORAGE_KEY);
+  state = JSON.parse(JSON.stringify(EMPTY_DATA));
+  saveState();
+  applyTheme(state.settings.vehicleColor);
+  renderHeader();
+  showToast('Daten zurückgesetzt', 'warn');
+  showOnboarding();
+}
+
+// Eigener Bestätigungsdialog (statt window.confirm) – liefert ein Promise<boolean>
+function confirmDialog({ title, text, ok = 'OK', cancel = 'Abbrechen', danger = false }) {
+  return new Promise(resolve => {
+    const d = document.getElementById('modal-confirm');
+    const okBtn = document.getElementById('confirmOk');
+    let result = false;
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmText').textContent = text;
+    okBtn.textContent = ok;
+    okBtn.classList.toggle('is-danger', danger);
+    document.getElementById('confirmCancel').textContent = cancel;
+    okBtn.onclick = () => { result = true; d.close(); };
+    document.getElementById('confirmCancel').onclick = () => d.close();
+    d.onclose = () => resolve(result);
+    d.showModal();
+  });
 }
 
 // ─── VIN-Dekodierung ──────────────────────────────────────────────────────────
@@ -888,7 +1102,10 @@ function showOnboardingDetails(decoded, source) {
   // Vorbelegen: dekodierte Werte, sonst vorhandene (bei gleicher VIN / ohne VIN)
   const keep = sameVin || !decoded.vin;
   // Nur den Hersteller (z.B. „BMW“) nicht als Modellbezeichnung vorbelegen
-  document.getElementById('onboardingModel').value    = decoded.model ? vehicleTitle(decoded) : (keep && cur.model ? vehicleTitle(cur) : '');
+  // Bei gleicher VIN hat ein bereits (manuell) gepflegtes Modell Vorrang
+  document.getElementById('onboardingModel').value    =
+    (sameVin && cur.model) ? vehicleTitle(cur) :
+    decoded.model ? vehicleTitle(decoded) : (keep && cur.model ? vehicleTitle(cur) : '');
   document.getElementById('onboardingFirstReg').value = cur.firstRegistration || '';
   document.getElementById('onboardingKm').value       = cur.currentKm || '';
 
@@ -910,17 +1127,17 @@ function finishOnboarding(event) {
   const km = parseInt(document.getElementById('onboardingKm').value, 10);
   const modelInput = document.getElementById('onboardingModel').value.trim();
 
-  // Neue VIN → alte dekodierte Felder verwerfen; KM, EZ und Historie bleiben erhalten
-  const base = {
-    currentKm: state.vehicle.currentKm || 0,
-    firstRegistration: state.vehicle.firstRegistration || '',
-  };
-  if (!decoded.vin) Object.assign(base, state.vehicle, { vin: '' });
-  const vehicle = Object.assign(base, decoded);
+  // Gleiche VIN (oder ohne VIN): bisherige Felder behalten, nur nicht-leere Werte überschreiben.
+  // Neue VIN: alte dekodierte Felder verwerfen; KM, EZ und Historie bleiben erhalten.
+  const sameVin = !decoded.vin || decoded.vin === state.vehicle.vin;
+  const vehicle = sameVin
+    ? Object.assign({}, state.vehicle)
+    : { currentKm: state.vehicle.currentKm || 0, firstRegistration: state.vehicle.firstRegistration || '' };
+  Object.keys(decoded).forEach(k => { if (decoded[k] !== '' && decoded[k] != null) vehicle[k] = decoded[k]; });
+  if (!decoded.vin) vehicle.vin = '';
 
-  // Manuell geänderte Modellbezeichnung übernehmen
-  if (modelInput && modelInput !== vehicleTitle(decoded)) {
-    // „BMW E39 530iA“ oder nur „E39 530iA“ – Hersteller bleibt erhalten, nicht doppelt
+  // Modellbezeichnung aus dem Feld übernehmen (Hersteller bleibt erhalten, nicht doppelt)
+  if (modelInput) {
     const make = vehicle.make || '';
     vehicle.model = make && modelInput.toLowerCase().startsWith(make.toLowerCase() + ' ')
       ? modelInput.slice(make.length + 1).trim() : modelInput;
@@ -952,13 +1169,39 @@ function editVehicleData() {
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
 function todayIso() {
-  const d = new Date();
-  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+  return toIso(new Date());
+}
+
+// Datumsfunktionen rechnen mit lokalen Kalendertagen (kein UTC-Versatz)
+function parseDate(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+  if (!m) return null;
+  const d = new Date(+m[1], +m[2] - 1, +m[3]);
+  return d.getMonth() === +m[2] - 1 ? d : null;
+}
+
+function toIso(d) {
+  const p = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+
+function addMonths(iso, n) {
+  const d = parseDate(iso);
+  if (!d) return '';
+  const day = d.getDate();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + n);
+  d.setDate(Math.min(day, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
+  return toIso(d);
+}
+
+function daysUntil(iso) {
+  return Math.round((parseDate(iso) - parseDate(todayIso())) / 86400000);
 }
 
 function formatDate(iso) {
-  const d = new Date(iso);
-  return isNaN(d) ? iso : d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const d = parseDate(iso);
+  return d ? d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : iso;
 }
 
 function vehicleTitle(v) {
@@ -985,12 +1228,19 @@ function esc(s) {
     .replace(/'/g, '&#39;');
 }
 
+function buildCategoryOptions() {
+  document.getElementById('form-category').innerHTML = Object.entries(CATEGORIES)
+    .map(([k, c]) => `<option value="${esc(k)}">${esc(c.label)}</option>`).join('');
+}
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 function init() {
   const saved = loadState();
   state = saved ? saved : JSON.parse(JSON.stringify(EMPTY_DATA));
-  state.settings = Object.assign({ vehicleColor: 'titansilber', onboardingDone: false }, state.settings);
   if (!saved) saveState();
+  buildCategoryOptions();
+  bindHistoryEvents();
+  bindIntervalEditor();
 
   let themeSaved = 'auto';
   try { themeSaved = localStorage.getItem(THEME_KEY) || 'auto'; } catch (e) {}

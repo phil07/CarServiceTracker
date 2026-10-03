@@ -487,3 +487,52 @@ dialog > h3 { margin: 0 0 14px; font-size: 22px; font-weight: 800; letter-spacin
 #modal-entry-detail .dialog-actions .btn { width: 100%; }
 .btn-danger { color: var(--err-fill); }
 .btn-danger.confirm, .btn-danger.confirm:hover { background: var(--err-fill); color: #fff; box-shadow: none; }
+
+/* ── Bestätigungsdialog ── */
+.dialog-text { margin: 0 0 18px; font-size: 14.5px; line-height: 1.5; color: var(--label); overflow-wrap: anywhere; }
+.dialog-actions .btn.is-danger { background: var(--err-fill); color: #fff; }
+#modal-confirm .dialog-actions .btn, #modal-entry-detail .dialog-actions .btn { width: 100%; }
+
+/* ── Wartungsintervalle (Einstellungen) ── */
+.settings-hint { margin: 0 4px 12px; font-size: 12.5px; line-height: 1.45; color: var(--muted); }
+.interval-card { padding: 4px 14px; }
+.interval-row { display: grid; grid-template-columns: minmax(0, 1fr) 112px 88px; align-items: center; gap: 8px; padding: 8px 0; }
+.interval-row + .interval-row { border-top: 1px solid var(--shell-ring); }
+.interval-name { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 13px; font-weight: 600; }
+.interval-name i { font-size: 18px; color: var(--primary-text); flex-shrink: 0; }
+.interval-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.interval-field { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.interval-field input { width: 100%; min-width: 0; min-height: 40px; padding: 6px 6px; font-size: 14px; text-align: right; }
+.interval-field span { font-size: 11px; color: var(--muted); flex-shrink: 0; }
+
+/* ── Dashboard: Leerzustand, Zuletzt-Titel ── */
+.upcoming-grid.is-empty { display: block; }
+.empty-state--action { display: block; width: 100%; border: 0; background: none; font: inherit; cursor: pointer; padding: 22px 16px; }
+.empty-state--action strong { color: var(--primary-text); }
+.section-title--last { margin-top: clamp(12px, 2dvh, 22px); margin-bottom: clamp(6px, 1dvh, 10px); }
+.dash-scroll .section-title--last { margin: clamp(10px, 1.8dvh, 20px) 4px clamp(6px, 1dvh, 10px); }
+.last-entry { margin-top: 0; }
+
+/* ── Design-Feinschliff (Review) ── */
+/* Historie: Liste endet über dem FAB, Verlauf statt hartem Anschnitt */
+#view-history .scroll-content { padding-bottom: calc(120px + env(safe-area-inset-bottom)); }
+#view-history::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 90px; pointer-events: none;
+    z-index: calc(var(--z-fab) - 1); background: linear-gradient(to top, var(--bg) 30%, transparent); }
+/* Touch-Ziele ≥ 44px */
+.edit-btn { width: 44px; height: 44px; flex: 0 0 44px; }
+.theme-btn { min-width: 52px; height: 44px; }
+#btnCheckUpdate { min-height: 44px; padding: 0 16px; }
+.link-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 12px; }
+/* Farbauswahl: lange Namen umbrechen statt abschneiden */
+.color-picker-grid { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); }
+.swatch-label { font-size: 10.5px; white-space: normal; overflow-wrap: anywhere; hyphens: auto; line-height: 1.15; }
+/* Menü: dichter Hintergrund, kein Fokusring bei Touch/Maus */
+.drawer { background: color-mix(in srgb, var(--bg) 96%, transparent); }
+.menu-item:focus:not(:focus-visible) { outline: none; }
+/* Karten, Fallback-Icons, Onboarding */
+.stat-num { hyphens: auto; overflow-wrap: anywhere; }
+i.ph-light[data-fb]::before { filter: grayscale(1); opacity: .85; }
+.onboarding-card .form-row { margin-bottom: 0; }
+@media (max-height: 700px) {
+    .onboarding-step .eyebrow { display: inline-flex; margin-bottom: 4px; }
+}

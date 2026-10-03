@@ -8,7 +8,6 @@ self.addEventListener('install', e => {
     caches.open(CACHE).then(c =>
       c.addAll(['./', './index.html', './style.css', './app.js', './version.js', './manifest.json']
         .map(u => new Request(u, { cache: 'reload' })))
-        .catch(err => console.warn('SW precache failed (install continues):', err))
     )
   );
   // Kein auto-skipWaiting – Nutzer tippt Update-Toast → SKIP_WAITING
