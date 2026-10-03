@@ -859,6 +859,22 @@ function exportCsv() {
   showToast('CSV exportiert', 'ok');
 }
 
+function exportFuelCsv() {
+  if (!state.fuelLog.length) { showToast('Noch keine Tankstopps vorhanden', 'warn'); return; }
+  const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+  const num = (v, d) => v == null ? '' : v.toFixed(d).replace('.', ',');
+  const { seg } = fuelStats();
+  const rows = [['Datum', 'Kilometer', 'Liter', 'Kosten (EUR)', 'Preis (EUR/l)', 'Vollgetankt', 'Verbrauch (l/100 km)']];
+  [...state.fuelLog].sort((a, b) => b.km - a.km || b.date.localeCompare(a.date)).forEach(e => rows.push([
+    formatDate(e.date), e.km, num(e.liters, 2), num(e.cost, 2),
+    e.cost != null && e.liters ? num(e.cost / e.liters, 3) : '',
+    e.full ? 'ja' : 'nein', seg.has(e.id) ? num(seg.get(e.id).l100, 1) : '',
+  ]));
+  download('tankprotokoll-' + historyFileTag() + '-' + todayIso() + '.csv',
+    '\ufeff' + rows.map(r => r.map(q).join(';')).join('\r\n'), 'text/csv;charset=utf-8');
+  showToast('Tank-CSV exportiert', 'ok');
+}
+
 // Druckansicht (Scheckheft) – über „Als PDF speichern“ im Druckdialog
 function printHistory() {
   const v = state.vehicle;
