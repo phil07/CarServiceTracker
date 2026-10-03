@@ -1,3 +1,7 @@
+# Git Workflow
+
+- **Work directly on `main`.** Do not create feature branches or pull requests; commit and push straight to `main`.
+
 # Release Versioning
 
 - **MUST bump `version.js` (`APP_VERSION`, e.g. `v2` → `v3`) by one on every push that changes app files** (`index.html`, `app.js`, `style.css`, `sw.js`, `manifest.json`). The service worker cache name derives from it, and the bump is what makes installed apps detect the new build and show the "Update verfügbar" toast.
