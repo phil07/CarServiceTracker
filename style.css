@@ -390,3 +390,91 @@ dialog > h3 { margin: 0 0 14px; font-size: 22px; font-weight: 800; letter-spacin
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; transition-delay: 0s !important; }
 }
+
+/* ═══ An Bildschirmhöhe anpassen (wie Japan2026-Home) ═══
+   Schrift/Abstände skalieren mit der Höhe (dvh), damit Dashboard, Fahrzeug-Ansicht
+   und Onboarding ohne Scrollen passen. Reicht der Platz nicht (z. B. große
+   Systemschrift), scrollt die Seite als Rückfall. */
+.scroll-content.no-fab { padding-bottom: calc(clamp(14px, 3dvh, 28px) + env(safe-area-inset-bottom)); }
+.fit-screen { padding-top: clamp(6px, 1.4dvh, 16px); }
+
+/* Dashboard: Spalte, Wartungs-Kacheln füllen den Rest */
+.dash-scroll { display: flex; flex-direction: column;
+    padding-bottom: calc(92px + env(safe-area-inset-bottom)); }
+.dash-scroll > * { flex-shrink: 0; }
+.dash-scroll .home-intro { padding: 0 2px clamp(8px, 1.8dvh, 18px); }
+.dash-scroll .home-headline { font-size: clamp(24px, 4dvh, 34px); margin-top: clamp(6px, 1.2dvh, 14px); }
+.dash-scroll .hero-card { padding: clamp(14px, 2.4dvh, 24px) 22px clamp(12px, 2dvh, 20px); margin: 4px 0 0; }
+.dash-scroll .hero-num { font-size: clamp(40px, 6.6dvh, 58px); }
+.dash-scroll .hero-num-row { margin-top: clamp(4px, .8dvh, 8px); }
+.dash-scroll .hero-sub { margin-top: clamp(6px, 1.2dvh, 12px); }
+.dash-scroll .section-title { margin: clamp(16px, 3dvh, 30px) 4px clamp(10px, 1.8dvh, 16px); }
+.dash-scroll .upcoming-grid { flex: 1 1 auto; flex-shrink: 1; min-height: min-content;
+    grid-template-rows: repeat(2, minmax(min-content, 1fr)); gap: clamp(14px, 2.2dvh, 20px); }
+.dash-scroll .stat-card { min-height: 0; padding: clamp(10px, 1.6dvh, 16px) 14px clamp(10px, 1.4dvh, 14px); gap: 6px; }
+.stat-body .stat-lbl + .stat-lbl { margin-top: 1px; }
+.dash-scroll .stat-lbl { font-size: clamp(11px, 1.45dvh, 12px); }
+.last-entry { margin-top: clamp(16px, 2.6dvh, 26px); }
+.last-entry .list-row { padding: clamp(9px, 1.5dvh, 13px) 16px; }
+@media (max-height: 700px) {
+    .dash-scroll .eyebrow, .dash-scroll .hero-eyebrow { display: none; }
+    .dash-scroll .home-headline { margin-top: 0; }
+}
+
+/* Fahrzeug-Ansicht: kompakte Infozeilen */
+#view-settings .info-row { padding: clamp(6px, 1.05dvh, 13px) 18px; }
+#view-settings .info-row span, #view-settings .info-row strong { font-size: clamp(12px, 1.6dvh, 13.5px); }
+#view-settings .section-title { margin: clamp(14px, 2.6dvh, 30px) 4px clamp(8px, 1.6dvh, 16px); }
+#view-settings .section-title--first { margin-top: 4px; }
+#view-settings .btn-secondary { margin-top: clamp(14px, 2.4dvh, 24px); min-height: clamp(44px, 6dvh, 54px); }
+
+/* Farbauswahl kompakter */
+.color-picker-grid { gap: clamp(6px, 1dvh, 10px); }
+.color-swatch-btn { padding: clamp(6px, 1dvh, 10px) 2px clamp(5px, .9dvh, 8px); gap: 4px; }
+.swatch-dot { width: clamp(22px, 3.4dvh, 30px); height: clamp(22px, 3.4dvh, 30px); }
+
+/* Onboarding kompakt */
+.onboarding-scroll { padding-top: clamp(8px, 2dvh, 22px); }
+.onboarding-step .home-headline { font-size: clamp(24px, 4dvh, 34px); margin-top: clamp(8px, 1.4dvh, 14px); }
+.onboarding-text { margin: clamp(6px, 1.2dvh, 12px) 2px clamp(12px, 2.4dvh, 24px); font-size: clamp(13px, 1.75dvh, 14.5px); }
+.onboarding-card { padding: clamp(12px, 1.8dvh, 18px); margin-bottom: clamp(10px, 1.8dvh, 18px); }
+.onboarding-card .form-group { margin-bottom: clamp(8px, 1.4dvh, 16px); }
+.onboarding-card .form-group:last-child, .onboarding-card .form-row .form-group { margin-bottom: 0; }
+.onboarding-step .btn-cta { margin-top: clamp(14px, 2.6dvh, 26px); }
+.onboarding-link { margin-top: clamp(4px, 1dvh, 16px); padding: 8px; }
+.onboarding-step .section-title { margin: clamp(10px, 1.8dvh, 20px) 4px clamp(6px, 1dvh, 10px); }
+.onboarding-step .section-hint { margin: 0 4px clamp(8px, 1.4dvh, 14px); font-size: 12px; }
+.chip-line { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 clamp(12px, 2.2dvh, 22px); }
+.chip-line:empty { display: none; }
+.meta-chip { display: inline-flex; align-items: center; gap: 5px; max-width: 100%; padding: 6px 10px; border-radius: 999px;
+    background: var(--bg-elevated); color: var(--label); font-size: 12px; font-weight: 600;
+    box-shadow: var(--hl), inset 0 0 0 1px var(--shell-ring); }
+.meta-chip i { font-size: 14px; color: var(--primary-text); flex-shrink: 0; }
+.meta-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Formular-Zeile: zwei Felder nebeneinander */
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.form-row .form-group { margin-bottom: 0; min-width: 0; }
+.form-row input { min-width: 0; }
+
+/* Popup „Neuer Service“: Kopf, scrollender Inhalt, feste Aktionsleiste */
+#modal-add-entry { max-width: 380px; width: calc(100% - 32px); }
+#modal-add-entry[open] { display: flex; flex-direction: column; max-height: calc(var(--vh, 1vh) * 92); }
+.dialog-form { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.dialog-form .dialog-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; margin: 0 -22px; padding: 2px 22px; }
+.dialog-form .dialog-actions { flex-shrink: 0; margin: 0; padding-top: 4px; }
+.dialog-form textarea { min-height: 80px; }
+
+/* Feinschliff: FAB neben dem letzten Eintrag statt darunter (spart Höhe) */
+.dash-scroll { padding-bottom: calc(clamp(16px, 2.8dvh, 24px) + env(safe-area-inset-bottom)); }
+.last-entry { margin-right: 76px; }
+.dash-scroll ~ .fab { bottom: calc(clamp(16px, 2.8dvh, 24px) + env(safe-area-inset-bottom)); }
+.last-entry .list-meta div + div { display: none; }
+.section-note { letter-spacing: .04em; text-transform: none; font-weight: 600; }
+#view-settings .info-row { padding-top: clamp(4px, .9dvh, 13px); padding-bottom: clamp(4px, .9dvh, 13px); }
+@media (max-height: 700px) {
+    .onboarding-step .eyebrow { display: none; }
+    .onboarding-step .home-headline { margin-top: 0; }
+    .dash-scroll .hero-sub { margin-top: 4px; }
+}
+.last-entry .list-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

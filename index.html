@@ -68,7 +68,7 @@
 
     <!-- ONBOARDING -->
     <div class="view" id="view-onboarding">
-        <div class="scroll-content onboarding-scroll">
+        <div class="scroll-content onboarding-scroll no-fab">
             <!-- Schritt 1: VIN abfragen -->
             <form class="onboarding-step" id="onboardingStepVin" onsubmit="submitOnboardingVin(event)" novalidate>
                 <span class="eyebrow">Schritt 1 von 2</span>
@@ -93,23 +93,24 @@
                 <span class="eyebrow">Schritt 2 von 2</span>
                 <h2 class="home-headline" id="onboardingVehicleTitle">Dein Fahrzeug</h2>
                 <p class="onboarding-text" id="onboardingDecodeNote"></p>
-                <div class="card info-card" id="onboardingVehicleInfo"></div>
+                <div class="chip-line" id="onboardingVehicleInfo"></div>
                 <div class="card onboarding-card">
                     <div class="form-group">
                         <label for="onboardingModel">Modellbezeichnung</label>
                         <input type="text" id="onboardingModel" placeholder="z.B. E39 530iA">
                     </div>
-                    <div class="form-group">
-                        <label for="onboardingFirstReg">Erstzulassung</label>
-                        <input type="date" id="onboardingFirstReg">
-                    </div>
-                    <div class="form-group">
-                        <label for="onboardingKm">Aktueller Kilometerstand</label>
-                        <input type="number" id="onboardingKm" min="0" inputmode="numeric" placeholder="z.B. 300458">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="onboardingFirstReg">Erstzulassung</label>
+                            <input type="date" id="onboardingFirstReg">
+                        </div>
+                        <div class="form-group">
+                            <label for="onboardingKm">Kilometerstand</label>
+                            <input type="number" id="onboardingKm" min="0" inputmode="numeric" placeholder="km">
+                        </div>
                     </div>
                 </div>
-                <div class="section-title">Lackfarbe</div>
-                <p class="form-hint section-hint">Die Farbe ist nicht in der VIN gespeichert – wähle sie für das passende App-Design.</p>
+                <div class="section-title">Lackfarbe <span class="section-note">· nicht in der VIN, bitte wählen</span></div>
                 <div class="color-picker-grid" id="onboardingColorGrid"></div>
                 <button type="submit" class="btn btn-cta" id="onboardingFinishBtn">Loslegen</button>
                 <button type="button" class="link-btn onboarding-link" onclick="showOnboardingStep('vin')">Andere VIN eingeben</button>
@@ -120,7 +121,7 @@
 
     <!-- DASHBOARD -->
     <div class="view" id="view-dashboard">
-        <div class="scroll-content">
+        <div class="scroll-content fit-screen dash-scroll">
             <div class="home-intro">
                 <span class="eyebrow" id="dashboardEyebrow"></span>
                 <h2 class="home-headline" id="dashboardHeadline">Mein Fahrzeug</h2>
@@ -138,13 +139,12 @@
                 <div class="hero-sub" id="heroChassisInfo"></div>
             </div>
 
-            <h3 class="section-title">Anstehende Wartungen</h3>
+            <h3 class="section-title">Wartungen</h3>
             <div class="upcoming-grid" id="upcomingGrid"></div>
 
-            <h3 class="section-title">Zuletzt durchgeführt</h3>
-            <div class="list-card" id="lastServicesList"></div>
+            <div class="list-card last-entry" id="lastEntry"></div>
         </div>
-        <button class="fab" onclick="switchTab('add-entry')" aria-label="Neuen Service eintragen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></button>
+        <button class="fab" onclick="openAddEntry()" aria-label="Neuen Service eintragen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></button>
     </div>
 
     <!-- HISTORIE -->
@@ -156,44 +156,12 @@
         <div class="scroll-content">
             <div class="list-card" id="historyList"></div>
         </div>
-        <button class="fab" onclick="switchTab('add-entry')" aria-label="Neuen Service eintragen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></button>
-    </div>
-
-    <!-- NEUER EINTRAG -->
-    <div class="view" id="view-add-entry">
-        <div class="scroll-content">
-            <form id="addEntryForm" class="card form-card" onsubmit="handleFormSubmit(event)">
-                <div class="form-group">
-                    <label for="form-category">Kategorie</label>
-                    <select id="form-category" required>
-                        <option value="Öl">Öl-Service</option>
-                        <option value="Bremsflüssigkeit">Bremsflüssigkeit</option>
-                        <option value="Kühlmittel">Kühlmittel</option>
-                        <option value="Zündkerzen">Zündkerzen</option>
-                        <option value="Anderes">Anderes (Sonstiges)</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="form-date">Datum</label>
-                    <input type="date" id="form-date" required>
-                </div>
-                <div class="form-group">
-                    <label for="form-km">Kilometerstand (km)</label>
-                    <input type="number" id="form-km" min="0" inputmode="numeric" placeholder="z.B. 300458" required>
-                </div>
-                <div class="form-group">
-                    <label for="form-description">Beschreibung / Erledigte Arbeiten</label>
-                    <textarea id="form-description" rows="5" placeholder="z.B. Ölwechsel 5W-40, Ölfilter, Innenraumfilter getauscht…" required></textarea>
-                </div>
-                <button type="submit" class="btn btn-cta">Service speichern</button>
-                <button type="button" class="btn btn-secondary" onclick="resetAddForm()">Zurücksetzen</button>
-            </form>
-        </div>
+        <button class="fab" onclick="openAddEntry()" aria-label="Neuen Service eintragen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></button>
     </div>
 
     <!-- FAHRZEUG / EINSTELLUNGEN -->
     <div class="view" id="view-settings">
-        <div class="scroll-content">
+        <div class="scroll-content fit-screen no-fab">
             <h3 class="section-title section-title--first">Fahrzeug-Stammdaten</h3>
             <div class="card info-card" id="settingsVehicleInfo"></div>
             <button type="button" class="btn btn-secondary" onclick="editVehicleData()">
@@ -220,6 +188,43 @@
         </div>
     </dialog>
 
+    <!-- NEUER EINTRAG (Popup) -->
+    <dialog id="modal-add-entry" aria-labelledby="addEntryTitle">
+        <h3 id="addEntryTitle">Neuer Service</h3>
+        <form id="addEntryForm" class="dialog-form" onsubmit="handleFormSubmit(event)">
+            <div class="dialog-body">
+                <div class="form-group">
+                    <label for="form-category">Kategorie</label>
+                    <select id="form-category" required>
+                        <option value="Öl">Öl-Service</option>
+                        <option value="Bremsflüssigkeit">Bremsflüssigkeit</option>
+                        <option value="Kühlmittel">Kühlmittel</option>
+                        <option value="Zündkerzen">Zündkerzen</option>
+                        <option value="Anderes">Anderes (Sonstiges)</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="form-date">Datum</label>
+                        <input type="date" id="form-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="form-km">Kilometerstand</label>
+                        <input type="number" id="form-km" min="0" inputmode="numeric" placeholder="km" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="form-description">Beschreibung / Erledigte Arbeiten</label>
+                    <textarea id="form-description" rows="3" placeholder="z.B. Ölwechsel 5W-40, Ölfilter, Innenraumfilter getauscht…" required></textarea>
+                </div>
+            </div>
+            <div class="dialog-actions">
+                <button type="submit" class="btn">Speichern</button>
+                <button type="button" class="btn btn-secondary" onclick="closeAddEntry()">Abbrechen</button>
+            </div>
+        </form>
+    </dialog>
+
     <!-- Menü (Vollbild wie Japan2026) -->
     <nav class="drawer" id="drawer" aria-label="Hauptmenü" inert>
         <div class="menu-header">
@@ -230,7 +235,7 @@
             <div class="menu-group-label">Service</div>
             <button type="button" class="menu-item active" id="nav-dashboard" onclick="switchTab('dashboard')"><span aria-hidden="true" class="menu-icon"><i class="ph-light ph-gauge" data-fb="⏱️"></i></span> Dashboard</button>
             <button type="button" class="menu-item" id="nav-history" onclick="switchTab('history')"><span aria-hidden="true" class="menu-icon"><i class="ph-light ph-clock-counter-clockwise" data-fb="🕘"></i></span> Historie</button>
-            <button type="button" class="menu-item" id="nav-add-entry" onclick="switchTab('add-entry')"><span aria-hidden="true" class="menu-icon"><i class="ph-light ph-plus-circle" data-fb="➕"></i></span> Neuer Eintrag</button>
+            <button type="button" class="menu-item" id="nav-add-entry" onclick="openAddEntry()"><span aria-hidden="true" class="menu-icon"><i class="ph-light ph-plus-circle" data-fb="➕"></i></span> Neuer Eintrag</button>
             <div class="menu-group-label">Fahrzeug</div>
             <button type="button" class="menu-item" id="nav-settings" onclick="switchTab('settings')"><span aria-hidden="true" class="menu-icon"><i class="ph-light ph-car-simple" data-fb="🚗"></i></span> Fahrzeug &amp; Design</button>
         </div>

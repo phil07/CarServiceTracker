@@ -148,7 +148,6 @@ document.addEventListener('keydown', e => {
 const TAB_TITLES = {
   'dashboard': 'Dashboard',
   'history':   'Service-Historie',
-  'add-entry': 'Neuer Eintrag',
   'settings':  'Fahrzeug & Design',
 };
 
@@ -171,7 +170,6 @@ function switchTab(tab) {
 
   if (tab === 'dashboard') renderDashboard();
   if (tab === 'history')   renderHistory();
-  if (tab === 'add-entry') initAddForm();
   if (tab === 'settings')  renderSettings();
 }
 
@@ -250,40 +248,44 @@ function renderDashboard() {
             <span class="stat-ico">${catIcon(svc.category)}</span>
             <span class="status-badge badge-${status}">${statusLabel}</span>
           </div>
-          <div>
+          <div class="stat-body">
             <div class="stat-num">${esc(svc.category).replace('flüssigkeit', '&shy;flüssigkeit')}</div>
-            <div class="stat-lbl">${esc(dueText(svc))}</div>
+            <div class="stat-lbl">Fällig: ${esc(dueText(svc))}</div>
+            <div class="stat-lbl">${lastText(svc.category)}</div>
           </div>
         </div>`;
     }).join('');
   }
 
-  const lastList = document.getElementById('lastServicesList');
-  if (lastList) {
-    lastList.innerHTML = Object.keys(CATEGORIES).map(cat => {
-      const last = lastEntryForCat(cat);
-      if (!last) return `
-        <div class="list-row">
-          <div class="list-icon">${catIcon(cat)}</div>
-          <div class="list-body">
-            <div class="list-title">${esc(cat)}</div>
-            <div class="list-sub">Noch kein Eintrag</div>
-          </div>
-        </div>`;
-      return `
+  // Letzter Eintrag insgesamt (kompakt, öffnet die Historie)
+  const lastEl = document.getElementById('lastEntry');
+  if (lastEl) {
+    const last = [...state.serviceHistory].sort((a, b) => b.date.localeCompare(a.date))[0];
+    lastEl.innerHTML = last ? `
         <button type="button" class="list-row" onclick="switchTab('history')">
-          <div class="list-icon">${catIcon(cat)}</div>
+          <div class="list-icon">${catIcon(last.category)}</div>
           <div class="list-body">
-            <div class="list-title">${esc(cat)}</div>
+            <div class="list-title">Zuletzt: ${esc(last.category)}</div>
             <div class="list-sub">${esc(last.description)}</div>
           </div>
           <div class="list-meta">
             <div>${formatDate(last.date)}</div>
             <div>${last.km.toLocaleString('de-DE')} km</div>
           </div>
+        </button>` : `
+        <button type="button" class="list-row" onclick="openAddEntry()">
+          <div class="list-icon"><i class="ph-light ph-plus" data-fb="➕" aria-hidden="true"></i></div>
+          <div class="list-body">
+            <div class="list-title">Noch keine Einträge</div>
+            <div class="list-sub">Ersten Service eintragen</div>
+          </div>
         </button>`;
-    }).join('');
   }
+}
+
+function lastText(cat) {
+  const last = lastEntryForCat(cat);
+  return last ? 'Zuletzt: ' + formatDate(last.date) + ' · ' + last.km.toLocaleString('de-DE') + ' km' : 'Noch kein Eintrag';
 }
 
 // KM-Stand bearbeiten
@@ -372,12 +374,17 @@ function openHistoryDetail(id) {
   }
 }
 
-// ─── Add Entry ────────────────────────────────────────────────────────────────
-function initAddForm() {
-  const dateInput = document.getElementById('form-date');
-  if (dateInput && !dateInput.value) dateInput.value = todayIso();
-  const kmInput = document.getElementById('form-km');
-  if (kmInput && !kmInput.value) kmInput.value = state.vehicle.currentKm || '';
+// ─── Add Entry (Popup) ────────────────────────────────────────────────────────
+function openAddEntry() {
+  setMenuOpen(false);
+  document.getElementById('addEntryForm').reset();
+  document.getElementById('form-date').value = todayIso();
+  document.getElementById('form-km').value = state.vehicle.currentKm || '';
+  document.getElementById('modal-add-entry').showModal();
+}
+
+function closeAddEntry() {
+  document.getElementById('modal-add-entry').close();
 }
 
 function handleFormSubmit(event) {
@@ -394,16 +401,10 @@ function handleFormSubmit(event) {
   state.serviceHistory.push({ id: 'h' + Date.now(), date, km, category, description });
   if (km > state.vehicle.currentKm) state.vehicle.currentKm = km;
   saveState();
+  closeAddEntry();
   showToast('Eintrag gespeichert ✓', 'ok');
-
-  resetAddForm();
-  switchTab('history');
-}
-
-function resetAddForm() {
-  document.getElementById('addEntryForm').reset();
-  document.getElementById('form-date').value = todayIso();
-  document.getElementById('form-km').value = '';
+  renderHeader();
+  switchTab(activeTab === 'history' ? 'history' : 'dashboard');
 }
 
 // ─── Settings ─────────────────────────────────────────────────────────────────
@@ -460,6 +461,21 @@ function renderVehicleInfo(containerId, v) {
   el.innerHTML = rows.length
     ? rows.map(([k, val]) => `<div class="info-row"><span>${esc(k)}</span><strong>${esc(val)}</strong></div>`).join('')
     : `<div class="info-row"><span>Keine Fahrzeugdaten hinterlegt</span></div>`;
+}
+
+// Kompakte Darstellung der ausgelesenen Daten (Onboarding)
+function renderVehicleChips(containerId, v) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const chips = [
+    ['ph-calendar-blank', '📅', v.modelYear],
+    ['ph-car-profile', '🚘', v.body],
+    ['ph-engine', '⚙️', v.engine],
+    ['ph-gas-pump', '⛽', v.fuel],
+    ['ph-gear-six', '🕹️', v.transmission],
+  ].filter(c => c[2]);
+  el.innerHTML = chips.map(([icon, fb, val]) =>
+    `<span class="meta-chip"><i class="ph-light ${icon}" data-fb="${fb}" aria-hidden="true"></i><span>${esc(val)}</span></span>`).join('');
 }
 
 // ─── Export / Import ──────────────────────────────────────────────────────────
@@ -814,8 +830,8 @@ function showOnboardingDetails(decoded, source) {
   pendingVehicle = decoded;
 
   const notes = {
-    online:  'Diese Daten wurden über die VIN ermittelt. Ergänze, was fehlt.',
-    local:   'Modell über den Typschlüssel in der VIN erkannt. Ergänze, was fehlt.',
+    online:  'Per VIN ermittelt – bitte prüfen und ergänzen.',
+    local:   'Über den Typschlüssel der VIN erkannt – bitte prüfen und ergänzen.',
     nomodel: 'Hersteller erkannt, das Modell ließ sich aus der VIN aber nicht ermitteln. Bitte Modellbezeichnung ergänzen (z.B. E39 530iA).',
     unknown: 'Zu dieser VIN wurden online keine Modelldaten gefunden – Hersteller und Herkunft stammen direkt aus der VIN. Bitte Modell ergänzen.',
     offline: 'Die Online-Abfrage war nicht möglich (offline?). Hersteller und Herkunft stammen direkt aus der VIN – du kannst die VIN später unter „Fahrzeug & Design“ erneut abrufen.',
@@ -824,8 +840,8 @@ function showOnboardingDetails(decoded, source) {
   document.getElementById('onboardingDecodeNote').textContent = notes[source] || '';
   document.getElementById('onboardingVehicleTitle').textContent = decoded.model ? vehicleTitle(decoded) : 'Dein Fahrzeug';
   const infoCard = document.getElementById('onboardingVehicleInfo');
-  infoCard.hidden = source === 'manual';
-  renderVehicleInfo('onboardingVehicleInfo', decoded);
+  infoCard.hidden = source === "manual";
+  renderVehicleChips('onboardingVehicleInfo', decoded);
 
   // Vorbelegen: dekodierte Werte, sonst vorhandene (bei gleicher VIN / ohne VIN)
   const keep = sameVin || !decoded.vin;
@@ -958,7 +974,8 @@ function init() {
   // Manifest-Shortcuts (?view=…) und Benachrichtigungen (?action=update)
   const params = new URLSearchParams(location.search);
   const view = params.get('view');
-  switchTab(view === 'new' ? 'add-entry' : ({ history: 'history', settings: 'settings' }[view] || 'dashboard'));
+  switchTab({ history: 'history', settings: 'settings' }[view] || 'dashboard');
+  if (view === 'new') openAddEntry();
   if (params.get('action') === 'update') setTimeout(() => window.checkForUpdate?.(), 1500);
   if (params.has('view') || params.has('action')) history.replaceState(null, '', location.pathname);
 }
