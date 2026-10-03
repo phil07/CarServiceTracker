@@ -225,6 +225,21 @@
         </form>
     </dialog>
 
+    <!-- EINTRAG-DETAIL (Bearbeiten / Löschen / Schließen) -->
+    <dialog id="modal-entry-detail" aria-labelledby="detailCat">
+        <div class="detail-head">
+            <div class="list-icon" id="detailIcon"></div>
+            <div class="detail-cat" id="detailCat"></div>
+        </div>
+        <p class="detail-desc" id="detailDesc"></p>
+        <div class="chip-line" id="detailMeta"></div>
+        <div class="dialog-actions">
+            <button type="button" class="btn" onclick="editEntryFromDetail()">Bearbeiten</button>
+            <button type="button" class="btn btn-secondary btn-danger" id="detailDeleteBtn" onclick="deleteEntryFromDetail()">Löschen</button>
+            <button type="button" class="btn btn-secondary" onclick="closeEntryDetail()">Schließen</button>
+        </div>
+    </dialog>
+
     <!-- Menü (Vollbild wie Japan2026) -->
     <nav class="drawer" id="drawer" aria-label="Hauptmenü" inert>
         <div class="menu-header">

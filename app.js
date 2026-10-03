@@ -360,26 +360,65 @@ function filterHistory() {
   renderHistory();
 }
 
+let detailId = null;
+let editingId = null;
+
 function openHistoryDetail(id) {
   const e = state.serviceHistory.find(x => x.id === id);
   if (!e) return;
-  const deleteIt = window.confirm(
-    `${e.category} · ${formatDate(e.date)} · ${e.km.toLocaleString('de-DE')} km\n\n${e.description}\n\nEintrag löschen?`
-  );
-  if (deleteIt) {
-    state.serviceHistory = state.serviceHistory.filter(x => x.id !== id);
-    saveState();
-    showToast('Eintrag gelöscht', 'warn');
-    renderHistory();
-  }
+  detailId = id;
+  document.getElementById('detailIcon').innerHTML = catIcon(e.category);
+  document.getElementById('detailCat').textContent = e.category;
+  document.getElementById('detailDesc').textContent = e.description;
+  document.getElementById('detailMeta').innerHTML =
+    `<span class="meta-chip">${formatDate(e.date)}</span><span class="meta-chip">${e.km.toLocaleString('de-DE')} km</span>`;
+  resetDeleteConfirm();
+  document.getElementById('modal-entry-detail').showModal();
 }
 
-// ─── Add Entry (Popup) ────────────────────────────────────────────────────────
-function openAddEntry() {
+function closeEntryDetail() {
+  document.getElementById('modal-entry-detail').close();
+}
+
+function resetDeleteConfirm() {
+  const btn = document.getElementById('detailDeleteBtn');
+  btn.classList.remove('confirm');
+  btn.textContent = 'Löschen';
+}
+
+// Zweistufig: erster Tipp fragt nach, zweiter löscht.
+function deleteEntryFromDetail() {
+  const btn = document.getElementById('detailDeleteBtn');
+  if (!btn.classList.contains('confirm')) {
+    btn.classList.add('confirm');
+    btn.textContent = 'Wirklich löschen?';
+    return;
+  }
+  state.serviceHistory = state.serviceHistory.filter(x => x.id !== detailId);
+  saveState();
+  closeEntryDetail();
+  showToast('Eintrag gelöscht', 'warn');
+  switchTab(activeTab);
+}
+
+function editEntryFromDetail() {
+  const e = state.serviceHistory.find(x => x.id === detailId);
+  if (!e) return;
+  closeEntryDetail();
+  openAddEntry(e);
+}
+
+// ─── Eintrag anlegen / bearbeiten (Popup) ─────────────────────────────────────
+function openAddEntry(entry) {
   setMenuOpen(false);
+  const edit = entry && entry.id ? entry : null;
+  editingId = edit ? edit.id : null;
   document.getElementById('addEntryForm').reset();
-  document.getElementById('form-date').value = todayIso();
-  document.getElementById('form-km').value = state.vehicle.currentKm || '';
+  document.getElementById('addEntryTitle').textContent = edit ? 'Eintrag bearbeiten' : 'Neuer Service';
+  document.getElementById('form-category').value    = edit ? edit.category : 'Öl';
+  document.getElementById('form-date').value        = edit ? edit.date : todayIso();
+  document.getElementById('form-km').value          = edit ? edit.km : (state.vehicle.currentKm || '');
+  document.getElementById('form-description').value = edit ? edit.description : '';
   document.getElementById('modal-add-entry').showModal();
 }
 
@@ -398,11 +437,14 @@ function handleFormSubmit(event) {
   if (isNaN(km) || km < 0) { showToast('Ungültiger KM-Stand', 'err'); return; }
   if (!description)        { showToast('Beschreibung fehlt', 'err'); return; }
 
-  state.serviceHistory.push({ id: 'h' + Date.now(), date, km, category, description });
+  const existing = editingId && state.serviceHistory.find(x => x.id === editingId);
+  if (existing) Object.assign(existing, { date, km, category, description });
+  else state.serviceHistory.push({ id: 'h' + Date.now(), date, km, category, description });
   if (km > state.vehicle.currentKm) state.vehicle.currentKm = km;
   saveState();
   closeAddEntry();
-  showToast('Eintrag gespeichert ✓', 'ok');
+  showToast(existing ? 'Änderungen gespeichert ✓' : 'Eintrag gespeichert ✓', 'ok');
+  editingId = null;
   renderHeader();
   switchTab(activeTab === 'history' ? 'history' : 'dashboard');
 }

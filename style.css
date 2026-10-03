@@ -478,3 +478,12 @@ dialog > h3 { margin: 0 0 14px; font-size: 22px; font-weight: 800; letter-spacin
     .dash-scroll .hero-sub { margin-top: 4px; }
 }
 .last-entry .list-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── Eintrag-Detail ── */
+.detail-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.detail-cat { font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--label-secondary, var(--label)); }
+.detail-desc { margin: 0 0 14px; font-size: 18px; font-weight: 600; line-height: 1.4; letter-spacing: -.01em; overflow-wrap: anywhere; max-height: 40dvh; overflow-y: auto; }
+#modal-entry-detail .chip-line { margin-bottom: 18px; }
+#modal-entry-detail .dialog-actions .btn { width: 100%; }
+.btn-danger { color: var(--err-fill); }
+.btn-danger.confirm, .btn-danger.confirm:hover { background: var(--err-fill); color: #fff; box-shadow: none; }
