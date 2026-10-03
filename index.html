@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>BMW E39 530iA Service-Tracker</title>
+
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#0a0a0a" id="metaThemeColor">
+    <script>
+        (function(){
+            var color = 'titansilber';
+            try {
+                var d = localStorage.getItem('bmw_e39_data');
+                if (d) {
+                    var parsed = JSON.parse(d);
+                    if (parsed.settings && parsed.settings.vehicleColor) {
+                        color = parsed.settings.vehicleColor;
+                    }
+                }
+            } catch (e) {}
+            document.documentElement.setAttribute('data-vehicle-color', color);
+        })();
+        (function(){
+            function setVh(){
+                var h = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+                document.documentElement.style.setProperty('--vh', (h * 0.01) + 'px');
+            }
+            setVh();
+            window.addEventListener('resize', setVh);
+            if (window.visualViewport) window.visualViewport.addEventListener('resize', setVh);
+        })();
+    </script>
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="E39 Tracker">
+    <meta name="application-name" content="E39 Service">
+    <meta name="msapplication-TileColor" content="#0a0a0a">
+
+    <!-- Manifest -->
+    <link rel="manifest" href="manifest.json">
+
+    <!-- App Icons (Fallback to initial placeholders or similar since we have SVG icons or text) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚗</text></svg>">
+
+    <!-- Schrift + Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@100..900&family=Geist:wght@100..900&display=swap" rel="stylesheet" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/light/style.css" crossorigin="anonymous">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-container" id="app">
+    <div id="toast" role="status" aria-live="polite"></div>
+
+    <div class="app-header">
+        <h1 class="header-title" id="pageTitle">Dashboard</h1>
+        <div class="header-car-info" id="headerCarInfo">BMW E39 530iA</div>
+    </div>
+
+    <!-- ONBOARDING SCREEN -->
+    <div class="view" id="view-onboarding">
+        <div class="scroll-content onboarding-content">
+            <div class="onboarding-logo">🚗</div>
+            <h2>BMW E39 530iA</h2>
+            <p>Willkommen beim Service-Tracker. Wähle deine Lackfarbe, um das passende Farb-Design deiner App zu aktivieren:</p>
+
+            <div class="color-picker-grid" id="onboardingColorGrid">
+                <!-- Javascript will populate this -->
+            </div>
+
+            <button class="btn btn-accent onboarding-start-btn" onclick="startAppWithColor()">Loslegen</button>
+        </div>
+    </div>
+
+    <!-- TAB 1: DASHBOARD -->
+    <div class="view active" id="view-dashboard">
+        <div class="scroll-content">
+            <!-- KM-Stand Editierbare Card -->
+            <div class="dashboard-hero">
+                <div class="hero-eyebrow">Aktueller Kilometerstand</div>
+                <div class="hero-km-row">
+                    <span class="hero-km-val" id="dashboardKm">300.458</span>
+                    <span class="hero-km-unit">km</span>
+                    <button class="km-edit-btn" onclick="openKmEdit()" aria-label="KM-Stand bearbeiten">
+                        <i class="ph-light ph-pencil-simple"></i>
+                    </button>
+                </div>
+                <div class="hero-chassis-info">Chassis: CJ59016 &bull; EZ: 02.01.2003</div>
+            </div>
+
+            <!-- NÄCHSTE SERVICES -->
+            <h3 class="section-title">Anstehende Wartungen</h3>
+            <div class="upcoming-services-grid" id="upcomingGrid">
+                <!-- Javascript will dynamically insert remaining kilometers/dates with traffic light colors -->
+            </div>
+
+            <!-- LETZTER SERVICE PRO KATEGORIE -->
+            <h3 class="section-title">Zuletzt durchgeführt</h3>
+            <div class="last-services-list" id="lastServicesList">
+                <!-- Javascript will insert last entry for each category -->
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 2: HISTORIE -->
+    <div class="view" id="view-history">
+        <!-- Search and Filter Sticky Header inside History Tab -->
+        <div class="search-and-filter">
+            <div class="search-bar">
+                <input type="search" id="historySearch" placeholder="Einträge durchsuchen..." aria-label="Historie durchsuchen" oninput="filterHistory()">
+            </div>
+            <div class="filter-bar" id="categoryFilterChips">
+                <!-- Javascript chips will go here -->
+            </div>
+        </div>
+        <div class="scroll-content" style="padding-top: 100px;">
+            <div class="history-list" id="historyList">
+                <!-- Inserted list of maintenance rows -->
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 3: NEUER EINTRAG -->
+    <div class="view" id="view-add-entry">
+        <div class="scroll-content">
+            <h3 class="section-title" style="margin-top: 15px;">Neuen Service eintragen</h3>
+            <form id="addEntryForm" onsubmit="handleFormSubmit(event)">
+                <div class="form-group">
+                    <label for="form-category">Kategorie</label>
+                    <select id="form-category" required>
+                        <option value="Öl">Öl-Service</option>
+                        <option value="Bremsflüssigkeit">Bremsflüssigkeit</option>
+                        <option value="Kühlmittel">Kühlmittel</option>
+                        <option value="Zündkerzen">Zündkerzen</option>
+                        <option value="Anderes">Anderes (Sonstiges)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="form-date">Datum</label>
+                    <input type="date" id="form-date" required>
+                </div>
+                <div class="form-group">
+                    <label for="form-km">Kilometerstand (km)</label>
+                    <input type="number" id="form-km" min="0" placeholder="z.B. 300458" required>
+                </div>
+                <div class="form-group">
+                    <label for="form-description">Beschreibung / Erledigte Arbeiten</label>
+                    <textarea id="form-description" rows="5" placeholder="z.B. Ölwechsel 5W-40, Mahle Ölfilter, Microfilter getauscht..." required></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-accent">Service speichern</button>
+                    <button type="button" class="btn btn-secondary" onclick="resetAddForm()">Zurücksetzen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- TAB 4: EINSTELLUNGEN -->
+    <div class="view" id="view-settings">
+        <div class="scroll-content">
+            <h3 class="section-title" style="margin-top: 15px;">Fahrzeugfarbe & Design</h3>
+            <div class="color-picker-grid" id="settingsColorGrid">
+                <!-- Populated by JavaScript -->
+            </div>
+
+            <h3 class="section-title">Fahrzeug-Stammdaten</h3>
+            <div class="vehicle-info-card">
+                <div class="info-row"><span>Modell</span><strong>BMW E39 530iA</strong></div>
+                <div class="info-row"><span>Motor</span><strong>M54B30 (231 PS)</strong></div>
+                <div class="info-row"><span>Fahrgestellnr.</span><strong>CJ59016</strong></div>
+                <div class="info-row"><span>Erstzulassung</span><strong>02.01.2003</strong></div>
+            </div>
+
+            <h3 class="section-title">Daten & Backup</h3>
+            <div class="backup-actions">
+                <button class="btn btn-secondary" onclick="exportData()">
+                    <i class="ph-light ph-download-simple"></i> JSON Exportieren
+                </button>
+                <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">
+                    <i class="ph-light ph-upload-simple"></i> JSON Importieren
+                </button>
+                <input type="file" id="importFile" accept="application/json" hidden onchange="importData(this.files[0])">
+            </div>
+
+            <div class="danger-zone">
+                <button class="btn btn-danger" onclick="resetDataPrompt()">
+                    <i class="ph-light ph-trash"></i> App-Daten zurücksetzen
+                </button>
+            </div>
+
+            <div class="app-version-info">
+                PWA Service-Tracker &bull; Version <span id="appVersion">1</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- KM BEARBEITEN MODAL -->
+    <dialog id="modal-km-edit" class="tracker-dialog">
+        <h3 class="dialog-title">Kilometerstand aktualisieren</h3>
+        <div class="dialog-body">
+            <div class="form-group">
+                <label for="edit-km-val">Aktueller Kilometerstand</label>
+                <input type="number" id="edit-km-val" min="0" required>
+            </div>
+        </div>
+        <div class="dialog-actions">
+            <button class="btn btn-accent" onclick="saveKmEdit()">Übernehmen</button>
+            <button class="btn btn-secondary" onclick="document.getElementById('modal-km-edit').close()">Abbrechen</button>
+        </div>
+    </dialog>
+
+    <!-- BOTTOM TAB NAVIGATION -->
+    <nav class="bottom-nav" id="bottomNav">
+        <button class="nav-item active" onclick="switchTab('dashboard')" id="nav-dashboard">
+            <i class="ph-light ph-gauge"></i>
+            <span>Dashboard</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('history')" id="nav-history">
+            <i class="ph-light ph-clock-counter-clockwise"></i>
+            <span>Historie</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('add-entry')" id="nav-add-entry">
+            <i class="ph-light ph-plus-circle"></i>
+            <span>Neu</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('settings')" id="nav-settings">
+            <i class="ph-light ph-sliders"></i>
+            <span>Settings</span>
+        </button>
+    </nav>
+</div>
+
+<script src="version.js"></script>
+<script src="app.js"></script>
+<script>
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js').then(reg => {
+                console.log('SW registered:', reg.scope);
+            }).catch(err => {
+                console.warn('SW registration failed:', err);
+            });
+        });
+    }
+</script>
+</body>
+</html>
