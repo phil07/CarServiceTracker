@@ -3,20 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>BMW E39 530iA Service-Tracker</title>
+    <title>Service-Tracker</title>
 
     <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#0a0a0a" id="metaThemeColor">
+    <meta name="theme-color" content="#B45309" id="metaThemeColor">
     <script>
+        // Theme (Hell/Dunkel/Auto) + Fahrzeugfarbe vor dem ersten Paint setzen (kein Flackern)
         (function(){
+            var t = 'auto';
+            try { t = localStorage.getItem('cst_theme') || 'auto'; } catch (e) {}
+            if (t !== 'light' && t !== 'dark') t = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', t);
             var color = 'titansilber';
             try {
                 var d = localStorage.getItem('bmw_e39_data');
                 if (d) {
                     var parsed = JSON.parse(d);
-                    if (parsed.settings && parsed.settings.vehicleColor) {
-                        color = parsed.settings.vehicleColor;
-                    }
+                    if (parsed.settings && parsed.settings.vehicleColor) color = parsed.settings.vehicleColor;
                 }
             } catch (e) {}
             document.documentElement.setAttribute('data-vehicle-color', color);
@@ -28,106 +31,138 @@
             }
             setVh();
             window.addEventListener('resize', setVh);
+            window.addEventListener('orientationchange', setVh);
             if (window.visualViewport) window.visualViewport.addEventListener('resize', setVh);
         })();
     </script>
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="E39 Tracker">
-    <meta name="application-name" content="E39 Service">
-    <meta name="msapplication-TileColor" content="#0a0a0a">
+    <meta name="apple-mobile-web-app-title" content="Service-Tracker">
+    <meta name="application-name" content="Service-Tracker">
+    <meta name="msapplication-TileColor" content="#B45309">
 
     <!-- Manifest -->
     <link rel="manifest" href="manifest.json">
 
-    <!-- App Icons (Fallback to initial placeholders or similar since we have SVG icons or text) -->
+    <!-- App Icon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚗</text></svg>">
 
-    <!-- Schrift + Icons -->
+    <!-- Schrift + Icons (cross-origin, crossorigin → vom Service Worker cachebar; ohne Netz: Systemschrift + Text-Labels) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@100..900&family=Geist:wght@100..900&display=swap" rel="stylesheet" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/light/style.css" crossorigin="anonymous">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="app-container" id="app">
+    <div id="offline-bar">📵 Offline – gespeicherte Daten verfügbar</div>
     <div id="toast" role="status" aria-live="polite"></div>
 
     <div class="app-header">
+        <button type="button" class="header-btn" id="menuBtn" onclick="toggleMenu()" aria-label="Menü öffnen" aria-expanded="false" aria-controls="drawer"><span class="burger-line" aria-hidden="true"></span><span class="burger-line" aria-hidden="true"></span></button>
         <h1 class="header-title" id="pageTitle">Dashboard</h1>
-        <div class="header-car-info" id="headerCarInfo">BMW E39 530iA</div>
+        <div class="header-spacer" aria-hidden="true"></div>
     </div>
 
-    <!-- ONBOARDING SCREEN -->
+    <!-- ONBOARDING -->
     <div class="view" id="view-onboarding">
-        <div class="scroll-content onboarding-content">
-            <div class="onboarding-logo">🚗</div>
-            <h2>BMW E39 530iA</h2>
-            <p>Willkommen beim Service-Tracker. Wähle deine Lackfarbe, um das passende Farb-Design deiner App zu aktivieren:</p>
+        <div class="scroll-content onboarding-scroll">
+            <!-- Schritt 1: VIN abfragen -->
+            <form class="onboarding-step" id="onboardingStepVin" onsubmit="submitOnboardingVin(event)" novalidate>
+                <span class="eyebrow">Schritt 1 von 2</span>
+                <h2 class="home-headline">Welches Fahrzeug fährst du?</h2>
+                <p class="onboarding-text">Gib die Fahrgestellnummer (VIN) ein. Die App liest daraus automatisch Hersteller, Modell, Baujahr, Motor &amp; Co. aus.</p>
+                <div class="card onboarding-card">
+                    <div class="form-group">
+                        <label for="onboardingVin">Fahrgestellnummer (VIN)</label>
+                        <input type="text" id="onboardingVin" class="vin-input" maxlength="17" placeholder="17 Zeichen"
+                               autocomplete="off" autocapitalize="characters" spellcheck="false"
+                               oninput="onVinInput(this)">
+                        <div class="form-hint" id="onboardingVinHint">Steht im Fahrzeugschein (Feld E) und unten an der Windschutzscheibe.</div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-cta" id="onboardingVinBtn">Fahrzeugdaten abrufen</button>
+                <button type="button" class="link-btn onboarding-link" onclick="skipOnboardingVin()">Ohne VIN fortfahren</button>
+                <button type="button" class="link-btn onboarding-link" data-cancel onclick="cancelOnboarding()" hidden>Abbrechen</button>
+            </form>
 
-            <div class="color-picker-grid" id="onboardingColorGrid">
-                <!-- Javascript will populate this -->
-            </div>
-
-            <button class="btn btn-accent onboarding-start-btn" onclick="startAppWithColor()">Loslegen</button>
+            <!-- Schritt 2: Ausgelesene Daten prüfen + Farbe -->
+            <form class="onboarding-step" id="onboardingStepDetails" onsubmit="finishOnboarding(event)" hidden>
+                <span class="eyebrow">Schritt 2 von 2</span>
+                <h2 class="home-headline" id="onboardingVehicleTitle">Dein Fahrzeug</h2>
+                <p class="onboarding-text" id="onboardingDecodeNote"></p>
+                <div class="card info-card" id="onboardingVehicleInfo"></div>
+                <div class="card onboarding-card">
+                    <div class="form-group">
+                        <label for="onboardingModel">Modellbezeichnung</label>
+                        <input type="text" id="onboardingModel" placeholder="z.B. BMW 530i">
+                    </div>
+                    <div class="form-group">
+                        <label for="onboardingFirstReg">Erstzulassung</label>
+                        <input type="date" id="onboardingFirstReg">
+                    </div>
+                    <div class="form-group">
+                        <label for="onboardingKm">Aktueller Kilometerstand</label>
+                        <input type="number" id="onboardingKm" min="0" inputmode="numeric" placeholder="z.B. 300458">
+                    </div>
+                </div>
+                <div class="section-title">Lackfarbe</div>
+                <p class="form-hint section-hint">Die Farbe ist nicht in der VIN gespeichert – wähle sie für das passende App-Design.</p>
+                <div class="color-picker-grid" id="onboardingColorGrid"></div>
+                <button type="submit" class="btn btn-cta" id="onboardingFinishBtn">Loslegen</button>
+                <button type="button" class="link-btn onboarding-link" onclick="showOnboardingStep('vin')">Andere VIN eingeben</button>
+                <button type="button" class="link-btn onboarding-link" data-cancel onclick="cancelOnboarding()" hidden>Abbrechen</button>
+            </form>
         </div>
     </div>
 
-    <!-- TAB 1: DASHBOARD -->
-    <div class="view active" id="view-dashboard">
+    <!-- DASHBOARD -->
+    <div class="view" id="view-dashboard">
         <div class="scroll-content">
-            <!-- KM-Stand Editierbare Card -->
-            <div class="dashboard-hero">
+            <div class="home-intro">
+                <span class="eyebrow" id="dashboardEyebrow"></span>
+                <h2 class="home-headline" id="dashboardHeadline">Mein Fahrzeug</h2>
+            </div>
+
+            <div class="card hero-card">
                 <div class="hero-eyebrow">Aktueller Kilometerstand</div>
-                <div class="hero-km-row">
-                    <span class="hero-km-val" id="dashboardKm">300.458</span>
-                    <span class="hero-km-unit">km</span>
-                    <button class="km-edit-btn" onclick="openKmEdit()" aria-label="KM-Stand bearbeiten">
-                        <i class="ph-light ph-pencil-simple"></i>
+                <div class="hero-num-row">
+                    <span class="hero-num" id="dashboardKm">0</span>
+                    <span class="hero-unit">km</span>
+                    <button type="button" class="edit-btn" onclick="openKmEdit()" aria-label="KM-Stand bearbeiten">
+                        <i class="ph-light ph-pencil-simple" data-fb="✏️"></i>
                     </button>
                 </div>
-                <div class="hero-chassis-info">Chassis: CJ59016 &bull; EZ: 02.01.2003</div>
+                <div class="hero-sub" id="heroChassisInfo"></div>
             </div>
 
-            <!-- NÄCHSTE SERVICES -->
             <h3 class="section-title">Anstehende Wartungen</h3>
-            <div class="upcoming-services-grid" id="upcomingGrid">
-                <!-- Javascript will dynamically insert remaining kilometers/dates with traffic light colors -->
-            </div>
+            <div class="upcoming-grid" id="upcomingGrid"></div>
 
-            <!-- LETZTER SERVICE PRO KATEGORIE -->
             <h3 class="section-title">Zuletzt durchgeführt</h3>
-            <div class="last-services-list" id="lastServicesList">
-                <!-- Javascript will insert last entry for each category -->
-            </div>
+            <div class="list-card" id="lastServicesList"></div>
         </div>
+        <button class="fab" onclick="switchTab('add-entry')" aria-label="Neuen Service eintragen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></button>
     </div>
 
-    <!-- TAB 2: HISTORIE -->
+    <!-- HISTORIE -->
     <div class="view" id="view-history">
-        <!-- Search and Filter Sticky Header inside History Tab -->
-        <div class="search-and-filter">
-            <div class="search-bar">
-                <input type="search" id="historySearch" placeholder="Einträge durchsuchen..." aria-label="Historie durchsuchen" oninput="filterHistory()">
-            </div>
-            <div class="filter-bar" id="categoryFilterChips">
-                <!-- Javascript chips will go here -->
-            </div>
+        <div class="search-bar">
+            <input type="search" id="historySearch" placeholder="Einträge durchsuchen…" aria-label="Historie durchsuchen" oninput="filterHistory()">
         </div>
-        <div class="scroll-content" style="padding-top: 100px;">
-            <div class="history-list" id="historyList">
-                <!-- Inserted list of maintenance rows -->
-            </div>
+        <div class="filter-bar" id="categoryFilterChips"></div>
+        <div class="scroll-content">
+            <div class="list-card" id="historyList"></div>
         </div>
+        <button class="fab" onclick="switchTab('add-entry')" aria-label="Neuen Service eintragen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></button>
     </div>
 
-    <!-- TAB 3: NEUER EINTRAG -->
+    <!-- NEUER EINTRAG -->
     <div class="view" id="view-add-entry">
         <div class="scroll-content">
-            <h3 class="section-title" style="margin-top: 15px;">Neuen Service eintragen</h3>
-            <form id="addEntryForm" onsubmit="handleFormSubmit(event)">
+            <form id="addEntryForm" class="card form-card" onsubmit="handleFormSubmit(event)">
                 <div class="form-group">
                     <label for="form-category">Kategorie</label>
                     <select id="form-category" required>
@@ -144,108 +179,258 @@
                 </div>
                 <div class="form-group">
                     <label for="form-km">Kilometerstand (km)</label>
-                    <input type="number" id="form-km" min="0" placeholder="z.B. 300458" required>
+                    <input type="number" id="form-km" min="0" inputmode="numeric" placeholder="z.B. 300458" required>
                 </div>
                 <div class="form-group">
                     <label for="form-description">Beschreibung / Erledigte Arbeiten</label>
-                    <textarea id="form-description" rows="5" placeholder="z.B. Ölwechsel 5W-40, Mahle Ölfilter, Microfilter getauscht..." required></textarea>
+                    <textarea id="form-description" rows="5" placeholder="z.B. Ölwechsel 5W-40, Ölfilter, Innenraumfilter getauscht…" required></textarea>
                 </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-accent">Service speichern</button>
-                    <button type="button" class="btn btn-secondary" onclick="resetAddForm()">Zurücksetzen</button>
-                </div>
+                <button type="submit" class="btn btn-cta">Service speichern</button>
+                <button type="button" class="btn btn-secondary" onclick="resetAddForm()">Zurücksetzen</button>
             </form>
         </div>
     </div>
 
-    <!-- TAB 4: EINSTELLUNGEN -->
+    <!-- FAHRZEUG / EINSTELLUNGEN -->
     <div class="view" id="view-settings">
         <div class="scroll-content">
-            <h3 class="section-title" style="margin-top: 15px;">Fahrzeugfarbe & Design</h3>
-            <div class="color-picker-grid" id="settingsColorGrid">
-                <!-- Populated by JavaScript -->
-            </div>
+            <h3 class="section-title section-title--first">Fahrzeug-Stammdaten</h3>
+            <div class="card info-card" id="settingsVehicleInfo"></div>
+            <button type="button" class="btn btn-secondary" onclick="editVehicleData()">
+                <i class="ph-light ph-identification-card" data-fb="🪪"></i> VIN / Fahrzeugdaten ändern
+            </button>
 
-            <h3 class="section-title">Fahrzeug-Stammdaten</h3>
-            <div class="vehicle-info-card">
-                <div class="info-row"><span>Modell</span><strong>BMW E39 530iA</strong></div>
-                <div class="info-row"><span>Motor</span><strong>M54B30 (231 PS)</strong></div>
-                <div class="info-row"><span>Fahrgestellnr.</span><strong>CJ59016</strong></div>
-                <div class="info-row"><span>Erstzulassung</span><strong>02.01.2003</strong></div>
-            </div>
-
-            <h3 class="section-title">Daten & Backup</h3>
-            <div class="backup-actions">
-                <button class="btn btn-secondary" onclick="exportData()">
-                    <i class="ph-light ph-download-simple"></i> JSON Exportieren
-                </button>
-                <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">
-                    <i class="ph-light ph-upload-simple"></i> JSON Importieren
-                </button>
-                <input type="file" id="importFile" accept="application/json" hidden onchange="importData(this.files[0])">
-            </div>
-
-            <div class="danger-zone">
-                <button class="btn btn-danger" onclick="resetDataPrompt()">
-                    <i class="ph-light ph-trash"></i> App-Daten zurücksetzen
-                </button>
-            </div>
-
-            <div class="app-version-info">
-                PWA Service-Tracker &bull; Version <span id="appVersion">1</span>
-            </div>
+            <h3 class="section-title">Lackfarbe &amp; Design</h3>
+            <div class="color-picker-grid" id="settingsColorGrid"></div>
         </div>
     </div>
 
-    <!-- KM BEARBEITEN MODAL -->
-    <dialog id="modal-km-edit" class="tracker-dialog">
-        <h3 class="dialog-title">Kilometerstand aktualisieren</h3>
+    <!-- KM BEARBEITEN -->
+    <dialog id="modal-km-edit">
+        <h3>Kilometerstand</h3>
         <div class="dialog-body">
             <div class="form-group">
                 <label for="edit-km-val">Aktueller Kilometerstand</label>
-                <input type="number" id="edit-km-val" min="0" required>
+                <input type="number" id="edit-km-val" min="0" inputmode="numeric" required>
             </div>
         </div>
         <div class="dialog-actions">
-            <button class="btn btn-accent" onclick="saveKmEdit()">Übernehmen</button>
-            <button class="btn btn-secondary" onclick="document.getElementById('modal-km-edit').close()">Abbrechen</button>
+            <button class="btn" onclick="saveKmEdit()">Übernehmen</button>
+            <button class="btn btn-secondary" onclick="this.closest('dialog').close()">Abbrechen</button>
         </div>
     </dialog>
 
-    <!-- BOTTOM TAB NAVIGATION -->
-    <nav class="bottom-nav" id="bottomNav">
-        <button class="nav-item active" onclick="switchTab('dashboard')" id="nav-dashboard">
-            <i class="ph-light ph-gauge"></i>
-            <span>Dashboard</span>
-        </button>
-        <button class="nav-item" onclick="switchTab('history')" id="nav-history">
-            <i class="ph-light ph-clock-counter-clockwise"></i>
-            <span>Historie</span>
-        </button>
-        <button class="nav-item" onclick="switchTab('add-entry')" id="nav-add-entry">
-            <i class="ph-light ph-plus-circle"></i>
-            <span>Neu</span>
-        </button>
-        <button class="nav-item" onclick="switchTab('settings')" id="nav-settings">
-            <i class="ph-light ph-sliders"></i>
-            <span>Settings</span>
-        </button>
+    <!-- Menü (Vollbild wie Japan2026) -->
+    <nav class="drawer" id="drawer" aria-label="Hauptmenü" inert>
+        <div class="menu-header">
+            <h2 class="menu-title" id="drawerVehicle">Service-Tracker</h2>
+            <div class="menu-dates" id="drawerVehicleSub"></div>
+        </div>
+        <div class="menu-list">
+            <div class="menu-group-label">Service</div>
+            <button type="button" class="menu-item active" id="nav-dashboard" onclick="switchTab('dashboard')"><span aria-hidden="true" class="menu-icon"><i class="ph-light ph-gauge" data-fb="⏱️"></i></span> Dashboard</button>
+            <button type="button" class="menu-item" id="nav-history" onclick="switchTab('history')"><span aria-hidden="true" class="menu-icon"><i class="ph-light ph-clock-counter-clockwise" data-fb="🕘"></i></span> Historie</button>
+            <button type="button" class="menu-item" id="nav-add-entry" onclick="switchTab('add-entry')"><span aria-hidden="true" class="menu-icon"><i class="ph-light ph-plus-circle" data-fb="➕"></i></span> Neuer Eintrag</button>
+            <div class="menu-group-label">Fahrzeug</div>
+            <button type="button" class="menu-item" id="nav-settings" onclick="switchTab('settings')"><span aria-hidden="true" class="menu-icon"><i class="ph-light ph-car-simple" data-fb="🚗"></i></span> Fahrzeug &amp; Design</button>
+        </div>
+        <div class="menu-footer">
+            <div class="theme-switcher" id="themeSwitcher" role="group" aria-label="Design">
+                <button type="button" class="theme-btn" data-theme="light" onclick="setTheme('light')" title="Helles Design" aria-label="Helles Design" aria-pressed="false"><i class="ph-light ph-sun" data-fb="☀️" aria-hidden="true"></i></button>
+                <button type="button" class="theme-btn" data-theme="dark" onclick="setTheme('dark')" title="Dunkles Design" aria-label="Dunkles Design" aria-pressed="false"><i class="ph-light ph-moon" data-fb="🌙" aria-hidden="true"></i></button>
+                <button type="button" class="theme-btn" data-theme="auto" onclick="setTheme('auto')" title="Wie System" aria-label="Design wie System" aria-pressed="false">Auto</button>
+            </div>
+            <div class="drawer-version-row">
+                <span id="appVersion" class="version-label">–</span>
+                <button type="button" id="btnCheckUpdate" onclick="checkForUpdate()" aria-label="Auf Update prüfen">Prüfen</button>
+            </div>
+            <button type="button" id="btnNotifyUpdates" class="btn-icon btn-notify" onclick="enableUpdateNotifications()" aria-pressed="false">🔕 Bei neuer Version benachrichtigen</button>
+            <div class="btn-row">
+                <button type="button" class="btn-icon" onclick="exportData()"><i class="ph-light ph-download-simple" aria-hidden="true"></i> Backup</button>
+                <button type="button" class="btn-icon" onclick="document.getElementById('importFile').click()"><i class="ph-light ph-upload-simple" aria-hidden="true"></i> Wiederherstellen</button>
+                <input type="file" id="importFile" accept="application/json" hidden onchange="importData(this)">
+            </div>
+            Gespeichert im LocalStorage · <button type="button" class="link-btn" onclick="resetDataPrompt()">Zurücksetzen</button>
+        </div>
     </nav>
 </div>
 
 <script src="version.js"></script>
 <script src="app.js"></script>
 <script>
-    // Register Service Worker
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js').then(reg => {
-                console.log('SW registered:', reg.scope);
-            }).catch(err => {
-                console.warn('SW registration failed:', err);
-            });
-        });
+  // Nach einem Reload prüfen, ob das angestoßene Update tatsächlich griff
+  (function checkUpdateResult() {
+    var from = null;
+    try { from = localStorage.getItem('pendingUpdateFrom'); } catch (e) {}
+    if (from === null) return;
+    localStorage.removeItem('pendingUpdateFrom');
+    var now = self.APP_VERSION;
+    if (now !== from) {
+      showResultToast('✅ Update erfolgreich – jetzt ' + now, 'ok');
+    } else {
+      showResultToast('⚠️ Update fehlgeschlagen – weiterhin ' + now, 'err');
     }
+  })();
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      // updateViaCache 'none': sw.js + version.js immer frisch vom Server prüfen (kein HTTP-Cache)
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
+        // Neue Version im Hintergrund gefunden -> Hinweis anzeigen, sobald bereit
+        reg.addEventListener('updatefound', () => {
+          const sw = reg.installing;
+          if (!sw) return;
+          sw.addEventListener('statechange', () => {
+            // Nur wenn schon eine alte Version lief (echtes Update, keine Erstinstallation)
+            if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+              showUpdateToast(reg);
+            }
+          });
+        });
+        if (reg.waiting && navigator.serviceWorker.controller) showUpdateToast(reg);
+      }).catch(err => console.warn('SW registration failed:', err));
+      // Reload, sobald der neue SW die Kontrolle übernimmt
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshing) return;
+        refreshing = true;
+        window.location.reload();
+      });
+    });
+
+    // Stille Update-Prüfung: beim Zurückkehren in die App und alle 10 Minuten.
+    // Findet reg.update() eine neue Version, zeigt 'updatefound' den Update-Hinweis.
+    let lastSilentCheck = 0;
+    function silentUpdateCheck() {
+      if (Date.now() - lastSilentCheck < 60 * 1000) return;
+      lastSilentCheck = Date.now();
+      navigator.serviceWorker.getRegistration().then(reg => {
+        if (!reg) return;
+        if (reg.waiting && navigator.serviceWorker.controller) { showUpdateToast(reg); return; }
+        return reg.update();
+      }).catch(() => {});
+    }
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') silentUpdateCheck();
+    });
+    window.addEventListener('online', silentUpdateCheck);
+    setInterval(() => { if (document.visibilityState === 'visible') silentUpdateCheck(); }, 10 * 60 * 1000);
+
+    async function registerBackgroundUpdateCheck() {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (!reg) return;
+      if (reg.periodicSync) {
+        try {
+          const st = await navigator.permissions.query({ name: 'periodic-background-sync' });
+          if (st.state === 'granted') await reg.periodicSync.register('check-update', { minInterval: 6 * 60 * 60 * 1000 });
+        } catch (e) { console.warn('periodicSync:', e); }
+      }
+      if (reg.sync) reg.sync.register('check-online').catch(() => {});
+    }
+
+    window.enableUpdateNotifications = async function () {
+      if (!('Notification' in window)) {
+        showResultToast('Benachrichtigungen werden hier nicht unterstützt', 'err');
+        return;
+      }
+      let perm = Notification.permission;
+      if (perm === 'default') perm = await Notification.requestPermission();
+      updateNotifyButton();
+      if (perm === 'granted') {
+        await registerBackgroundUpdateCheck();
+        showResultToast('🔔 Du wirst über neue Versionen benachrichtigt', 'ok');
+      } else {
+        showResultToast('Benachrichtigungen blockiert – in den Browser-Einstellungen erlauben', 'err');
+      }
+    };
+
+    function updateNotifyButton() {
+      const b = document.getElementById('btnNotifyUpdates');
+      if (!b) return;
+      const on = 'Notification' in window && Notification.permission === 'granted';
+      b.textContent = on ? '🔔 Update-Benachrichtigungen aktiv' : '🔕 Bei neuer Version benachrichtigen';
+      b.setAttribute('aria-pressed', String(on));
+    }
+    window.addEventListener('load', () => {
+      updateNotifyButton();
+      if ('Notification' in window && Notification.permission === 'granted') registerBackgroundUpdateCheck();
+    });
+  } else {
+    window.enableUpdateNotifications = function () {
+      showResultToast('Benachrichtigungen werden hier nicht unterstützt', 'err');
+    };
+  }
+
+  function showUpdateToast(reg) {
+    if (document.getElementById('updateToast')) return;
+    const t = document.createElement('div');
+    t.id = 'updateToast';
+    t.textContent = '🔄 Update verfügbar – tippen zum Aktualisieren';
+    t.className = 'sys-toast sys-toast--update';
+    t.addEventListener('click', () => {
+      // Aktuelle (alte) Version merken, um nach dem Reload den Erfolg zu prüfen
+      localStorage.setItem('pendingUpdateFrom', self.APP_VERSION);
+      // Wartenden SW aktivieren -> controllerchange -> reload
+      if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      t.remove();
+    });
+    document.body.appendChild(t);
+  }
+
+  function waitInstalled(sw) {
+    if (!sw) return Promise.resolve(null);
+    if (sw.state === 'installed') return Promise.resolve(sw);
+    return new Promise(function (resolve) {
+      sw.addEventListener('statechange', function on() {
+        if (sw.state === 'installed' || sw.state === 'redundant') {
+          sw.removeEventListener('statechange', on);
+          resolve(sw.state === 'installed' ? sw : null);
+        }
+      });
+    });
+  }
+
+  async function checkForUpdate() {
+    var btn = document.getElementById('btnCheckUpdate');
+    if (btn && btn.disabled) return;
+    if (btn) { btn.disabled = true; btn.textContent = '…'; }
+    try {
+      if (!('serviceWorker' in navigator)) {
+        showResultToast('Updates nicht verfügbar', 'err');
+        return;
+      }
+      var reg = await navigator.serviceWorker.getRegistration();
+      if (!reg) {
+        showResultToast('Kein Service Worker', 'err');
+        return;
+      }
+      if (reg.waiting) { showUpdateToast(reg); return; }
+      if (reg.installing) {
+        var sw = await waitInstalled(reg.installing);
+        if (sw && navigator.serviceWorker.controller) { showUpdateToast(reg); return; }
+      }
+      await reg.update();
+      if (reg.waiting) { showUpdateToast(reg); return; }
+      if (reg.installing) {
+        var sw2 = await waitInstalled(reg.installing);
+        if (sw2 && navigator.serviceWorker.controller) { showUpdateToast(reg); return; }
+      }
+      showResultToast('Du bist bereits auf der aktuellsten Version (' + self.APP_VERSION + ')', 'ok');
+    } catch (e) {
+      showResultToast('Update-Prüfung fehlgeschlagen', 'err');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Prüfen'; }
+    }
+  }
+
+  // variant: 'ok' (Erfolg) | 'err' (Fehler)
+  function showResultToast(msg, variant) {
+    const t = document.createElement('div');
+    t.textContent = msg;
+    t.className = 'sys-toast sys-toast--' + (variant === 'ok' ? 'ok' : 'err');
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 4000);
+  }
 </script>
 </body>
 </html>
