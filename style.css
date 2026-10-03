@@ -586,3 +586,13 @@ i.ph-light[data-fb]::before { filter: grayscale(1); opacity: .85; }
 
 .interval-field input { text-align: right; }
 .interval-field span { min-width: 28px; }
+
+/* Farbige Theme-Icons */
+.theme-btn[data-theme="light"] i { color: #D97706; }
+.theme-btn[data-theme="dark"] i { color: #6366F1; }
+.theme-btn[data-theme="auto"] i { color: var(--primary-text); }
+:root[data-theme="dark"] .theme-btn[data-theme="light"] i { color: #FBBF24; }
+:root[data-theme="dark"] .theme-btn[data-theme="dark"] i { color: #A5B4FC; }
+.theme-btn.active[data-theme="light"] { background: color-mix(in srgb, #F59E0B 18%, var(--bg-elevated)); }
+.theme-btn.active[data-theme="dark"] { background: color-mix(in srgb, #6366F1 16%, var(--bg-elevated)); }
+.theme-btn.active[data-theme="auto"] { background: color-mix(in srgb, var(--primary) 14%, var(--bg-elevated)); }
