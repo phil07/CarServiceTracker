@@ -2,7 +2,7 @@
 //
 // Die Bilder liegen als verkleinerte JPEGs in IndexedDB (localStorage ist dafür zu klein).
 // Im Datenstand stehen nur die Foto-IDs: entry.photos = [id, …], settings.vehiclePhotos = [id, …].
-// Backup-Dateien enthalten die Bilder (Base64); die Drive-Synchronisierung überträgt sie (noch) nicht.
+// Backup-Dateien enthalten die Bilder (Base64); die Drive-Synchronisierung legt sie einzeln im App-Ordner ab.
 (function () {
   'use strict';
 
@@ -313,6 +313,6 @@
     openLightbox, lightboxStep, closeLightbox, lightboxDelete, lightboxCover,
     formPhotosReset, formPhotosCommit, onFormPhotosPicked,
     renderVehiclePhotos, onVehiclePhotosPicked, renderHeroPhoto, openHeroPhoto, renderDetailPhotos,
-    photosForBackup, restorePhotos,
+    photosForBackup, restorePhotos, referencedPhotoIds: referencedIds,
   });
 })();

@@ -213,7 +213,7 @@
             </button>
 
             <h3 class="section-title">Fahrzeugfotos</h3>
-            <p class="settings-hint">Das erste Foto erscheint als Titelbild im Dashboard. Tippe ein Foto an, um es zu vergrößern, zum Titelbild zu machen oder zu löschen. Fotos liegen auf diesem Gerät und sind in der Backup-Datei enthalten.</p>
+            <p class="settings-hint">Das erste Foto erscheint als Titelbild im Dashboard. Tippe ein Foto an, um es zu vergrößern, zum Titelbild zu machen oder zu löschen. Fotos liegen auf diesem Gerät, sind in der Backup-Datei enthalten und werden mit Google Drive abgeglichen, wenn die Synchronisierung aktiv ist.</p>
             <div class="photo-strip" id="vehiclePhotos"></div>
             <input type="file" id="vehiclePhotoInput" accept="image/*" multiple hidden onchange="onVehiclePhotosPicked(this)">
 
@@ -227,7 +227,7 @@
             <div id="syncCard" hidden>
                 <h3 class="section-title">Synchronisierung</h3>
                 <div class="card info-card sync-card">
-                    <p class="settings-hint">Gleiche deine Daten über alle Geräte ab, mit deinem eigenen Google Drive. Die Daten liegen in einem versteckten App-Ordner deines Kontos – es gibt keinen Server des Entwicklers, und die App sieht nur diese eine Datei. Beim Verbinden wird ein Skript von Google geladen.</p>
+                    <p class="settings-hint">Gleiche deine Daten über alle Geräte ab, mit deinem eigenen Google Drive. Daten und Fotos liegen in einem versteckten App-Ordner deines Kontos – es gibt keinen Server des Entwicklers, und die App sieht nur ihre eigenen Dateien. Die Fotos belegen etwas Speicher in deinem Drive. Beim Verbinden wird ein Skript von Google geladen.</p>
                     <div class="backup-status" id="syncStatusText"></div>
                     <div id="syncConnect">
                         <button type="button" class="btn btn-secondary" data-sync-btn onclick="connectDrive()"><i class="ph-light ph-cloud-arrow-up" data-fb="☁️" aria-hidden="true"></i> Mit Google Drive verbinden</button>

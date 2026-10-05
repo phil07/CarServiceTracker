@@ -2,8 +2,8 @@
 
 Die App kann ihre Daten über den **eigenen Google Drive** jedes Nutzers abgleichen.
 Es gibt keinen Server des Entwicklers: Die Daten liegen im versteckten App-Ordner
-(`appDataFolder`) im Drive des jeweiligen Nutzers. Die App sieht nur ihre eigene Datei
-(`service-tracker-sync.json`). Dafür wird nur der Scope `drive.appdata` angefragt.
+(`appDataFolder`) im Drive des jeweiligen Nutzers. Die App sieht nur ihre eigenen Dateien:
+`service-tracker-sync.json` (Daten) und `photo-<id>.jpg` (je Foto, auf ca. 1400 px verkleinert). Dafür wird nur der Scope `drive.appdata` angefragt.
 
 Solange keine Client-ID eingetragen ist, bleibt die Funktion unsichtbar und die App
 arbeitet rein lokal.
@@ -54,6 +54,14 @@ den neuen Ursprung ergänzt werden.
 - Beim ersten Verbinden mit **unterschiedlichen Fahrzeugen** (VIN) auf Gerät und Drive fragt
   die App nach, statt Daten zu vermischen.
 - Auf einem neuen Gerät: Startbildschirm → „Aus Google Drive laden“.
+
+## Fotos
+
+- Jedes Foto liegt als eigene Datei im App-Ordner. Neue Fotos werden beim Abgleich hochgeladen,
+  fehlende auf einem anderen Gerät heruntergeladen.
+- Entfernte Fotos werden in der Cloud frühestens nach einer Stunde gelöscht (Schutz vor Rennen
+  zwischen zwei Geräten).
+- Das Aufräumen und „Daten in Google Drive löschen“ entfernen auch die Fotodateien.
 
 ## Grenzen
 
