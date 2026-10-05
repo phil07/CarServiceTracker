@@ -1916,19 +1916,34 @@ function resetHistoryFilters() {
   if (inp) inp.value = '';
 }
 
+const VEH_OPEN_KEY = 'cst_veh_open';
+function vehiclesOpen() { try { return localStorage.getItem(VEH_OPEN_KEY) !== '0'; } catch (e) { return true; } }
+function toggleVehicleList() {
+  try { localStorage.setItem(VEH_OPEN_KEY, vehiclesOpen() ? '0' : '1'); } catch (e) {}
+  renderVehicleSwitch();
+}
+
+// Fahrzeugliste im Menü; ab dem zweiten Fahrzeug einklappbar (eingeklappt: nur das aktive Fahrzeug)
 function renderVehicleSwitch() {
   const el = document.getElementById('vehicleSwitch');
   if (!el) return;
-  const list = store.vehicles.length > 1 ? store.vehicles.map(r => {
+  const multi = store.vehicles.length > 1;
+  const open = !multi || vehiclesOpen();
+  const row = r => {
     const t = vehicleTitle(r.vehicle) || 'Neues Fahrzeug';
     const sub = [r.vehicle.vin ? '…' + r.vehicle.vin.slice(-6) : '', r.vehicle.currentKm ? r.vehicle.currentKm.toLocaleString('de-DE') + ' km' : ''].filter(Boolean).join(' · ');
     const on = r.id === state.id && !addingVehicle;
     return `<button type="button" class="menu-item${on ? ' active' : ''}" data-vid="${esc(r.id)}" aria-current="${on}"><span aria-hidden="true" class="menu-icon"><i class="ph-light ph-car-simple" data-fb="🚗"></i></span><span class="menu-item-text">${esc(t)}${sub ? `<small>${esc(sub)}</small>` : ''}</span></button>`;
-  }).join('') : '';
-  el.innerHTML = '<div class="menu-group-label">Fahrzeuge</div>' + list
-    + '<button type="button" class="menu-item" id="nav-addvehicle"><span aria-hidden="true" class="menu-icon"><i class="ph-light ph-plus" data-fb="＋"></i></span> Fahrzeug hinzufügen</button>';
+  };
+  const rows = multi ? (open ? store.vehicles : store.vehicles.filter(r => r.id === state.id)).map(row).join('') : '';
+  const label = multi
+    ? `<button type="button" class="menu-group-label menu-group-toggle" id="vehicleToggle" aria-expanded="${open}"><span>Fahrzeuge (${store.vehicles.length})</span><i class="ph-light ph-caret-right" aria-hidden="true"></i></button>`
+    : '<div class="menu-group-label">Fahrzeuge</div>';
+  el.innerHTML = label + rows
+    + (open ? '<button type="button" class="menu-item" id="nav-addvehicle"><span aria-hidden="true" class="menu-icon"><i class="ph-light ph-plus" data-fb="＋"></i></span> Fahrzeug hinzufügen</button>' : '');
   el.querySelectorAll('[data-vid]').forEach(b => b.addEventListener('click', () => switchVehicle(b.dataset.vid)));
-  el.querySelector('#nav-addvehicle').addEventListener('click', startAddVehicle);
+  el.querySelector('#nav-addvehicle')?.addEventListener('click', startAddVehicle);
+  el.querySelector('#vehicleToggle')?.addEventListener('click', toggleVehicleList);
   const del = document.getElementById('deleteVehicleBtn');
   if (del) del.hidden = store.vehicles.length < 2;
 }
