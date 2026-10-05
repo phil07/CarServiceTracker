@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Datenschutzerklärung – Service-Tracker</title>
+<link rel="stylesheet" href="assets/fonts/fonts.css">
+<link rel="stylesheet" href="legal.css">
+</head>
+<body>
+<main>
+  <a class="back" href="./">← Zurück zur App</a>
+  <h1>Datenschutzerklärung</h1>
+  <p class="stand">Stand: <span data-legal="stand"></span></p>
+
+  <section>
+    <h2>1. Verantwortlicher</h2>
+    <p><span data-legal="name"></span>, <span data-legal="street"></span>, <span data-legal="city"></span><br>
+       E-Mail: <span data-legal="email"></span></p>
+  </section>
+
+  <section>
+    <h2>2. Kurzfassung</h2>
+    <ul>
+      <li>Service-Tracker legt deine Daten <strong>auf deinem Gerät</strong> ab. Es gibt kein Benutzerkonto und keinen Server des Betreibers, auf dem deine Daten liegen.</li>
+      <li>Es gibt <strong>keine Werbung, kein Tracking und keine Analyse-Dienste</strong>. Schriftarten und Icons werden von der App selbst ausgeliefert, nicht von Dritten geladen.</li>
+      <li>Daten verlassen dein Gerät nur, wenn du es auslöst: bei der VIN-Abfrage (Abschnitt 6) und bei der optionalen Synchronisierung mit deinem Google Drive (Abschnitt 7).</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>3. Welche Daten die App verarbeitet</h2>
+    <p>Alles, was du einträgst: Fahrzeugdaten (z. B. Fahrgestellnummer/VIN, Hersteller, Modell, Erstzulassung, Kilometerstand), Service- und Tankeinträge mit Datum, Kilometerstand, Kosten, Werkstatt und Beschreibung, Fotos sowie Einstellungen (z. B. Lackfarbe, Wartungsintervalle). Die Fahrgestellnummer kann einer Person zuordenbar sein und gilt deshalb als personenbezogenes Datum.</p>
+    <p>Diese Daten werden ausschließlich lokal im Browser gespeichert, damit die App funktioniert. Der Betreiber erhält sie nicht und kann sie nicht einsehen.</p>
+  </section>
+
+  <section>
+    <h2>4. Lokale Speicherung auf deinem Gerät</h2>
+    <p>Die App nutzt den lokalen Speicher deines Browsers (localStorage, IndexedDB) und den Zwischenspeicher einer installierten Web-App (Service Worker), damit sie auch offline funktioniert. Das ist für die ausdrücklich von dir genutzte Funktion technisch erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG); eine Einwilligung ist dafür nicht nötig. Es werden keine Cookies zu Werbe- oder Analysezwecken gesetzt.</p>
+    <p>Du kannst die Daten jederzeit in der App löschen („Zurücksetzen“) oder über die Einstellungen deines Browsers entfernen. Beachte: Ohne Sicherung sind gelöschte Daten unwiederbringlich weg.</p>
+  </section>
+
+  <section>
+    <h2>5. Bereitstellung der App (Hosting, Server-Logdaten)</h2>
+    <p>Die App wird über Cloudflare Workers ausgeliefert (Cloudflare, Inc., 101 Townsend St, San Francisco, CA 94107, USA). Beim Aufruf verarbeitet Cloudflare technisch bedingt Verbindungsdaten, insbesondere deine IP-Adresse, Datum und Uhrzeit sowie die angefragte Datei, um die Seite auszuliefern und abzusichern. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einem sicheren und stabilen Betrieb). Mit Cloudflare besteht ein Auftragsverarbeitungsvertrag; für die Übermittlung in die USA stützt sich Cloudflare auf das EU-US Data Privacy Framework und Standardvertragsklauseln. Mehr: cloudflare.com/privacypolicy.</p>
+  </section>
+
+  <section id="vin">
+    <h2>6. VIN-Abfrage (US-Behörde NHTSA)</h2>
+    <p>Wenn du eine Fahrgestellnummer eingibst und „Fahrzeugdaten abrufen“ wählst, sendet die App die <strong>VIN</strong> an die öffentliche Datenbank der US-Verkehrsbehörde NHTSA (<span>vpic.nhtsa.dot.gov</span>), um Hersteller, Modell, Baujahr und Motor zu ermitteln. Dabei erfährt die Behörde auch deine IP-Adresse. Die Abfrage erfolgt nur auf deine Aktion hin und ist freiwillig: Mit „Ohne VIN fortfahren“ kannst du die Daten von Hand eintragen.</p>
+    <p>Rechtsgrundlage ist deine Einwilligung durch die ausdrückliche Auslösung der Abfrage (Art. 6 Abs. 1 lit. a, Art. 49 Abs. 1 lit. a DSGVO). Für die USA besteht für Behörden kein Angemessenheitsbeschluss; die Daten können dort anderen Schutzstandards unterliegen. Weitere Informationen: nhtsa.gov.</p>
+  </section>
+
+  <section id="sync">
+    <h2>7. Optionale Synchronisierung mit Google Drive</h2>
+    <p>Wenn du in den Einstellungen „Mit Google Drive verbinden“ wählst, passiert Folgendes:</p>
+    <ul>
+      <li>Erst in diesem Moment lädt die App ein Anmeldeskript von Google (<span>accounts.google.com</span>). Du meldest dich bei Google an und erlaubst der App den Zugriff auf ihren <strong>versteckten App-Ordner</strong> in deinem Google Drive (Berechtigung „drive.appdata“). Auf andere Dateien in deinem Drive hat die App keinen Zugriff.</li>
+      <li>Deine Daten (Einträge, Fahrzeugdaten, Einstellungen) und Fotos werden dort als Dateien abgelegt und zwischen deinen Geräten abgeglichen. Sie liegen in deinem Google-Konto, <strong>nicht</strong> beim Betreiber der App; der Betreiber hat darauf keinen Zugriff.</li>
+      <li>Das Zugriffstoken von Google wird für kurze Zeit (etwa eine Stunde) lokal im Browser gespeichert.</li>
+      <li>Für die Verarbeitung durch Google gelten die Datenschutzbestimmungen von Google (Google Ireland Limited bzw. Google LLC): policies.google.com/privacy.</li>
+    </ul>
+    <p>Rechtsgrundlage ist deine Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), die du durch das aktive Verbinden erteilst. Du kannst sie jederzeit widerrufen: In der App über „Trennen“ bzw. „Daten in Google Drive löschen“, zusätzlich in deinem Google-Konto unter „Sicherheit → Drittanbieter-Apps mit Kontozugriff“. Die Nutzung der App ist auch ohne Synchronisierung vollständig möglich.</p>
+  </section>
+
+  <section>
+    <h2>8. Benachrichtigungen</h2>
+    <p>Wenn du Benachrichtigungen über neue App-Versionen erlaubst, prüft die App im Hintergrund, ob eine neue Version vorliegt, und zeigt eine lokale Benachrichtigung an. Dabei werden keine personenbezogenen Daten an den Betreiber übertragen. Die Berechtigung kannst du jederzeit in den Browser- oder Systemeinstellungen widerrufen.</p>
+  </section>
+
+  <section>
+    <h2>9. Backup und Export</h2>
+    <p>Backup-, CSV- und Druckfunktionen erzeugen Dateien auf deinem Gerät. Wohin du sie weitergibst (z. B. über das Teilen-Menü in iCloud, Google Drive oder per E-Mail), entscheidest du; dafür gelten die Bedingungen des jeweiligen Dienstes.</p>
+  </section>
+
+  <section>
+    <h2>10. Speicherdauer</h2>
+    <p>Lokal gespeicherte Daten bleiben bis zu deiner Löschung auf deinem Gerät. Die Server-Logdaten (Abschnitt 5) werden nach den Fristen des Hosting-Anbieters automatisch gelöscht.</p>
+  </section>
+
+  <section>
+    <h2>11. Deine Rechte</h2>
+    <p>Du hast nach der DSGVO das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit (Backup-Export) und Widerspruch gegen Verarbeitungen auf Grundlage berechtigter Interessen. Erteilte Einwilligungen kannst du jederzeit mit Wirkung für die Zukunft widerrufen. Da deine Einträge nur auf deinem Gerät bzw. in deinem Google-Konto liegen, kannst du die meisten Rechte direkt in der App ausüben. Bei Fragen oder zu den Logdaten wende dich an die oben genannte Adresse.</p>
+    <p>Du hast außerdem das Recht, dich bei einer Datenschutz-Aufsichtsbehörde zu beschweren, z. B. bei der Behörde deines Wohnortes.</p>
+  </section>
+
+  <section>
+    <h2>12. Änderungen</h2>
+    <p>Diese Erklärung wird angepasst, wenn sich die App oder die Rechtslage ändert. Der aktuelle Stand steht oben.</p>
+  </section>
+
+  <nav class="legal-links"><a href="impressum.html">Impressum</a><a href="./">Zur App</a></nav>
+</main>
+<script src="legal.js"></script>
+</body>
+</html>

@@ -82,6 +82,7 @@
                         <div class="form-hint" id="onboardingVinHint">Steht im Fahrzeugschein (Feld E) und unten an der Windschutzscheibe.</div>
                     </div>
                 </div>
+                <p class="settings-hint onboarding-privacy">Beim Abruf wird die VIN an die US-Behörde NHTSA gesendet (<a href="datenschutz.html#vin">Datenschutz</a>). Mit „Ohne VIN fortfahren“ bleibt alles auf deinem Gerät.</p>
                 <button type="submit" class="btn btn-cta" id="onboardingVinBtn">Fahrzeugdaten abrufen</button>
                 <button type="button" class="link-btn onboarding-link" onclick="skipOnboardingVin()">Ohne VIN fortfahren</button>
                 <button type="button" class="link-btn onboarding-link" data-restore onclick="document.getElementById('importFile').click()">Vorhandenes Backup einspielen</button>
@@ -227,7 +228,7 @@
             <div id="syncCard" hidden>
                 <h3 class="section-title">Synchronisierung</h3>
                 <div class="card info-card sync-card">
-                    <p class="settings-hint">Gleiche deine Daten über alle Geräte ab, mit deinem eigenen Google Drive. Daten und Fotos liegen in einem versteckten App-Ordner deines Kontos – es gibt keinen Server des Entwicklers, und die App sieht nur ihre eigenen Dateien. Die Fotos belegen etwas Speicher in deinem Drive. Beim Verbinden wird ein Skript von Google geladen.</p>
+                    <p class="settings-hint">Gleiche deine Daten über alle Geräte ab, mit deinem eigenen Google Drive. Daten und Fotos liegen in einem versteckten App-Ordner deines Kontos – es gibt keinen Server des Entwicklers, und die App sieht nur ihre eigenen Dateien. Die Fotos belegen etwas Speicher in deinem Drive. Beim Verbinden wird ein Skript von Google geladen (<a href="datenschutz.html#sync">Datenschutz</a>).</p>
                     <div class="backup-status" id="syncStatusText"></div>
                     <div id="syncConnect">
                         <button type="button" class="btn btn-secondary" data-sync-btn onclick="connectDrive()"><i class="ph-light ph-cloud-arrow-up" data-fb="☁️" aria-hidden="true"></i> Mit Google Drive verbinden</button>
@@ -424,6 +425,7 @@
             <div class="backup-status" id="backupStatus" aria-live="polite"></div>
             <div class="backup-status" id="storageStatus"></div>
             Gespeichert auf diesem Gerät · <button type="button" class="link-btn" onclick="resetDataPrompt()">Zurücksetzen</button>
+            <div class="legal-row"><a href="datenschutz.html">Datenschutz</a> · <a href="impressum.html">Impressum</a></div>
         </div>
     </nav>
 </div>

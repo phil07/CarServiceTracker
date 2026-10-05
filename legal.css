@@ -1,0 +1,18 @@
+/* Rechtliche Seiten (Datenschutz, Impressum) */
+:root { --bg: #EEF0F3; --card: #fff; --fg: #14181F; --muted: #5B6471; --line: rgba(20,24,31,.12); --accent: #3F5A78; --warn-bg: #FDE8CF; --warn-fg: #8A3B00; color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #14171C; --card: #1D2128; --fg: #EEF0F3; --muted: #A2AAB6; --line: rgba(238,240,243,.14); --accent: #8FB0D6; --warn-bg: #4A2B0A; --warn-fg: #FFC48A; color-scheme: dark; } }
+:root[data-theme="dark"] { --bg: #14171C; --card: #1D2128; --fg: #EEF0F3; --muted: #A2AAB6; --line: rgba(238,240,243,.14); --accent: #8FB0D6; --warn-bg: #4A2B0A; --warn-fg: #FFC48A; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.6 "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; padding: max(16px, env(safe-area-inset-top)) 16px calc(40px + env(safe-area-inset-bottom)); }
+main { max-width: 720px; margin: 0 auto; }
+.back { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: var(--accent); font-weight: 700; text-decoration: none; }
+h1 { font-size: clamp(26px, 6vw, 34px); line-height: 1.15; letter-spacing: -.03em; margin: 8px 0 4px; text-wrap: balance; }
+.stand { color: var(--muted); font-size: 14px; margin: 0 0 20px; }
+section { background: var(--card); border-radius: 22px; padding: 18px 20px; margin: 0 0 14px; box-shadow: 0 0 0 1px var(--line); }
+h2 { font-size: 18px; letter-spacing: -.02em; margin: 0 0 8px; text-wrap: balance; }
+p, ul { margin: 0 0 10px; } ul { padding-left: 20px; } li { margin-bottom: 4px; }
+section > :last-child { margin-bottom: 0; }
+a { color: var(--accent); overflow-wrap: anywhere; }
+.missing { background: var(--warn-bg); color: var(--warn-fg); border-radius: 6px; padding: 0 6px; font-weight: 700; }
+.note { color: var(--muted); font-size: 14px; }
+nav.legal-links { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 18px; font-size: 14px; }

@@ -755,3 +755,8 @@ dialog.lightbox::backdrop { background: #000; -webkit-backdrop-filter: none; bac
     display: grid; place-items: center; border-radius: 14px; }
 .lb-prev { left: 8px; } .lb-next { right: 8px; }
 .lightbox.single .lb-nav { display: none; }
+
+/* ─── Rechtliches ─── */
+.legal-row { margin-top: 10px; font-size: 12px; }
+.legal-row a, .onboarding-privacy a, .sync-card a { color: var(--primary-text); font-weight: 600; }
+.onboarding-privacy { margin: 4px 4px 14px; }
