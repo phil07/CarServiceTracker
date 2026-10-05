@@ -395,6 +395,7 @@ function setMenuOpen(open) {
   const drawer = document.getElementById('drawer');
   const btn = document.getElementById('menuBtn');
   const wasOpen = app.classList.contains('menu-open');
+  if (open && !wasOpen && vehListOpen) { vehListOpen = false; renderVehicleSwitch(); }
   app.classList.toggle('menu-open', open);
   drawer.inert = !open;
   if (open) { drawer.setAttribute('role', 'dialog'); drawer.setAttribute('aria-modal', 'true'); }
@@ -1919,11 +1920,12 @@ function resetHistoryFilters() {
   if (inp) inp.value = '';
 }
 
-const VEH_OPEN_KEY = 'cst_veh_open';
-function vehiclesOpen() { try { return localStorage.getItem(VEH_OPEN_KEY) === '1'; } catch (e) { return false; } }
+// Die Fahrzeugliste ist bei jedem Öffnen des Menüs zugeklappt (nur das aktive Fahrzeug); Löschen und Hinzufügen stecken im aufgeklappten Zustand
+let vehListOpen = false;
 function toggleVehicleList() {
-  try { localStorage.setItem(VEH_OPEN_KEY, vehiclesOpen() ? '0' : '1'); } catch (e) {}
+  vehListOpen = !vehListOpen;
   renderVehicleSwitch();
+  document.getElementById('vehicleToggle')?.focus({ preventScroll: true });
 }
 
 // Fahrzeugliste im Menü; ab dem zweiten Fahrzeug einklappbar (eingeklappt: nur das aktive Fahrzeug)
@@ -1931,7 +1933,7 @@ function renderVehicleSwitch() {
   const el = document.getElementById('vehicleSwitch');
   if (!el) return;
   const multi = store.vehicles.length > 1;
-  const open = !multi || vehiclesOpen();
+  const open = vehListOpen;
   const row = r => {
     const t = vehicleTitle(r.vehicle) || 'Neues Fahrzeug';
     const sub = [r.vehicle.vin ? '…' + r.vehicle.vin.slice(-6) : '', r.vehicle.currentKm ? r.vehicle.currentKm.toLocaleString('de-DE') + ' km' : ''].filter(Boolean).join(' · ');
@@ -1939,10 +1941,8 @@ function renderVehicleSwitch() {
     return `<div class="veh-row"><button type="button" class="menu-item${on ? ' active' : ''}" data-vid="${esc(r.id)}" aria-current="${on}"><span aria-hidden="true" class="menu-icon"><i class="ph-light ph-car-simple" data-fb="🚗"></i></span><span class="menu-item-text">${esc(t)}${sub ? `<small>${esc(sub)}</small>` : ''}</span></button>`
       + (open ? `<button type="button" class="veh-del" data-del="${esc(r.id)}" aria-label="${esc(t)} löschen"><i class="ph-light ph-trash" data-fb="🗑️" aria-hidden="true"></i></button>` : '') + '</div>';
   };
-  const rows = multi ? (open ? store.vehicles : store.vehicles.filter(r => r.id === state.id)).map(row).join('') : '';
-  const label = multi
-    ? `<button type="button" class="menu-group-label menu-group-toggle" id="vehicleToggle" aria-expanded="${open}"><span>Fahrzeuge (${store.vehicles.length})</span><i class="ph-light ph-caret-right" aria-hidden="true"></i></button>`
-    : '<div class="menu-group-label">Fahrzeuge</div>';
+  const rows = (open ? store.vehicles : store.vehicles.filter(r => r.id === state.id)).map(row).join('');
+  const label = `<button type="button" class="menu-group-label menu-group-toggle" id="vehicleToggle" aria-expanded="${open}"><span>Fahrzeuge${multi ? ' (' + store.vehicles.length + ')' : ''}</span><i class="ph-light ph-caret-right" aria-hidden="true"></i></button>`;
   el.innerHTML = label + rows
     + (open ? '<button type="button" class="menu-item" id="nav-addvehicle"><span aria-hidden="true" class="menu-icon"><i class="ph-light ph-plus" data-fb="＋"></i></span> Fahrzeug hinzufügen</button>' : '');
   el.querySelectorAll('[data-vid]').forEach(b => b.addEventListener('click', () => switchVehicle(b.dataset.vid)));
