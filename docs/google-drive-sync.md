@@ -25,7 +25,7 @@ arbeitet rein lokal.
 4. **Anmeldedaten → Anmeldedaten erstellen → OAuth-Client-ID:**
    - Anwendungstyp **Webanwendung**.
    - **Autorisierte JavaScript-Quellen:** die Adresse, unter der die App läuft
-     (z. B. `https://<name>.github.io`, nur Ursprung, ohne Pfad und ohne Schrägstrich am Ende).
+     (für diese App: `https://carservicetracker.iphilipp07-869.workers.dev`, nur Ursprung, ohne Pfad und ohne Schrägstrich am Ende).
      Für Tests zusätzlich `http://localhost:8765`.
    - Weiterleitungs-URIs sind nicht nötig.
 5. Die erzeugte **Client-ID** (endet auf `.apps.googleusercontent.com`) kopieren und in
@@ -33,6 +33,15 @@ arbeitet rein lokal.
    Ein Client-Secret wird **nicht** benötigt und darf nicht in die App.
 6. Neue Version ausliefern (`version.js` erhöhen). Unter „Fahrzeug & Design“ erscheint der
    Abschnitt **Synchronisierung**.
+
+## Hinweis zur Adresse `workers.dev`
+
+Die App läuft unter `*.workers.dev` (Cloudflare). Diese Domain steht auf der Public-Suffix-Liste.
+Für den Testbetrieb (Status „Wird getestet“, eingetragene Testnutzer) ist das unkritisch.
+Beim Veröffentlichen („In Produktion“) kann Google verlangen, dass die Domain des Zustimmungsbildschirms
+dir gehört und verifiziert ist. Bei `workers.dev` ist das nicht möglich. Dann braucht die App eine
+eigene Domain (in Cloudflare als „Custom Domain“ an den Worker hängbar); die Client-ID muss danach um
+den neuen Ursprung ergänzt werden.
 
 ## Wie es funktioniert
 
