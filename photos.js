@@ -91,8 +91,11 @@
 
   // ─── Aufräumen ──────────────────────────────────────────────────────────────
   function referencedIds() {
-    const ids = new Set(state.settings.vehiclePhotos || []);
-    state.serviceHistory.forEach(e => (e.photos || []).forEach(id => ids.add(id)));
+    const ids = new Set();
+    store.vehicles.forEach(r => {
+      (r.settings.vehiclePhotos || []).forEach(id => ids.add(id));
+      r.serviceHistory.forEach(e => (e.photos || []).forEach(id => ids.add(id)));
+    });
     return ids;
   }
   async function gcPhotos() {

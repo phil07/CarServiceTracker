@@ -760,3 +760,9 @@ dialog.lightbox::backdrop { background: #000; -webkit-backdrop-filter: none; bac
 .legal-row { margin-top: 10px; font-size: 12px; }
 .legal-row a, .onboarding-privacy a, .sync-card a { color: var(--primary-text); font-weight: 600; }
 .onboarding-privacy { margin: 4px 4px 14px; }
+
+/* Mehrere Fahrzeuge */
+#vehicleSwitch { display: contents; }
+.menu-item-text { display: flex; flex-direction: column; min-width: 0; overflow-wrap: anywhere; line-height: 1.15; }
+.menu-item-text small { margin-top: 3px; font-size: 12.5px; font-weight: 500; letter-spacing: 0; color: var(--muted); }
+.btn.is-danger-text { color: var(--err-fill); margin-top: 10px; }

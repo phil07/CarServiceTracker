@@ -88,7 +88,7 @@ const GOOGLE_CLIENT_ID = '';
 
   async function downloadRemote(id) {
     const r = await drive(API + '/' + id + '?alt=media');
-    return normalizeState(JSON.parse(await r.text()));
+    return normalizeStore(JSON.parse(await r.text()));
   }
 
   async function uploadRemote(id, payload) {
@@ -178,7 +178,7 @@ const GOOGLE_CLIENT_ID = '';
   }
 
   // pro Eintrag gewinnt der neuere Stand; eine Löschmarke schlägt einen älteren Eintrag
-  function mergeStates(local, remote) {
+  function mergeRecords(local, remote) {
     const deleted = Object.assign({}, remote.deleted);
     Object.keys(local.deleted || {}).forEach(id => { deleted[id] = Math.max(deleted[id] || 0, local.deleted[id]); });
     const alive = e => !(deleted[e.id] && deleted[e.id] >= ts(e));
@@ -188,6 +188,7 @@ const GOOGLE_CLIENT_ID = '';
     const v = pick(lm.vehicleAt || 0, rm.vehicleAt || 0, emptyVehicle(local.vehicle), emptyVehicle(remote.vehicle));
     const s = pick(lm.settingsAt || 0, rm.settingsAt || 0, !local.settings.onboardingDone, !remote.settings.onboardingDone);
     return normalizeState({
+      id: local.id,
       vehicle:        v === 'l' ? local.vehicle : remote.vehicle,
       settings:       s === 'l' ? local.settings : remote.settings,
       serviceHistory: mergeList(local.serviceHistory, remote.serviceHistory).filter(alive),
@@ -197,24 +198,61 @@ const GOOGLE_CLIENT_ID = '';
     });
   }
 
-  // kanonische Form (sortiert) zum Vergleichen und Hochladen
-  function payloadOf(s) {
+  // Fahrzeug-Datensatz zuletzt geändert (für Löschmarken-Vergleich)
+  const recStamp = r => Math.max((r.meta && r.meta.vehicleAt) || 0, (r.meta && r.meta.settingsAt) || 0,
+    ...r.serviceHistory.map(ts), ...r.fuelLog.map(ts));
+  const isBlank = r => !r.settings.onboardingDone && !r.serviceHistory.length && !r.fuelLog.length;
+
+  // Fahrzeuge gleicher id werden zusammengeführt; Fahrzeuge nur auf einer Seite bleiben erhalten.
+  // linked=false (erste Verbindung): gleiche id, aber verschiedene VIN → zwei getrennte Fahrzeuge.
+  function mergeStates(local, remote, linked) {
+    const deletedVehicles = Object.assign({}, remote.deletedVehicles);
+    Object.keys(local.deletedVehicles || {}).forEach(id => { deletedVehicles[id] = Math.max(deletedVehicles[id] || 0, local.deletedVehicles[id]); });
+    const map = new Map();
+    remote.vehicles.forEach(r => map.set(r.id, r));
+    local.vehicles.forEach(l => {
+      const r = map.get(l.id);
+      if (!r) map.set(l.id, l);
+      else if (!linked && l.vehicle.vin && r.vehicle.vin && l.vehicle.vin !== r.vehicle.vin) {
+        const copy = Object.assign({}, l, { id: 'v' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7) });
+        map.set(copy.id, copy);
+      } else map.set(l.id, mergeRecords(l, r));
+    });
+    let vehicles = [...map.values()].filter(r => !(deletedVehicles[r.id] && deletedVehicles[r.id] >= recStamp(r)));
+    if (vehicles.length > 1) vehicles = vehicles.filter(r => !isBlank(r));
+    return normalizeStore({ activeId: local.activeId, vehicles, deletedVehicles });
+  }
+
+  // kanonische Form (sortiert) zum Vergleichen und Hochladen; die Fahrzeugauswahl bleibt lokal
+  function payloadOf(st) {
     const byId = (a, b) => String(a.id).localeCompare(String(b.id));
     return {
-      vehicle: s.vehicle, settings: s.settings,
-      serviceHistory: s.serviceHistory.slice().sort(byId), fuelLog: s.fuelLog.slice().sort(byId),
-      deleted: s.deleted || {}, meta: s.meta || {},
+      vehicles: st.vehicles.map(s => ({
+        id: s.id, vehicle: s.vehicle, settings: s.settings,
+        serviceHistory: s.serviceHistory.slice().sort(byId), fuelLog: s.fuelLog.slice().sort(byId),
+        deleted: s.deleted || {}, meta: s.meta || {},
+      })).sort(byId),
+      deletedVehicles: st.deletedVehicles || {},
     };
   }
   const same = (a, b) => canon(payloadOf(a)) === canon(payloadOf(b));
 
   // Fremde Daten übernehmen, ohne sie als eigene Änderung zu stempeln
   function adoptState(next) {
-    state = next;
+    const cur = state && state.id;
+    store = next;
+    if (addingVehicle) { // mitten im Hinzufügen: nur den Speicher aktualisieren, die Eingabe nicht stören
+      store.activeId = next.vehicles.some(r => r.id === store.activeId) ? store.activeId : next.vehicles[0].id;
+      buildSnap(); persistRaw(); renderVehicleSwitch();
+      return;
+    }
+    store.activeId = next.vehicles.some(r => r.id === cur) ? cur : next.activeId;
+    state = activeRecord();
     buildSnap();
     persistRaw();
     applyTheme(state.settings.vehicleColor);
     renderHeader();
+    renderVehicleSwitch();
     if (document.querySelector('dialog[open]')) return; // nicht mitten in der Eingabe umschalten
     if (!state.settings.onboardingDone) return;
     const onb = document.getElementById('view-onboarding');
@@ -238,27 +276,11 @@ const GOOGLE_CLIENT_ID = '';
       }
     }
 
-    let merged = state;
-    if (remote) {
-      // Erste Verbindung dieses Geräts: nie stillschweigend zwei verschiedene Fahrzeuge vermischen
-      const localEmpty = !state.settings.onboardingDone && !entryCount();
-      const lv = state.vehicle.vin, rv = remote.vehicle.vin;
-      if (!meta.linked && !localEmpty && lv && rv && lv !== rv) {
-        const ok = await confirmDialog({
-          title: 'Anderes Fahrzeug in Google Drive',
-          text: 'In Drive liegen Daten für „' + (vehicleTitle(remote.vehicle) || rv) + '“ (' + (remote.serviceHistory.length + remote.fuelLog.length)
-            + ' Einträge). Auf diesem Gerät: „' + (vehicleTitle(state.vehicle) || lv) + '“. Drive-Daten übernehmen? Die lokalen Daten werden dabei ersetzt – sichere sie vorher per Backup.',
-          ok: 'Drive übernehmen', danger: true,
-        });
-        if (!ok) throw Object.assign(new Error('Abgebrochen'), { code: 'CANCEL' });
-        merged = remote;
-      } else {
-        merged = mergeStates(state, remote);
-      }
-    }
+    let merged = store;
+    if (remote) merged = mergeStates(store, remote, !!meta.linked);
 
     alive();
-    if (!same(merged, state)) adoptState(merged);
+    if (!same(merged, store)) adoptState(merged);
     if (!remote || !same(merged, remote)) id = await uploadRemote(id, payloadOf(merged));
     alive();
     setMeta({ fileId: id, linked: true, lastSync: new Date().toISOString() });

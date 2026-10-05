@@ -212,6 +212,9 @@
             <button type="button" class="btn btn-secondary" onclick="editVehicleData()">
                 <i class="ph-light ph-identification-card" data-fb="🪪"></i> VIN / Fahrzeugdaten ändern
             </button>
+            <button type="button" class="btn btn-secondary is-danger-text" id="deleteVehicleBtn" onclick="deleteVehicle()" hidden>
+                <i class="ph-light ph-trash" data-fb="🗑️"></i> Dieses Fahrzeug löschen
+            </button>
 
             <h3 class="section-title">Fahrzeugfotos</h3>
             <p class="settings-hint">Das erste Foto erscheint als Titelbild im Dashboard. Tippe ein Foto an, um es zu vergrößern, zum Titelbild zu machen oder zu löschen. Fotos liegen auf diesem Gerät, sind in der Backup-Datei enthalten und werden mit Google Drive abgeglichen, wenn die Synchronisierung aktiv ist.</p>
@@ -398,6 +401,7 @@
             <div class="menu-dates" id="drawerVehicleSub"></div>
         </div>
         <div class="menu-list">
+            <div id="vehicleSwitch"></div>
             <div class="menu-group-label">Service</div>
             <button type="button" class="menu-item active" id="nav-dashboard" onclick="switchTab('dashboard')"><span aria-hidden="true" class="menu-icon"><i class="ph-light ph-gauge" data-fb="⏱️"></i></span> Dashboard</button>
             <button type="button" class="menu-item" id="nav-history" onclick="switchTab('history')"><span aria-hidden="true" class="menu-icon"><i class="ph-light ph-clock-counter-clockwise" data-fb="🕘"></i></span> Historie</button>

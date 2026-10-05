@@ -175,7 +175,9 @@ function normalizeState(raw) {
 
   const st = raw.settings && typeof raw.settings === 'object' ? raw.settings : {};
   const hasVehicle = !!(vehicle.vin || vehicle.make || vehicle.model || vehicle.chassis);
+  const rid = String(raw.id == null ? '' : raw.id);
   return {
+    id: /^[\w-]+$/.test(rid) ? rid : 'main', // „main“: gemeinsame Kennung des ersten Fahrzeugs (auch aus Daten vor der Mehrfahrzeug-Version)
     vehicle,
     serviceHistory,
     fuelLog,
@@ -190,11 +192,46 @@ function normalizeState(raw) {
   };
 }
 
+// Ein Fahrzeug-Datensatz hat die Form von EMPTY_DATA plus id; der Speicher bündelt alle Fahrzeuge.
+// `state` zeigt immer auf den Datensatz des gerade gewählten Fahrzeugs (Element von store.vehicles).
+let store = null; // { activeId, vehicles: [Datensatz], deletedVehicles: { id: Zeitstempel } }
+
+function blankRecord(id) {
+  return Object.assign(JSON.parse(JSON.stringify(EMPTY_DATA)), { id: id || uid() });
+}
+
+function normalizeStore(raw) {
+  if (!raw || typeof raw !== 'object') throw new Error('Ungültiges Format');
+  let vehicles = [];
+  if (Array.isArray(raw.vehicles)) {
+    const seen = new Set();
+    raw.vehicles.forEach(r => {
+      let rec; try { rec = normalizeState(r); } catch (e) { return; }
+      if (seen.has(rec.id)) rec.id = uid();
+      seen.add(rec.id);
+      vehicles.push(rec);
+    });
+    if (!vehicles.length && raw.vehicles.length) throw new Error('Ungültiges Format');
+  } else {
+    vehicles = [normalizeState(raw)]; // Format vor der Mehrfahrzeug-Version
+  }
+  const deletedVehicles = {};
+  if (raw.deletedVehicles && typeof raw.deletedVehicles === 'object') {
+    Object.keys(raw.deletedVehicles).forEach(id => { const t = toInt(raw.deletedVehicles[id], 1); if (t && /^[\w-]+$/.test(id)) deletedVehicles[id] = t; });
+  }
+  if (!vehicles.length) vehicles.push(blankRecord('main'));
+  const activeId = vehicles.some(r => r.id === raw.activeId) ? raw.activeId : vehicles[0].id;
+  return { activeId, vehicles, deletedVehicles };
+}
+
+const activeRecord = () => store.vehicles.find(r => r.id === store.activeId) || store.vehicles[0];
+const totalEntries = st => st.vehicles.reduce((n, r) => n + r.serviceHistory.length + r.fuelLog.length, 0);
+
 function loadState() {
   let raw = null;
   try { raw = localStorage.getItem(STORAGE_KEY); } catch (e) { console.warn('loadState:', e); }
   if (!raw) return null;
-  try { return normalizeState(JSON.parse(raw)); }
+  try { return normalizeStore(JSON.parse(raw)); }
   catch (e) {
     console.warn('loadState: beschädigte Daten, Sicherung unter ' + STORAGE_KEY + '_broken', e);
     try { localStorage.setItem(STORAGE_KEY + '_broken', raw); } catch (e2) {}
@@ -205,41 +242,58 @@ function loadState() {
 // ─── Änderungsverfolgung (Grundlage der Drive-Synchronisierung) ───────────────
 // saveState() ist der einzige Speicherpunkt: Er vergleicht mit dem letzten bekannten Stand,
 // stempelt geänderte Einträge (updatedAt) und merkt gelöschte als Löschmarke (deleted[id]).
-let snap = null;
+// Gelöschte Fahrzeuge erhalten eine Löschmarke in store.deletedVehicles.
+let snaps = new Map(); // Fahrzeug-id → letzter bekannter Stand
 const canon = o => JSON.stringify(o, (k, v) => v && typeof v === 'object' && !Array.isArray(v)
   ? Object.keys(v).sort().reduce((r, key) => (r[key] = v[key], r), {}) : v);
 const sigEntry = e => { const { updatedAt, ...rest } = e; return canon(rest); };
 
+function snapOf(rec) {
+  const sn = { entries: new Map(), vehicle: canon(rec.vehicle), settings: canon(rec.settings) };
+  rec.serviceHistory.concat(rec.fuelLog).forEach(e => sn.entries.set(e.id, sigEntry(e)));
+  return sn;
+}
+
 function buildSnap() {
-  snap = { entries: new Map(), vehicle: canon(state.vehicle), settings: canon(state.settings) };
-  state.serviceHistory.concat(state.fuelLog).forEach(e => snap.entries.set(e.id, sigEntry(e)));
+  snaps = new Map();
+  store.vehicles.forEach(r => snaps.set(r.id, snapOf(r)));
 }
 
 function stampChanges() {
-  if (!snap) buildSnap();
   const now = Date.now();
-  state.deleted = state.deleted || {};
-  state.meta = state.meta || {};
-  const seen = new Set();
-  state.serviceHistory.concat(state.fuelLog).forEach(e => {
-    seen.add(e.id);
-    const sig = sigEntry(e);
-    if (snap.entries.get(e.id) !== sig) { e.updatedAt = now; snap.entries.set(e.id, sig); delete state.deleted[e.id]; }
+  store.deletedVehicles = store.deletedVehicles || {};
+  store.vehicles.forEach(rec => {
+    let sn = snaps.get(rec.id);
+    if (!sn) { sn = { entries: new Map(), vehicle: '', settings: '' }; snaps.set(rec.id, sn); } // neues Fahrzeug: alles ist neu
+    rec.deleted = rec.deleted || {};
+    rec.meta = rec.meta || {};
+    if (store.deletedVehicles[rec.id]) { delete store.deletedVehicles[rec.id]; rec.meta.vehicleAt = now; } // wieder eingespielt
+    const seen = new Set();
+    rec.serviceHistory.concat(rec.fuelLog).forEach(e => {
+      seen.add(e.id);
+      const sig = sigEntry(e);
+      if (sn.entries.get(e.id) !== sig) { e.updatedAt = now; sn.entries.set(e.id, sig); delete rec.deleted[e.id]; }
+    });
+    [...sn.entries.keys()].forEach(id => {
+      if (!seen.has(id)) { sn.entries.delete(id); rec.deleted[id] = now; }
+    });
+    const v = canon(rec.vehicle);
+    if (v !== sn.vehicle) { sn.vehicle = v; rec.meta.vehicleAt = now; }
+    const st = canon(rec.settings);
+    if (st !== sn.settings) { sn.settings = st; rec.meta.settingsAt = now; }
+    const cutoff = now - 180 * 86400000; // Löschmarken nach ~6 Monaten verwerfen
+    Object.keys(rec.deleted).forEach(id => { if (rec.deleted[id] < cutoff) delete rec.deleted[id]; });
   });
-  [...snap.entries.keys()].forEach(id => {
-    if (!seen.has(id)) { snap.entries.delete(id); state.deleted[id] = now; }
+  [...snaps.keys()].forEach(id => {
+    if (!store.vehicles.some(r => r.id === id)) { snaps.delete(id); store.deletedVehicles[id] = now; }
   });
-  const v = canon(state.vehicle);
-  if (v !== snap.vehicle) { snap.vehicle = v; state.meta.vehicleAt = now; }
-  const st = canon(state.settings);
-  if (st !== snap.settings) { snap.settings = st; state.meta.settingsAt = now; }
-  const cutoff = now - 180 * 86400000; // Löschmarken nach ~6 Monaten verwerfen
-  Object.keys(state.deleted).forEach(id => { if (state.deleted[id] < cutoff) delete state.deleted[id]; });
+  const cutoff = now - 180 * 86400000;
+  Object.keys(store.deletedVehicles).forEach(id => { if (store.deletedVehicles[id] < cutoff) delete store.deletedVehicles[id]; });
 }
 
 // Schreibt den Stand ohne Änderungsverfolgung (z.B. nach dem Übernehmen von Sync-Daten)
 function persistRaw() {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); return true; }
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(store)); return true; }
   catch (e) { console.warn('saveState:', e); showToast('Speichern fehlgeschlagen (Speicher voll?)', 'err'); return false; }
 }
 
@@ -1262,7 +1316,7 @@ const BACKUP_MAX_DAYS = 30;     // Erinnerung nach X Tagen (sobald es Änderunge
 const BACKUP_MAX_CHANGES = 20;  // … oder nach X neuen Einträgen
 const BACKUP_SNOOZE_DAYS = 7;
 
-function entryCount() { return state.serviceHistory.length + state.fuelLog.length; }
+function entryCount() { return totalEntries(store); }
 
 function readBackupMeta() {
   try {
@@ -1351,7 +1405,7 @@ async function renderStorageStatus() {
 }
 
 function backupFileName() {
-  const tag = (vehicleTitle(state.vehicle) || 'fahrzeug').replace(/[^\w]+/g, '-').replace(/^-|-$/g, '');
+  const tag = (store.vehicles.length > 1 ? 'alle-fahrzeuge' : vehicleTitle(state.vehicle) || 'fahrzeug').replace(/[^\w]+/g, '-').replace(/^-|-$/g, '');
   return 'service-tracker-' + tag + '-' + todayIso() + '.json';
 }
 
@@ -1368,7 +1422,7 @@ function downloadBackup(file) {
 // sonst als normaler Download.
 async function exportData() {
   const photos = await photosForBackup().catch(() => ({}));
-  const data = Object.keys(photos).length ? Object.assign({}, state, { photos }) : state;
+  const data = Object.assign({ version: 2 }, store, Object.keys(photos).length ? { photos } : {});
   const file = new File([JSON.stringify(data, null, 2)], backupFileName(), { type: 'application/json' });
   try {
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -1393,20 +1447,20 @@ function importData(input) {
   reader.onload = async ev => {
     try {
       const raw = JSON.parse(ev.target.result);
-      const next = normalizeState(raw);
+      const next = normalizeStore(raw);
       const ok = await confirmDialog({
         title: 'Backup einspielen?',
-        text: `${next.serviceHistory.length} Einträge werden geladen. Die aktuellen Daten (${state.serviceHistory.length} Einträge) werden dabei ersetzt.`,
+        text: `${next.vehicles.length === 1 ? '1 Fahrzeug' : next.vehicles.length + ' Fahrzeuge'} mit ${totalEntries(next)} Einträgen werden geladen. Die aktuellen Daten (${store.vehicles.length === 1 ? '1 Fahrzeug' : store.vehicles.length + ' Fahrzeuge'}, ${entryCount()} Einträge) werden dabei ersetzt.`,
         ok: 'Einspielen', danger: true,
       });
       if (!ok) return;
-      const previous = state;
-      state = next;
+      const previous = { store, state };
+      store = next; state = activeRecord();
       try {
         applyTheme(state.settings.vehicleColor);
         renderHeader();
         switchTab('dashboard');
-      } catch (err) { state = previous; throw err; }
+      } catch (err) { store = previous.store; state = previous.state; throw err; }
       await restorePhotos(raw.photos);
       saveState();
       renderHeroPhoto();
@@ -1431,7 +1485,9 @@ async function resetDataPrompt() {
   if (!ok) return;
   localStorage.removeItem(STORAGE_KEY);
   clearPhotos();
-  state = JSON.parse(JSON.stringify(EMPTY_DATA));
+  store.vehicles = [blankRecord()];
+  store.activeId = store.vehicles[0].id;
+  state = store.vehicles[0];
   saveState();
   applyTheme(state.settings.vehicleColor);
   renderHeader();
@@ -1691,6 +1747,8 @@ async function decodeVin(vin) {
 
 // ─── Onboarding (1. VIN → 2. Daten prüfen + Farbe) ───────────────────────────
 let pendingOnboardingColor = 'titansilber';
+let addingVehicle = false;   // Onboarding legt gerade ein weiteres Fahrzeug an (state ist dann ein noch nicht gespeicherter Datensatz)
+let addPrevState = null;
 let pendingVehicle = null;
 
 function onVinInput(input) {
@@ -1706,10 +1764,11 @@ function showOnboarding() {
   setMenuOpen(false);
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('view-onboarding').classList.add('active');
-  document.getElementById('menuBtn').hidden = !state.settings.onboardingDone;
-  document.getElementById('pageTitle').textContent = state.settings.onboardingDone ? 'Fahrzeug ändern' : 'Willkommen';
-  document.querySelectorAll('#view-onboarding [data-cancel]').forEach(b => { b.hidden = !state.settings.onboardingDone; });
-  document.getElementById('onboardingFinishBtn').textContent = state.settings.onboardingDone ? 'Speichern' : 'Loslegen';
+  const canLeave = state.settings.onboardingDone || addingVehicle;
+  document.getElementById('menuBtn').hidden = !canLeave;
+  document.getElementById('pageTitle').textContent = addingVehicle ? 'Fahrzeug hinzufügen' : state.settings.onboardingDone ? 'Fahrzeug ändern' : 'Willkommen';
+  document.querySelectorAll('#view-onboarding [data-cancel]').forEach(b => { b.hidden = !canLeave; });
+  document.getElementById('onboardingFinishBtn').textContent = addingVehicle ? 'Hinzufügen' : state.settings.onboardingDone ? 'Speichern' : 'Loslegen';
 
   pendingOnboardingColor = state.settings.vehicleColor || 'titansilber';
   const vinInput = document.getElementById('onboardingVin');
@@ -1820,21 +1879,106 @@ function finishOnboarding(event) {
   if (!isNaN(km) && km >= 0) vehicle.currentKm = km;
 
   const wasDone = state.settings.onboardingDone;
+  const adding = addingVehicle;
   state.vehicle = vehicle;
   state.settings.vehicleColor = pendingOnboardingColor;
   state.settings.onboardingDone = true;
+  if (adding) {
+    store.vehicles.push(state);
+    store.activeId = state.id;
+    addingVehicle = false; addPrevState = null;
+    resetHistoryFilters();
+  }
   saveState();
   applyTheme(pendingOnboardingColor);
   renderHeader();
+  renderVehicleSwitch();
   pendingVehicle = null;
-  if (wasDone) showToast('Fahrzeugdaten gespeichert', 'ok');
-  switchTab(wasDone ? 'settings' : 'dashboard');
+  if (adding) showToast('Fahrzeug hinzugefügt', 'ok');
+  else if (wasDone) showToast('Fahrzeugdaten gespeichert', 'ok');
+  switchTab(wasDone && !adding ? 'settings' : 'dashboard');
 }
 
 function cancelOnboarding() {
   pendingVehicle = null;
+  const adding = addingVehicle;
+  if (adding) { state = addPrevState; addingVehicle = false; addPrevState = null; }
   applyTheme(state.settings.vehicleColor);
-  switchTab('settings');
+  renderHeader();
+  switchTab(adding ? 'dashboard' : 'settings');
+}
+
+// ─── Mehrere Fahrzeuge ────────────────────────────────────────────────────────
+function resetHistoryFilters() {
+  historyFilterCat = 'Alle';
+  historySearchVal = '';
+  const inp = document.getElementById('historySearch');
+  if (inp) inp.value = '';
+}
+
+function renderVehicleSwitch() {
+  const el = document.getElementById('vehicleSwitch');
+  if (!el) return;
+  const list = store.vehicles.length > 1 ? store.vehicles.map(r => {
+    const t = vehicleTitle(r.vehicle) || 'Neues Fahrzeug';
+    const sub = [r.vehicle.vin ? '…' + r.vehicle.vin.slice(-6) : '', r.vehicle.currentKm ? r.vehicle.currentKm.toLocaleString('de-DE') + ' km' : ''].filter(Boolean).join(' · ');
+    const on = r.id === state.id && !addingVehicle;
+    return `<button type="button" class="menu-item${on ? ' active' : ''}" data-vid="${esc(r.id)}" aria-current="${on}"><span aria-hidden="true" class="menu-icon"><i class="ph-light ph-car-simple" data-fb="🚗"></i></span><span class="menu-item-text">${esc(t)}${sub ? `<small>${esc(sub)}</small>` : ''}</span></button>`;
+  }).join('') : '';
+  el.innerHTML = '<div class="menu-group-label">Fahrzeuge</div>' + list
+    + '<button type="button" class="menu-item" id="nav-addvehicle"><span aria-hidden="true" class="menu-icon"><i class="ph-light ph-plus" data-fb="＋"></i></span> Fahrzeug hinzufügen</button>';
+  el.querySelectorAll('[data-vid]').forEach(b => b.addEventListener('click', () => switchVehicle(b.dataset.vid)));
+  el.querySelector('#nav-addvehicle').addEventListener('click', startAddVehicle);
+  const del = document.getElementById('deleteVehicleBtn');
+  if (del) del.hidden = store.vehicles.length < 2;
+}
+
+function switchVehicle(id) {
+  const rec = store.vehicles.find(r => r.id === id);
+  if (!rec) return;
+  if (addingVehicle) { addingVehicle = false; addPrevState = null; pendingVehicle = null; }
+  state = rec;
+  store.activeId = rec.id;
+  persistRaw();
+  resetHistoryFilters();
+  applyTheme(state.settings.vehicleColor);
+  renderHeader();
+  renderVehicleSwitch();
+  setMenuOpen(false);
+  switchTab('dashboard');
+}
+
+function startAddVehicle() {
+  if (addingVehicle) { setMenuOpen(false); return; }
+  addPrevState = state;
+  addingVehicle = true;
+  state = blankRecord();
+  renderVehicleSwitch();
+  showOnboarding();
+}
+
+async function deleteVehicle() {
+  if (store.vehicles.length < 2) return;
+  const n = state.serviceHistory.length + state.fuelLog.length;
+  const ok = await confirmDialog({
+    title: '„' + (vehicleTitle(state.vehicle) || 'Fahrzeug') + '“ löschen?',
+    text: 'Das Fahrzeug mit ' + n + (n === 1 ? ' Eintrag' : ' Einträgen') + ' und seinen Fotos wird gelöscht. Das kann nicht rückgängig gemacht werden – lege vorher ein Backup an.'
+      + (window.syncEnabled?.() ? ' Die Synchronisierung ist aktiv: Das Löschen wird auch in Google Drive und auf deinen anderen Geräten übernommen.' : ''),
+    ok: 'Löschen', danger: true,
+  });
+  if (!ok) return;
+  const i = store.vehicles.indexOf(state);
+  store.vehicles.splice(i, 1);
+  state = store.vehicles[Math.min(i, store.vehicles.length - 1)];
+  store.activeId = state.id;
+  saveState();
+  gcPhotos();
+  resetHistoryFilters();
+  applyTheme(state.settings.vehicleColor);
+  renderHeader();
+  renderVehicleSwitch();
+  showToast('Fahrzeug gelöscht', 'warn');
+  switchTab('dashboard');
 }
 
 function editVehicleData() {
@@ -1917,7 +2061,8 @@ window.addEventListener('load', () => {
 
 function init() {
   const saved = loadState();
-  state = saved ? saved : JSON.parse(JSON.stringify(EMPTY_DATA));
+  store = saved || { activeId: 'main', vehicles: [blankRecord('main')], deletedVehicles: {} };
+  state = activeRecord();
   buildSnap();
   if (!saved) saveState();
   buildCategoryOptions();
@@ -1930,6 +2075,7 @@ function init() {
   applyThemeMode(themeSaved);
   applyTheme(state.settings.vehicleColor);
   renderHeader();
+  renderVehicleSwitch();
 
   requestPersistentStorage().then(renderStorageStatus);
   renderBackupStatus();
