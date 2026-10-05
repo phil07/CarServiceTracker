@@ -168,6 +168,15 @@
     showToast('Scheckheft nicht mehr veröffentlicht', 'ok');
   }
 
+  // beim Löschen eines Fahrzeugs: veröffentlichtes Scheckheft vom Server nehmen (Fehler ignorieren)
+  async function dropBookFor(rec) {
+    const sh = rec.settings.share;
+    if (!sh) return;
+    try { await call(sh.id, 'DELETE', sh.secret); } catch (e) {}
+    dropBookState(sh.id);
+    delete status[sh.id];
+  }
+
   function setBookVin(on) {
     if (!state.settings.share) return;
     state.settings.share.showVin = !!on;
@@ -280,5 +289,5 @@
     if (store.vehicles.some(sharing)) scheduleBookPublish(2500);
   }
 
-  Object.assign(window, { initBook, scheduleBookPublish, renderBookCard, enableBook, disableBook, setBookVin, publishBookNow, openBookDialog, shareBookLink, saveBookQr });
+  Object.assign(window, { dropBookFor, initBook, scheduleBookPublish, renderBookCard, enableBook, disableBook, setBookVin, publishBookNow, openBookDialog, shareBookLink, saveBookQr });
 })();

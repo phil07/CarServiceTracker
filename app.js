@@ -1920,7 +1920,7 @@ function resetHistoryFilters() {
 }
 
 const VEH_OPEN_KEY = 'cst_veh_open';
-function vehiclesOpen() { try { return localStorage.getItem(VEH_OPEN_KEY) !== '0'; } catch (e) { return true; } }
+function vehiclesOpen() { try { return localStorage.getItem(VEH_OPEN_KEY) === '1'; } catch (e) { return false; } }
 function toggleVehicleList() {
   try { localStorage.setItem(VEH_OPEN_KEY, vehiclesOpen() ? '0' : '1'); } catch (e) {}
   renderVehicleSwitch();
@@ -1936,7 +1936,8 @@ function renderVehicleSwitch() {
     const t = vehicleTitle(r.vehicle) || 'Neues Fahrzeug';
     const sub = [r.vehicle.vin ? '…' + r.vehicle.vin.slice(-6) : '', r.vehicle.currentKm ? r.vehicle.currentKm.toLocaleString('de-DE') + ' km' : ''].filter(Boolean).join(' · ');
     const on = r.id === state.id && !addingVehicle;
-    return `<button type="button" class="menu-item${on ? ' active' : ''}" data-vid="${esc(r.id)}" aria-current="${on}"><span aria-hidden="true" class="menu-icon"><i class="ph-light ph-car-simple" data-fb="🚗"></i></span><span class="menu-item-text">${esc(t)}${sub ? `<small>${esc(sub)}</small>` : ''}</span></button>`;
+    return `<div class="veh-row"><button type="button" class="menu-item${on ? ' active' : ''}" data-vid="${esc(r.id)}" aria-current="${on}"><span aria-hidden="true" class="menu-icon"><i class="ph-light ph-car-simple" data-fb="🚗"></i></span><span class="menu-item-text">${esc(t)}${sub ? `<small>${esc(sub)}</small>` : ''}</span></button>`
+      + (open ? `<button type="button" class="veh-del" data-del="${esc(r.id)}" aria-label="${esc(t)} löschen"><i class="ph-light ph-trash" data-fb="🗑️" aria-hidden="true"></i></button>` : '') + '</div>';
   };
   const rows = multi ? (open ? store.vehicles : store.vehicles.filter(r => r.id === state.id)).map(row).join('') : '';
   const label = multi
@@ -1945,10 +1946,9 @@ function renderVehicleSwitch() {
   el.innerHTML = label + rows
     + (open ? '<button type="button" class="menu-item" id="nav-addvehicle"><span aria-hidden="true" class="menu-icon"><i class="ph-light ph-plus" data-fb="＋"></i></span> Fahrzeug hinzufügen</button>' : '');
   el.querySelectorAll('[data-vid]').forEach(b => b.addEventListener('click', () => switchVehicle(b.dataset.vid)));
+  el.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => deleteVehicle(b.dataset.del)));
   el.querySelector('#nav-addvehicle')?.addEventListener('click', startAddVehicle);
   el.querySelector('#vehicleToggle')?.addEventListener('click', toggleVehicleList);
-  const del = document.getElementById('deleteVehicleBtn');
-  if (del) del.hidden = store.vehicles.length < 2;
 }
 
 function switchVehicle(id) {
@@ -1975,19 +1975,27 @@ function startAddVehicle() {
   showOnboarding();
 }
 
-async function deleteVehicle() {
-  if (store.vehicles.length < 2) return;
-  const n = state.serviceHistory.length + state.fuelLog.length;
+async function deleteVehicle(id) {
+  const rec = store.vehicles.find(r => r.id === (id || state.id));
+  if (!rec) return;
+  const n = rec.serviceHistory.length + rec.fuelLog.length;
+  const last = store.vehicles.length === 1;
   const ok = await confirmDialog({
-    title: '„' + (vehicleTitle(state.vehicle) || 'Fahrzeug') + '“ löschen?',
-    text: 'Das Fahrzeug mit ' + n + (n === 1 ? ' Eintrag' : ' Einträgen') + ' und seinen Fotos wird gelöscht. Das kann nicht rückgängig gemacht werden – lege vorher ein Backup an.'
+    title: '„' + (vehicleTitle(rec.vehicle) || 'Fahrzeug') + '“ löschen?',
+    text: 'Das Fahrzeug mit ' + n + (n === 1 ? ' Eintrag' : ' Einträgen') + ' und seinen Fotos wird gelöscht'
+      + (rec.settings.share && rec.settings.share.on ? ', sein veröffentlichtes Scheckheft wird vom Server entfernt' : '')
+      + (last ? '. Danach kannst du ein neues Fahrzeug einrichten' : '')
+      + '. Das kann nicht rückgängig gemacht werden – lege vorher ein Backup an.'
       + (window.syncEnabled?.() ? ' Die Synchronisierung ist aktiv: Das Löschen wird auch in Google Drive und auf deinen anderen Geräten übernommen.' : ''),
     ok: 'Löschen', danger: true,
   });
   if (!ok) return;
-  const i = store.vehicles.indexOf(state);
+  await window.dropBookFor?.(rec);
+  const wasActive = rec === state;
+  const i = store.vehicles.indexOf(rec);
   store.vehicles.splice(i, 1);
-  state = store.vehicles[Math.min(i, store.vehicles.length - 1)];
+  if (!store.vehicles.length) store.vehicles.push(blankRecord());
+  if (wasActive || !store.vehicles.includes(state)) state = store.vehicles[Math.min(i, store.vehicles.length - 1)];
   store.activeId = state.id;
   saveState();
   gcPhotos();
@@ -1996,11 +2004,8 @@ async function deleteVehicle() {
   renderHeader();
   renderVehicleSwitch();
   showToast('Fahrzeug gelöscht', 'warn');
-  switchTab('dashboard');
-}
-
-function editVehicleData() {
-  showOnboarding();
+  if (!state.settings.onboardingDone) { showOnboarding(); return; }
+  if (wasActive) switchTab('dashboard'); // sonst bleibt das Menü offen
 }
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
