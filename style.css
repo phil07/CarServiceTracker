@@ -699,3 +699,14 @@ html.d-head .theme-btn.active { background: color-mix(in srgb, var(--primary) 16
 .backup-hint-actions .btn::after { display: none; }
 .backup-status { font-size: 11px; line-height: 1.4; opacity: .85; margin: 0 0 6px; }
 .backup-status.is-due { color: var(--warn, #b45309); opacity: 1; font-weight: 600; }
+
+/* ─── Google-Drive-Synchronisierung ─── */
+.sync-card { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px !important; }
+.sync-card .settings-hint { margin: 0; }
+.sync-card .backup-status { font-size: 12.5px; margin: 0; }
+.sync-card .btn-pair { margin-bottom: 4px; }
+.sync-card .link-btn { align-self: flex-start; padding-left: 0; }
+
+/* Hinweistext unter Karten: Abstand zum äußeren Kartenrand (Bezel) */
+.card + .settings-hint, .stat-block + .settings-hint { margin-top: 14px; }
+#statsPage .card + .card { margin-top: 14px; }

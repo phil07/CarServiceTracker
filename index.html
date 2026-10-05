@@ -85,6 +85,7 @@
                 <button type="submit" class="btn btn-cta" id="onboardingVinBtn">Fahrzeugdaten abrufen</button>
                 <button type="button" class="link-btn onboarding-link" onclick="skipOnboardingVin()">Ohne VIN fortfahren</button>
                 <button type="button" class="link-btn onboarding-link" data-restore onclick="document.getElementById('importFile').click()">Vorhandenes Backup einspielen</button>
+                <button type="button" class="link-btn onboarding-link" id="onbDriveBtn" data-sync-btn onclick="connectDrive()" hidden>Aus Google Drive laden</button>
                 <button type="button" class="link-btn onboarding-link" data-cancel onclick="cancelOnboarding()" hidden>Abbrechen</button>
             </form>
 
@@ -137,6 +138,17 @@
                     </button>
                 </div>
                 <div class="hero-sub" id="heroChassisInfo"></div>
+            </div>
+
+            <div class="card backup-hint" id="syncHint" role="status" hidden>
+                <i class="ph-light ph-cloud-arrow-up" data-fb="☁️" aria-hidden="true"></i>
+                <div class="backup-hint-body">
+                    <strong>Mit Google Drive abgleichen</strong>
+                    <span>Bestätige kurz bei Google, dann werden Änderungen von deinen anderen Geräten geladen.</span>
+                </div>
+                <div class="backup-hint-actions">
+                    <button type="button" class="btn btn-cta" data-sync-btn onclick="syncNowInteractive()">Abgleichen</button>
+                </div>
             </div>
 
             <div class="card backup-hint" id="backupHint" role="status" hidden>
@@ -204,6 +216,24 @@
             <h3 class="section-title">Wartungsintervalle</h3>
             <p class="settings-hint">Lege fest, wann eine Wartung wieder fällig wird. Leer lassen = wird nicht auf dem Dashboard verfolgt. Die Fälligkeit rechnet sich aus dem letzten Eintrag.</p>
             <div class="card interval-card" id="intervalEditor"></div>
+
+            <div id="syncCard" hidden>
+                <h3 class="section-title">Synchronisierung</h3>
+                <div class="card info-card sync-card">
+                    <p class="settings-hint">Gleiche deine Daten über alle Geräte ab, mit deinem eigenen Google Drive. Die Daten liegen in einem versteckten App-Ordner deines Kontos – es gibt keinen Server des Entwicklers, und die App sieht nur diese eine Datei. Beim Verbinden wird ein Skript von Google geladen.</p>
+                    <div class="backup-status" id="syncStatusText"></div>
+                    <div id="syncConnect">
+                        <button type="button" class="btn btn-secondary" data-sync-btn onclick="connectDrive()"><i class="ph-light ph-cloud-arrow-up" data-fb="☁️" aria-hidden="true"></i> Mit Google Drive verbinden</button>
+                    </div>
+                    <div id="syncActions" hidden>
+                        <div class="btn-pair">
+                            <button type="button" class="btn btn-secondary" data-sync-btn onclick="syncNowInteractive()"><i class="ph-light ph-arrows-clockwise" data-fb="🔄" aria-hidden="true"></i> Jetzt abgleichen</button>
+                            <button type="button" class="btn btn-secondary" onclick="disconnectDrive()">Trennen</button>
+                        </div>
+                        <button type="button" class="link-btn" onclick="deleteDriveData()">Daten in Google Drive löschen</button>
+                    </div>
+                </div>
+            </div>
 
             <h3 class="section-title">Kosten &amp; Export</h3>
             <div class="card info-card" id="statsCard"></div>
@@ -374,6 +404,7 @@
 
 <script src="version.js"></script>
 <script src="app.js"></script>
+<script src="sync.js"></script>
 <script>
   // Nach einem Reload prüfen, ob das angestoßene Update tatsächlich griff
   (function checkUpdateResult() {

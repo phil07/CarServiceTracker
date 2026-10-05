@@ -6,7 +6,7 @@ const CACHE = 'service-tracker-' + self.APP_VERSION;
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE).then(c =>
-      c.addAll(['./', './index.html', './style.css', './app.js', './version.js', './manifest.json',
+      c.addAll(['./', './index.html', './style.css', './app.js', './sync.js', './version.js', './manifest.json',
         './assets/fonts/fonts.css', './assets/fonts/phosphor.css', './assets/fonts/Phosphor-Light.woff2',
         './assets/fonts/plus-jakarta-sans-latin-400-normal.woff2', './assets/fonts/plus-jakarta-sans-latin-500-normal.woff2',
         './assets/fonts/plus-jakarta-sans-latin-600-normal.woff2', './assets/fonts/plus-jakarta-sans-latin-700-normal.woff2',
@@ -90,11 +90,8 @@ self.addEventListener('notificationclick', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
-  // Network-only: Live-APIs (VIN-Dekodierung)
-  if (url.hostname.includes('vpic.nhtsa.dot.gov')) {
-    e.respondWith(fetch(e.request).catch(() => new Response('', { status: 503 })));
-    return;
-  }
+  // Fremde Hosts (VIN-Dekodierung, Google Anmeldung/Drive) nie cachen – direkt ans Netz
+  if (url.origin !== self.location.origin) return;
 
   // Cache-first: App-Shell inkl. lokaler Schrift/Icons
   e.respondWith(

@@ -139,6 +139,7 @@ function normalizeState(raw) {
     if (e.cost !== '' && e.cost != null && isFinite(cost) && cost >= 0) entry.cost = Math.round(cost * 100) / 100;
     if (e.shop) entry.shop = String(e.shop).trim();
     if (e.note) entry.note = String(e.note).trim();
+    const ua = toInt(e.updatedAt, 1); if (ua) entry.updatedAt = ua;
     serviceHistory.push(entry);
   });
 
@@ -153,8 +154,19 @@ function normalizeState(raw) {
     const entry = { id, date: String(f.date), km, liters: Math.round(liters * 100) / 100, full: f.full !== false };
     const cost = Number(f.cost);
     if (f.cost !== '' && f.cost != null && isFinite(cost) && cost >= 0) entry.cost = Math.round(cost * 100) / 100;
+    const ua = toInt(f.updatedAt, 1); if (ua) entry.updatedAt = ua;
     fuelLog.push(entry);
   });
+
+  // Änderungsverfolgung für die Synchronisierung: Löschmarken + Zeitstempel für Fahrzeug/Einstellungen
+  const deleted = {};
+  if (raw.deleted && typeof raw.deleted === 'object') {
+    Object.keys(raw.deleted).forEach(id => { const t = toInt(raw.deleted[id], 1); if (t && /^[\w-]+$/.test(id)) deleted[id] = t; });
+  }
+  const rm = raw.meta && typeof raw.meta === 'object' ? raw.meta : {};
+  const meta = {};
+  if (toInt(rm.vehicleAt, 1))  meta.vehicleAt  = toInt(rm.vehicleAt, 1);
+  if (toInt(rm.settingsAt, 1)) meta.settingsAt = toInt(rm.settingsAt, 1);
 
   const st = raw.settings && typeof raw.settings === 'object' ? raw.settings : {};
   const hasVehicle = !!(vehicle.vin || vehicle.make || vehicle.model || vehicle.chassis);
@@ -162,6 +174,8 @@ function normalizeState(raw) {
     vehicle,
     serviceHistory,
     fuelLog,
+    deleted,
+    meta,
     settings: {
       vehicleColor: BMW_COLORS[st.vehicleColor] ? st.vehicleColor : 'titansilber',
       onboardingDone: st.onboardingDone === true || hasVehicle,
@@ -182,9 +196,50 @@ function loadState() {
   }
 }
 
+// ─── Änderungsverfolgung (Grundlage der Drive-Synchronisierung) ───────────────
+// saveState() ist der einzige Speicherpunkt: Er vergleicht mit dem letzten bekannten Stand,
+// stempelt geänderte Einträge (updatedAt) und merkt gelöschte als Löschmarke (deleted[id]).
+let snap = null;
+const canon = o => JSON.stringify(o, (k, v) => v && typeof v === 'object' && !Array.isArray(v)
+  ? Object.keys(v).sort().reduce((r, key) => (r[key] = v[key], r), {}) : v);
+const sigEntry = e => { const { updatedAt, ...rest } = e; return canon(rest); };
+
+function buildSnap() {
+  snap = { entries: new Map(), vehicle: canon(state.vehicle), settings: canon(state.settings) };
+  state.serviceHistory.concat(state.fuelLog).forEach(e => snap.entries.set(e.id, sigEntry(e)));
+}
+
+function stampChanges() {
+  if (!snap) buildSnap();
+  const now = Date.now();
+  state.deleted = state.deleted || {};
+  state.meta = state.meta || {};
+  const seen = new Set();
+  state.serviceHistory.concat(state.fuelLog).forEach(e => {
+    seen.add(e.id);
+    const sig = sigEntry(e);
+    if (snap.entries.get(e.id) !== sig) { e.updatedAt = now; snap.entries.set(e.id, sig); delete state.deleted[e.id]; }
+  });
+  [...snap.entries.keys()].forEach(id => {
+    if (!seen.has(id)) { snap.entries.delete(id); state.deleted[id] = now; }
+  });
+  const v = canon(state.vehicle);
+  if (v !== snap.vehicle) { snap.vehicle = v; state.meta.vehicleAt = now; }
+  const st = canon(state.settings);
+  if (st !== snap.settings) { snap.settings = st; state.meta.settingsAt = now; }
+  const cutoff = now - 180 * 86400000; // Löschmarken nach ~6 Monaten verwerfen
+  Object.keys(state.deleted).forEach(id => { if (state.deleted[id] < cutoff) delete state.deleted[id]; });
+}
+
+// Schreibt den Stand ohne Änderungsverfolgung (z.B. nach dem Übernehmen von Sync-Daten)
+function persistRaw() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); return true; }
+  catch (e) { console.warn('saveState:', e); showToast('Speichern fehlgeschlagen (Speicher voll?)', 'err'); return false; }
+}
+
 function saveState() {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
-  catch (e) { console.warn('saveState:', e); showToast('Speichern fehlgeschlagen (Speicher voll?)', 'err'); }
+  stampChanges();
+  if (persistRaw()) window.scheduleSync?.();
 }
 
 // ─── Theme (Hell / Dunkel / System) ───────────────────────────────────────────
@@ -1347,7 +1402,8 @@ function importData(input) {
 async function resetDataPrompt() {
   const ok = await confirmDialog({
     title: 'Alles zurücksetzen?',
-    text: 'Alle Einträge und Einstellungen werden gelöscht. Das kann nicht rückgängig gemacht werden – lege vorher ein Backup an.',
+    text: 'Alle Einträge und Einstellungen werden gelöscht. Das kann nicht rückgängig gemacht werden – lege vorher ein Backup an.'
+      + (window.syncEnabled?.() ? ' Die Synchronisierung ist aktiv: Das Löschen wird auch in Google Drive und auf deinen anderen Geräten übernommen.' : ''),
     ok: 'Zurücksetzen', danger: true,
   });
   if (!ok) return;
@@ -1839,6 +1895,7 @@ window.addEventListener('load', () => {
 function init() {
   const saved = loadState();
   state = saved ? saved : JSON.parse(JSON.stringify(EMPTY_DATA));
+  buildSnap();
   if (!saved) saveState();
   buildCategoryOptions();
   bindHistoryEvents();
@@ -1863,6 +1920,8 @@ function init() {
   window.addEventListener('online',  updateOffline);
   window.addEventListener('offline', updateOffline);
   updateOffline();
+
+  window.initSync?.();
 
   // Erster Start: zuerst VIN abfragen
   if (!state.settings.onboardingDone) {
