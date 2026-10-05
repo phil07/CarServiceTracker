@@ -48,11 +48,10 @@
     <!-- App Icon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚗</text></svg>">
 
-    <!-- Schrift + Icons (cross-origin, crossorigin → vom Service Worker cachebar; ohne Netz: Systemschrift + Text-Labels) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/light/style.css" crossorigin="anonymous" onerror="document.documentElement.classList.add('icons-fb')">
+    <!-- Schrift + Icons (lokal gehostet – keine Verbindung zu Drittservern) -->
+    <link rel="preload" href="assets/fonts/plus-jakarta-sans-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="assets/fonts/fonts.css">
+    <link rel="stylesheet" href="assets/fonts/phosphor.css" onerror="document.documentElement.classList.add('icons-fb')">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -85,6 +84,7 @@
                 </div>
                 <button type="submit" class="btn btn-cta" id="onboardingVinBtn">Fahrzeugdaten abrufen</button>
                 <button type="button" class="link-btn onboarding-link" onclick="skipOnboardingVin()">Ohne VIN fortfahren</button>
+                <button type="button" class="link-btn onboarding-link" data-restore onclick="document.getElementById('importFile').click()">Vorhandenes Backup einspielen</button>
                 <button type="button" class="link-btn onboarding-link" data-cancel onclick="cancelOnboarding()" hidden>Abbrechen</button>
             </form>
 
@@ -137,6 +137,18 @@
                     </button>
                 </div>
                 <div class="hero-sub" id="heroChassisInfo"></div>
+            </div>
+
+            <div class="card backup-hint" id="backupHint" role="status" hidden>
+                <i class="ph-light ph-download-simple" data-fb="💾" aria-hidden="true"></i>
+                <div class="backup-hint-body">
+                    <strong>Zeit für eine Sicherung</strong>
+                    <span id="backupHintText"></span>
+                </div>
+                <div class="backup-hint-actions">
+                    <button type="button" class="btn btn-cta" onclick="exportData()">Jetzt sichern</button>
+                    <button type="button" class="link-btn" onclick="snoozeBackupHint()">Später</button>
+                </div>
             </div>
 
             <button type="button" class="card fuel-card" id="fuelCard" onclick="switchTab('fuel')" hidden></button>
@@ -349,9 +361,11 @@
             <div class="btn-row">
                 <button type="button" class="btn-icon" onclick="exportData()"><i class="ph-light ph-download-simple" aria-hidden="true"></i> Backup</button>
                 <button type="button" class="btn-icon" onclick="document.getElementById('importFile').click()"><i class="ph-light ph-upload-simple" aria-hidden="true"></i> Wiederherstellen</button>
-                <input type="file" id="importFile" accept="application/json" hidden onchange="importData(this)">
+                <input type="file" id="importFile" accept=".json,application/json" hidden onchange="importData(this)">
             </div>
-            Gespeichert im LocalStorage · <button type="button" class="link-btn" onclick="resetDataPrompt()">Zurücksetzen</button>
+            <div class="backup-status" id="backupStatus" aria-live="polite"></div>
+            <div class="backup-status" id="storageStatus"></div>
+            Gespeichert auf diesem Gerät · <button type="button" class="link-btn" onclick="resetDataPrompt()">Zurücksetzen</button>
         </div>
     </nav>
 </div>

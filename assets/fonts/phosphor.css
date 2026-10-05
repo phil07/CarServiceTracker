@@ -1,0 +1,60 @@
+/* Phosphor Icons (Light) v2.1.1, MIT – lokal gehostet, nur die genutzten Icons */
+@font-face { font-family: "Phosphor-Light"; src: url("./Phosphor-Light.woff2") format("woff2"); font-weight: normal; font-style: normal; font-display: block; }
+.ph-light {
+  /* use !important to prevent issues with browser extensions that change fonts */
+  font-family: "Phosphor-Light" !important;
+  speak: never;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+
+  /* Enable Ligatures ================ */
+  letter-spacing: 0;
+  -webkit-font-feature-settings: "liga";
+  -moz-font-feature-settings: "liga=1";
+  -moz-font-feature-settings: "liga";
+  -ms-font-feature-settings: "liga" 1;
+  font-feature-settings: "liga";
+  -webkit-font-variant-ligatures: discretionary-ligatures;
+  font-variant-ligatures: discretionary-ligatures;
+
+  /* Better Font Rendering =========== */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.ph-light.ph-bell-ringing:before { content: "\e5e8"; }
+.ph-light.ph-bell-slash:before { content: "\e0d4"; }
+.ph-light.ph-calendar-blank:before { content: "\e10a"; }
+.ph-light.ph-car-profile:before { content: "\e8cc"; }
+.ph-light.ph-car-simple:before { content: "\e114"; }
+.ph-light.ph-chart-bar:before { content: "\e150"; }
+.ph-light.ph-circle-half:before { content: "\e18c"; }
+.ph-light.ph-clipboard-text:before { content: "\e198"; }
+.ph-light.ph-clock-counter-clockwise:before { content: "\e1a0"; }
+.ph-light.ph-disc:before { content: "\e564"; }
+.ph-light.ph-download-simple:before { content: "\e20c"; }
+.ph-light.ph-drop:before { content: "\e210"; }
+.ph-light.ph-engine:before { content: "\ea80"; }
+.ph-light.ph-file-csv:before { content: "\eb1c"; }
+.ph-light.ph-funnel:before { content: "\e266"; }
+.ph-light.ph-gas-pump:before { content: "\e768"; }
+.ph-light.ph-gauge:before { content: "\e628"; }
+.ph-light.ph-gear:before { content: "\e270"; }
+.ph-light.ph-gear-six:before { content: "\e272"; }
+.ph-light.ph-identification-card:before { content: "\e2c8"; }
+.ph-light.ph-lightning:before { content: "\e2de"; }
+.ph-light.ph-magic-wand:before { content: "\e6b6"; }
+.ph-light.ph-magnifying-glass:before { content: "\e30c"; }
+.ph-light.ph-moon:before { content: "\e330"; }
+.ph-light.ph-pencil-simple:before { content: "\e3b4"; }
+.ph-light.ph-printer:before { content: "\e3dc"; }
+.ph-light.ph-seal-check:before { content: "\e606"; }
+.ph-light.ph-stop-circle:before { content: "\e46e"; }
+.ph-light.ph-sun:before { content: "\e472"; }
+.ph-light.ph-thermometer:before { content: "\e5c6"; }
+.ph-light.ph-timer:before { content: "\e492"; }
+.ph-light.ph-tire:before { content: "\edd2"; }
+.ph-light.ph-upload-simple:before { content: "\e4c0"; }
+.ph-light.ph-wrench:before { content: "\e5d4"; }

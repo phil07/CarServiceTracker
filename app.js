@@ -319,7 +319,7 @@ function switchTab(tab) {
   const titleEl = document.getElementById('pageTitle');
   if (titleEl) titleEl.textContent = TAB_TITLES[tab] || '';
 
-  if (tab === 'dashboard') renderDashboard();
+  if (tab === 'dashboard') { renderDashboard(); renderBackupHint(); }
   if (tab === 'history')   renderHistory();
   if (tab === 'settings')  renderSettings();
   if (tab === 'fuel')      renderFuel();
@@ -1185,20 +1185,132 @@ function renderVehicleChips(containerId, v) {
 }
 
 // ─── Export / Import ──────────────────────────────────────────────────────────
-function exportData() {
-  const json = JSON.stringify(state, null, 2);
-  const blob = new Blob([json], { type: 'application/json' });
-  const url  = URL.createObjectURL(blob);
-  const tag  = (vehicleTitle(state.vehicle) || 'fahrzeug').replace(/[^\w]+/g, '-').replace(/^-|-$/g, '');
-  const a    = Object.assign(document.createElement('a'), {
-    href: url,
-    download: 'service-tracker-' + tag + '-' + todayIso() + '.json',
-  });
+// Sicherungs-Metadaten (bewusst nicht Teil der exportierten Daten)
+const BACKUP_KEY = 'cst_backup';
+const BACKUP_MAX_DAYS = 30;     // Erinnerung nach X Tagen (sobald es Änderungen gibt)
+const BACKUP_MAX_CHANGES = 20;  // … oder nach X neuen Einträgen
+const BACKUP_SNOOZE_DAYS = 7;
+
+function entryCount() { return state.serviceHistory.length + state.fuelLog.length; }
+
+function readBackupMeta() {
+  try {
+    const m = JSON.parse(localStorage.getItem(BACKUP_KEY) || 'null');
+    return m && typeof m === 'object' ? m : {};
+  } catch (e) { return {}; }
+}
+function writeBackupMeta(patch) {
+  try { localStorage.setItem(BACKUP_KEY, JSON.stringify(Object.assign(readBackupMeta(), patch))); } catch (e) {}
+}
+function markBackupDone() {
+  writeBackupMeta({ last: new Date().toISOString(), count: entryCount(), snooze: null });
+  renderBackupStatus();
+  renderBackupHint();
+}
+
+function daysSince(iso) {
+  const t = Date.parse(iso);
+  return isFinite(t) ? Math.floor((Date.now() - t) / 86400000) : null;
+}
+
+// Zustand der Sicherung: { days, changes, due }
+function backupInfo() {
+  const m = readBackupMeta();
+  const total = entryCount();
+  const days = m.last ? daysSince(m.last) : null;
+  const changes = m.last ? Math.max(0, total - (m.count || 0)) : total;
+  let due = false;
+  if (!m.last) due = total >= 3;
+  else due = (days !== null && days >= BACKUP_MAX_DAYS && changes >= 1) || changes >= BACKUP_MAX_CHANGES;
+  const snoozed = m.snooze && Date.parse(m.snooze) > Date.now();
+  return { last: m.last || null, days, changes, due: due && !snoozed };
+}
+
+function backupAgeText(info) {
+  if (!info.last) return 'Noch keine Sicherung angelegt';
+  if (info.days === null) return 'Letzte Sicherung: unbekannt';
+  if (info.days <= 0) return 'Letzte Sicherung: heute';
+  if (info.days === 1) return 'Letzte Sicherung: gestern';
+  return 'Letzte Sicherung: vor ' + info.days + ' Tagen';
+}
+
+function renderBackupStatus() {
+  const el = document.getElementById('backupStatus');
+  if (!el) return;
+  const info = backupInfo();
+  const extra = info.last && info.changes ? ' · ' + info.changes + ' neue Einträge seitdem' : '';
+  el.textContent = backupAgeText(info) + extra;
+  el.classList.toggle('is-due', info.due);
+}
+
+function renderBackupHint() {
+  const el = document.getElementById('backupHint');
+  if (!el) return;
+  const info = backupInfo();
+  el.hidden = !info.due;
+  if (!info.due) return;
+  document.getElementById('backupHintText').textContent = info.last
+    ? backupAgeText(info) + (info.changes ? ' – seitdem ' + info.changes + ' neue Einträge.' : '.')
+    : 'Deine Daten liegen nur auf diesem Gerät. Sichere sie einmal in iCloud, Google Drive oder Dateien.';
+}
+
+function snoozeBackupHint() {
+  writeBackupMeta({ snooze: new Date(Date.now() + BACKUP_SNOOZE_DAYS * 86400000).toISOString() });
+  renderBackupHint();
+  renderBackupStatus();
+}
+
+// Dauerhaften Speicher anfordern: schützt vor automatischem Aufräumen durch den Browser
+async function requestPersistentStorage() {
+  try {
+    if (!navigator.storage || !navigator.storage.persist) return null;
+    if (await navigator.storage.persisted()) return true;
+    return await navigator.storage.persist();
+  } catch (e) { return null; }
+}
+
+async function renderStorageStatus() {
+  const el = document.getElementById('storageStatus');
+  if (!el) return;
+  let persisted = null;
+  try { persisted = navigator.storage && navigator.storage.persisted ? await navigator.storage.persisted() : null; } catch (e) {}
+  el.textContent = persisted === true ? 'Speicher: dauerhaft geschützt'
+    : persisted === false ? 'Speicher: Browser darf ihn bei Platzmangel leeren – bitte regelmäßig sichern'
+    : 'Speicher: Status nicht verfügbar';
+}
+
+function backupFileName() {
+  const tag = (vehicleTitle(state.vehicle) || 'fahrzeug').replace(/[^\w]+/g, '-').replace(/^-|-$/g, '');
+  return 'service-tracker-' + tag + '-' + todayIso() + '.json';
+}
+
+function downloadBackup(file) {
+  const url = URL.createObjectURL(file);
+  const a = Object.assign(document.createElement('a'), { href: url, download: file.name });
   document.body.appendChild(a);
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
-  showToast('Export erfolgreich', 'ok');
+}
+
+// Backup: bevorzugt über das Teilen-Menü des Geräts (iCloud Drive, Google Drive, Dateien, Mail …),
+// sonst als normaler Download.
+async function exportData() {
+  const file = new File([JSON.stringify(state, null, 2)], backupFileName(), { type: 'application/json' });
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: 'Service-Tracker Backup' });
+      markBackupDone();
+      showToast('Backup weitergegeben – speichere es in Dateien oder Drive', 'ok');
+      return;
+    }
+  } catch (e) {
+    if (e && e.name === 'AbortError') return; // Teilen-Menü abgebrochen: nichts gesichert
+    console.warn('share:', e); // anderer Fehler → Download als Rückfall
+  }
+  downloadBackup(file);
+  markBackupDone();
+  showToast('Backup heruntergeladen', 'ok');
 }
 
 function importData(input) {
@@ -1222,6 +1334,7 @@ function importData(input) {
         switchTab('dashboard');
       } catch (err) { state = previous; throw err; }
       saveState();
+      markBackupDone(); // die eingespielte Datei entspricht dem aktuellen Stand
       showToast('Import erfolgreich', 'ok');
     } catch (e) {
       showToast('Import fehlgeschlagen: ' + e.message, 'err');
@@ -1737,6 +1850,10 @@ function init() {
   applyThemeMode(themeSaved);
   applyTheme(state.settings.vehicleColor);
   renderHeader();
+
+  requestPersistentStorage().then(renderStorageStatus);
+  renderBackupStatus();
+  renderStorageStatus();
 
   const verEl = document.getElementById('appVersion');
   if (verEl) verEl.textContent = 'Version ' + (self.APP_VERSION || '–');

@@ -6,7 +6,11 @@ const CACHE = 'service-tracker-' + self.APP_VERSION;
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE).then(c =>
-      c.addAll(['./', './index.html', './style.css', './app.js', './version.js', './manifest.json']
+      c.addAll(['./', './index.html', './style.css', './app.js', './version.js', './manifest.json',
+        './assets/fonts/fonts.css', './assets/fonts/phosphor.css', './assets/fonts/Phosphor-Light.woff2',
+        './assets/fonts/plus-jakarta-sans-latin-400-normal.woff2', './assets/fonts/plus-jakarta-sans-latin-500-normal.woff2',
+        './assets/fonts/plus-jakarta-sans-latin-600-normal.woff2', './assets/fonts/plus-jakarta-sans-latin-700-normal.woff2',
+        './assets/fonts/plus-jakarta-sans-latin-800-normal.woff2']
         .map(u => new Request(u, { cache: 'reload' })))
     )
   );
@@ -92,7 +96,7 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Cache-first: App-Shell + CDN (Fonts, Icons)
+  // Cache-first: App-Shell inkl. lokaler Schrift/Icons
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;

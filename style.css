@@ -688,3 +688,14 @@ html.d-head .theme-btn.active { background: color-mix(in srgb, var(--primary) 16
 .btn-notify i, .btn-row .btn-icon i { color: var(--primary-text); }
 .btn-notify i { font-size: 18px; }
 .btn-notify[aria-pressed="true"] { background: color-mix(in srgb, var(--primary) 14%, var(--bg-secondary)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 30%, transparent); }
+
+/* ─── Backup-Hinweis & Status ─── */
+.backup-hint { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 14px; margin: 10px 0 8px !important; padding: 14px 16px; border-radius: 22px; }
+.backup-hint > i { font-size: 26px; color: var(--primary-text); flex-shrink: 0; }
+.backup-hint-body { flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: var(--muted); }
+.backup-hint-body strong { color: var(--label); font-size: 15px; }
+.backup-hint-actions { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.backup-hint-actions .btn { width: auto; min-height: 44px; padding: 0 20px; }
+.backup-hint-actions .btn::after { display: none; }
+.backup-status { font-size: 11px; line-height: 1.4; opacity: .85; margin: 0 0 6px; }
+.backup-status.is-due { color: var(--warn, #b45309); opacity: 1; font-weight: 600; }
