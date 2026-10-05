@@ -261,7 +261,8 @@
     const ids = vehicleIds();
     el.hidden = !ids.length;
     if (!ids.length) { el.innerHTML = ''; return; }
-    el.innerHTML = `<img data-photo="${esc(ids[0])}" alt="Fahrzeugfoto" hidden>` + (ids.length > 1 ? `<span class="hero-photo-count"><i class="ph-light ph-images" data-fb="🖼️" aria-hidden="true"></i> ${ids.length}</span>` : '');
+    // Unscharfe Kopie füllt die Fläche, das Foto selbst wird ganz angezeigt (contain) – das Fahrzeug ist nie angeschnitten
+    el.innerHTML = `<img class="hero-photo-bg" data-photo="${esc(ids[0])}" alt="" aria-hidden="true" hidden><img class="hero-photo-fg" data-photo="${esc(ids[0])}" alt="Fahrzeugfoto" hidden>` + (ids.length > 1 ? `<span class="hero-photo-count"><i class="ph-light ph-images" data-fb="🖼️" aria-hidden="true"></i> ${ids.length}</span>` : '');
     hydratePhotos(el);
   }
   function openHeroPhoto() { openLightbox(vehicleIds(), 0); }
