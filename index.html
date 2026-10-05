@@ -128,6 +128,8 @@
                 <h2 class="home-headline" id="dashboardHeadline">Mein Fahrzeug</h2>
             </div>
 
+            <button type="button" class="hero-photo" id="heroPhoto" onclick="openHeroPhoto()" aria-label="Fahrzeugfotos ansehen" hidden></button>
+
             <div class="card hero-card">
                 <div class="hero-eyebrow">Aktueller Kilometerstand</div>
                 <div class="hero-num-row">
@@ -209,6 +211,11 @@
             <button type="button" class="btn btn-secondary" onclick="editVehicleData()">
                 <i class="ph-light ph-identification-card" data-fb="🪪"></i> VIN / Fahrzeugdaten ändern
             </button>
+
+            <h3 class="section-title">Fahrzeugfotos</h3>
+            <p class="settings-hint">Das erste Foto erscheint als Titelbild im Dashboard. Tippe ein Foto an, um es zu vergrößern, zum Titelbild zu machen oder zu löschen. Fotos liegen auf diesem Gerät und sind in der Backup-Datei enthalten.</p>
+            <div class="photo-strip" id="vehiclePhotos"></div>
+            <input type="file" id="vehiclePhotoInput" accept="image/*" multiple hidden onchange="onVehiclePhotosPicked(this)">
 
             <h3 class="section-title">Lackfarbe &amp; Design</h3>
             <div class="color-picker-grid" id="settingsColorGrid"></div>
@@ -294,6 +301,11 @@
                     <label for="form-description">Beschreibung / Erledigte Arbeiten</label>
                     <textarea id="form-description" rows="3" placeholder="z.B. Ölwechsel 5W-40, Ölfilter, Innenraumfilter getauscht…" required></textarea>
                 </div>
+                <div class="form-group">
+                    <label>Fotos <span class="opt">optional · Rechnung, Produkt, Einbau</span></label>
+                    <div class="photo-strip" id="formPhotos"></div>
+                    <input type="file" id="formPhotoInput" accept="image/*" multiple hidden onchange="onFormPhotosPicked(this)">
+                </div>
             </div>
             <div class="dialog-actions">
                 <button type="submit" class="btn">Speichern</button>
@@ -310,11 +322,27 @@
         </div>
         <p class="detail-desc" id="detailDesc"></p>
         <div class="chip-line" id="detailMeta"></div>
+        <div class="photo-strip" id="detailPhotos" hidden></div>
         <div class="dialog-actions">
             <button type="button" class="btn" onclick="editEntryFromDetail()">Bearbeiten</button>
             <button type="button" class="btn btn-secondary btn-danger" id="detailDeleteBtn" onclick="deleteEntryFromDetail()">Löschen</button>
             <button type="button" class="btn btn-secondary" onclick="closeEntryDetail()">Schließen</button>
         </div>
+    </dialog>
+
+    <!-- FOTO-VOLLBILD -->
+    <dialog id="modal-photo" class="lightbox" aria-label="Foto">
+        <img id="lightboxImg" alt="">
+        <div class="lightbox-bar">
+            <span class="lightbox-count" id="lightboxCount"></span>
+            <div class="lightbox-actions">
+                <button type="button" id="lightboxCover" onclick="lightboxCover()" hidden>Titelbild</button>
+                <button type="button" id="lightboxDelete" class="is-danger" onclick="lightboxDelete()" hidden><i class="ph-light ph-trash" data-fb="🗑️" aria-hidden="true"></i> Löschen</button>
+                <button type="button" class="lb-close" onclick="closeLightbox()" aria-label="Schließen"><i class="ph-light ph-x" data-fb="✕" aria-hidden="true"></i></button>
+            </div>
+        </div>
+        <button type="button" class="lb-nav lb-prev" onclick="lightboxStep(-1)" aria-label="Vorheriges Foto"><i class="ph-light ph-caret-left" data-fb="‹" aria-hidden="true"></i></button>
+        <button type="button" class="lb-nav lb-next" onclick="lightboxStep(1)" aria-label="Nächstes Foto"><i class="ph-light ph-caret-right" data-fb="›" aria-hidden="true"></i></button>
     </dialog>
 
     <!-- TANKSTOPP (Popup) -->
@@ -404,6 +432,7 @@
 
 <script src="version.js"></script>
 <script src="app.js"></script>
+<script src="photos.js"></script>
 <script src="sync.js"></script>
 <script>
   // Nach einem Reload prüfen, ob das angestoßene Update tatsächlich griff

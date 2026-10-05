@@ -60,3 +60,11 @@
 .ph-light.ph-wrench:before { content: "\e5d4"; }
 .ph-light.ph-cloud-arrow-up:before { content: "\e1ae"; }
 .ph-light.ph-arrows-clockwise:before { content: "\e094"; }
+.ph-light.ph-camera:before { content: "\e10e"; }
+.ph-light.ph-image:before { content: "\e2ca"; }
+.ph-light.ph-plus:before { content: "\e3d4"; }
+.ph-light.ph-x:before { content: "\e4f6"; }
+.ph-light.ph-trash:before { content: "\e4a6"; }
+.ph-light.ph-caret-left:before { content: "\e138"; }
+.ph-light.ph-caret-right:before { content: "\e13a"; }
+.ph-light.ph-images:before { content: "\e836"; }

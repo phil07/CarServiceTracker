@@ -73,7 +73,7 @@ const EMPTY_DATA = {
   },
   serviceHistory: [],
   fuelLog: [],
-  settings: { vehicleColor: 'titansilber', onboardingDone: false, intervals: DEFAULT_INTERVALS },
+  settings: { vehicleColor: 'titansilber', onboardingDone: false, intervals: DEFAULT_INTERVALS, vehiclePhotos: [] },
 };
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -94,6 +94,10 @@ function uid() {
 function toInt(x, min) {
   const n = Math.round(Number(x));
   return isFinite(n) && n >= min ? n : null;
+}
+
+function normalizePhotoIds(raw, max) {
+  return Array.isArray(raw) ? [...new Set(raw.map(String).filter(id => /^[\w-]+$/.test(id)))].slice(0, max) : [];
 }
 
 function normalizeIntervals(raw) {
@@ -139,6 +143,7 @@ function normalizeState(raw) {
     if (e.cost !== '' && e.cost != null && isFinite(cost) && cost >= 0) entry.cost = Math.round(cost * 100) / 100;
     if (e.shop) entry.shop = String(e.shop).trim();
     if (e.note) entry.note = String(e.note).trim();
+    const ph = normalizePhotoIds(e.photos, 6); if (ph.length) entry.photos = ph;
     const ua = toInt(e.updatedAt, 1); if (ua) entry.updatedAt = ua;
     serviceHistory.push(entry);
   });
@@ -180,6 +185,7 @@ function normalizeState(raw) {
       vehicleColor: BMW_COLORS[st.vehicleColor] ? st.vehicleColor : 'titansilber',
       onboardingDone: st.onboardingDone === true || hasVehicle,
       intervals: normalizeIntervals(st.intervals),
+      vehiclePhotos: normalizePhotoIds(st.vehiclePhotos, 12),
     },
   };
 }
@@ -472,6 +478,7 @@ function fuelChart(points, avg, max = 8) {
 
 function renderDashboard() {
   const v = state.vehicle;
+  renderHeroPhoto();
 
   const eyebrow = document.getElementById('dashboardEyebrow');
   if (eyebrow) eyebrow.textContent = [v.modelYear ? 'Modelljahr ' + v.modelYear : '', v.body].filter(Boolean).join(' · ');
@@ -625,6 +632,7 @@ function renderHistory() {
           <div class="list-sub">${esc(e.description)}</div>
         </div>
         <div class="list-meta">
+          ${e.photos && e.photos.length ? `<i class="ph-light ph-camera list-cam" data-fb="📷" aria-label="${e.photos.length} Foto(s)"></i>` : ''}
           <div>${formatDate(e.date)}</div>
           <div>${e.km.toLocaleString('de-DE')} km</div>
         </div>
@@ -668,6 +676,7 @@ function openHistoryDetail(id) {
     `<span class="meta-chip">${formatDate(e.date)}</span><span class="meta-chip">${e.km.toLocaleString('de-DE')} km</span>` +
     (e.cost != null ? `<span class="meta-chip">${fmtEur(e.cost)}</span>` : '') +
     (e.shop ? `<span class="meta-chip"><span>${esc(e.shop)}</span></span>` : '');
+  renderDetailPhotos(e);
   resetDeleteConfirm();
   document.getElementById('modal-entry-detail').showModal();
 }
@@ -692,6 +701,7 @@ function deleteEntryFromDetail() {
   }
   state.serviceHistory = state.serviceHistory.filter(x => x.id !== detailId);
   saveState();
+  gcPhotos();
   closeEntryDetail();
   showToast('Eintrag gelöscht', 'warn');
   switchTab(activeTab);
@@ -718,6 +728,7 @@ function openAddEntry(entry) {
   document.getElementById('form-description').value = edit ? edit.description : '';
   document.getElementById('form-cost').value        = edit && edit.cost != null ? edit.cost : '';
   document.getElementById('form-shop').value        = edit ? (edit.shop || '') : '';
+  formPhotosReset(edit ? edit.photos : []);
   document.getElementById('modal-add-entry').showModal();
 }
 
@@ -762,12 +773,15 @@ async function handleFormSubmit(event) {
   const fields = { date, km, category, description };
   if (cost !== null) fields.cost = cost;
   if (shop) fields.shop = shop;
+  const photos = await formPhotosCommit();
+  if (photos.length) fields.photos = photos;
   if (existing) {
-    delete existing.cost; delete existing.shop;
+    delete existing.cost; delete existing.shop; delete existing.photos;
     Object.assign(existing, fields);
   } else state.serviceHistory.push(Object.assign({ id: uid() }, fields));
   if (km > state.vehicle.currentKm) state.vehicle.currentKm = km;
   saveState();
+  gcPhotos();
   closeAddEntry();
   showToast(existing ? 'Änderungen gespeichert ✓' : 'Eintrag gespeichert ✓', 'ok');
   editingId = null;
@@ -929,6 +943,7 @@ function bindFuelEvents() {
 // ─── Settings ─────────────────────────────────────────────────────────────────
 function renderSettings() {
   renderVehicleInfo('settingsVehicleInfo', state.vehicle);
+  renderVehiclePhotos();
   renderStats();
   renderIntervalEditor();
   buildColorGrid('settingsColorGrid', state.settings.vehicleColor, (key) => {
@@ -1016,13 +1031,14 @@ function renderStatsPage() {
   if (state.vehicle.currentKm > 0) pts.push({ y: yearNow, km: state.vehicle.currentKm });
   const maxKmByYear = {};
   pts.forEach(p => { maxKmByYear[p.y] = Math.max(maxKmByYear[p.y] || 0, p.km); });
-  const kmYears = Object.keys(maxKmByYear).sort();
+  const kmYears = Object.keys(maxKmByYear).sort(); // aufsteigend rechnen, unten absteigend anzeigen
   const kmRows = [];
   kmYears.forEach((y, i) => {
     const prev = i ? maxKmByYear[kmYears[i - 1]] : Math.min(...pts.filter(p => p.y === y).map(p => p.km));
     const d = maxKmByYear[y] - prev;
     if (d > 0) kmRows.push({ label: y, value: d, text: d.toLocaleString('de-DE') + ' km' });
   });
+  kmRows.reverse(); // neuestes Jahr zuerst
 
   // Verbrauch
   const fs = fuelStats();
@@ -1351,7 +1367,9 @@ function downloadBackup(file) {
 // Backup: bevorzugt über das Teilen-Menü des Geräts (iCloud Drive, Google Drive, Dateien, Mail …),
 // sonst als normaler Download.
 async function exportData() {
-  const file = new File([JSON.stringify(state, null, 2)], backupFileName(), { type: 'application/json' });
+  const photos = await photosForBackup().catch(() => ({}));
+  const data = Object.keys(photos).length ? Object.assign({}, state, { photos }) : state;
+  const file = new File([JSON.stringify(data, null, 2)], backupFileName(), { type: 'application/json' });
   try {
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       await navigator.share({ files: [file], title: 'Service-Tracker Backup' });
@@ -1374,7 +1392,8 @@ function importData(input) {
   const reader = new FileReader();
   reader.onload = async ev => {
     try {
-      const next = normalizeState(JSON.parse(ev.target.result));
+      const raw = JSON.parse(ev.target.result);
+      const next = normalizeState(raw);
       const ok = await confirmDialog({
         title: 'Backup einspielen?',
         text: `${next.serviceHistory.length} Einträge werden geladen. Die aktuellen Daten (${state.serviceHistory.length} Einträge) werden dabei ersetzt.`,
@@ -1388,7 +1407,10 @@ function importData(input) {
         renderHeader();
         switchTab('dashboard');
       } catch (err) { state = previous; throw err; }
+      await restorePhotos(raw.photos);
       saveState();
+      renderHeroPhoto();
+      gcPhotos();
       markBackupDone(); // die eingespielte Datei entspricht dem aktuellen Stand
       showToast('Import erfolgreich', 'ok');
     } catch (e) {
@@ -1408,6 +1430,7 @@ async function resetDataPrompt() {
   });
   if (!ok) return;
   localStorage.removeItem(STORAGE_KEY);
+  clearPhotos();
   state = JSON.parse(JSON.stringify(EMPTY_DATA));
   saveState();
   applyTheme(state.settings.vehicleColor);
