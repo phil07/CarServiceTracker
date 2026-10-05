@@ -2,17 +2,27 @@
 importScripts('version.js'); // sets self.APP_VERSION – single source of truth
 const CACHE = 'service-tracker-' + self.APP_VERSION;
 
+const PRECACHE = ['./', './index.html', './style.css', './app.js', './sync.js', './photos.js', './datenschutz.html', './impressum.html', './legal.js', './legal.css', './version.js', './manifest.json',
+  './assets/fonts/fonts.css', './assets/fonts/phosphor.css', './assets/fonts/Phosphor-Light.woff2',
+  './assets/fonts/plus-jakarta-sans-latin-400-normal.woff2', './assets/fonts/plus-jakarta-sans-latin-500-normal.woff2',
+  './assets/fonts/plus-jakarta-sans-latin-600-normal.woff2', './assets/fonts/plus-jakarta-sans-latin-700-normal.woff2',
+  './assets/fonts/plus-jakarta-sans-latin-800-normal.woff2'];
+
+// Eine Antwort, die über eine Weiterleitung kam (z. B. /impressum.html → /impressum bei Cloudflare),
+// darf für Seitenaufrufe nicht aus dem Cache geliefert werden (Browser: ERR_FAILED). Daher ohne „redirected“-Flag neu verpacken.
+async function clean(resp) {
+  if (!resp || !resp.redirected) return resp;
+  return new Response(await resp.clone().blob(), { status: resp.status, statusText: resp.statusText, headers: resp.headers });
+}
+
 // ─── INSTALL ──────────────────────────────────────────────────────────────────
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c =>
-      c.addAll(['./', './index.html', './style.css', './app.js', './sync.js', './photos.js', './datenschutz.html', './impressum.html', './legal.js', './legal.css', './version.js', './manifest.json',
-        './assets/fonts/fonts.css', './assets/fonts/phosphor.css', './assets/fonts/Phosphor-Light.woff2',
-        './assets/fonts/plus-jakarta-sans-latin-400-normal.woff2', './assets/fonts/plus-jakarta-sans-latin-500-normal.woff2',
-        './assets/fonts/plus-jakarta-sans-latin-600-normal.woff2', './assets/fonts/plus-jakarta-sans-latin-700-normal.woff2',
-        './assets/fonts/plus-jakarta-sans-latin-800-normal.woff2']
-        .map(u => new Request(u, { cache: 'reload' })))
-    )
+    caches.open(CACHE).then(c => Promise.all(PRECACHE.map(async u => {
+      const r = await fetch(new Request(u, { cache: 'reload' }));
+      if (!r.ok) throw new Error('Precache fehlgeschlagen: ' + u);
+      await c.put(u, await clean(r));
+    })))
   );
   // Kein auto-skipWaiting – Nutzer tippt Update-Toast → SKIP_WAITING
 });
@@ -96,11 +106,10 @@ self.addEventListener('fetch', e => {
   // Cache-first: App-Shell inkl. lokaler Schrift/Icons
   e.respondWith(
     caches.match(e.request).then(cached => {
-      if (cached) return cached;
+      if (cached) return clean(cached);
       return fetch(e.request).then(resp => {
         if (resp.ok && e.request.method === 'GET') {
-          const copy = resp.clone();
-          caches.open(CACHE).then(c => c.put(e.request, copy));
+          clean(resp.clone()).then(copy => caches.open(CACHE).then(c => c.put(e.request, copy)));
         }
         return resp;
       }).catch(() => e.request.mode === 'navigate'
