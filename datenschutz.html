@@ -23,9 +23,9 @@
   <section>
     <h2>2. Kurzfassung</h2>
     <ul>
-      <li>Service-Tracker legt deine Daten <strong>auf deinem Gerät</strong> ab. Es gibt kein Benutzerkonto und keinen Server des Betreibers, auf dem deine Daten liegen.</li>
+      <li>Service-Tracker legt deine Daten <strong>auf deinem Gerät</strong> ab. Es gibt kein Benutzerkonto und keinen Server des Betreibers, auf dem deine Daten liegen. Ausnahme: das optionale digitale Scheckheft (Abschnitt 8), das du selbst veröffentlichst.</li>
       <li>Es gibt <strong>keine Werbung, kein Tracking und keine Analyse-Dienste</strong>. Schriftarten und Icons werden von der App selbst ausgeliefert, nicht von Dritten geladen.</li>
-      <li>Daten verlassen dein Gerät nur, wenn du es auslöst: bei der VIN-Abfrage (Abschnitt 6) und bei der optionalen Synchronisierung mit deinem Google Drive (Abschnitt 7).</li>
+      <li>Daten verlassen dein Gerät nur, wenn du es auslöst: bei der VIN-Abfrage (Abschnitt 6) und bei der optionalen Synchronisierung mit deinem Google Drive (Abschnitt 7) sowie beim optionalen Veröffentlichen eines digitalen Scheckhefts (Abschnitt 8).</li>
     </ul>
   </section>
 
@@ -64,29 +64,42 @@
     <p>Rechtsgrundlage ist deine Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), die du durch das aktive Verbinden erteilst. Du kannst sie jederzeit widerrufen: In der App über „Trennen“ bzw. „Daten in Google Drive löschen“, zusätzlich in deinem Google-Konto unter „Sicherheit → Drittanbieter-Apps mit Kontozugriff“. Die Nutzung der App ist auch ohne Synchronisierung vollständig möglich.</p>
   </section>
 
+  <section id="scheckheft">
+    <h2>8. Optionales digitales Scheckheft (öffentlicher Link)</h2>
+    <p>Wenn du in den Einstellungen „Scheckheft veröffentlichen“ wählst, passiert Folgendes:</p>
+    <ul>
+      <li>Die App überträgt eine Momentaufnahme des gewählten Fahrzeugs an den Server dieser App (Cloudflare Workers und Workers KV): Fahrzeugbezeichnung, Baureihe, Erstzulassung, Kilometerstand, die Wartungseinträge (Datum, Kilometerstand, Kategorie, Beschreibung, Werkstatt) sowie die Fotos der Wartungen und des Fahrzeugs. <strong>Nicht</strong> übertragen werden Kosten, Notizen und das Tankbuch. Die FIN wird nur übertragen, wenn du sie ausdrücklich freigibst.</li>
+      <li>Das Scheckheft ist unter einer nicht erratbaren Adresse (QR-Code/Link) für <strong>jeden abrufbar, der den Link kennt</strong>, auch ohne Anmeldung. Wem du den Link oder QR-Code gibst, entscheidest du. Suchmaschinen werden per „noindex“ angewiesen, die Seite nicht aufzunehmen.</li>
+      <li>Änderungen in der App werden automatisch aktualisiert. Mit „Veröffentlichung beenden“ werden alle Daten des Scheckhefts vom Server gelöscht; bereits ausgegebene Links und QR-Codes funktionieren danach nicht mehr.</li>
+      <li>Ein geheimer Schlüssel, der nur in deiner App (und ggf. in deinem Backup und deiner Google-Drive-Synchronisierung) liegt, berechtigt zum Ändern und Löschen. Auf dem Server wird nur ein Hash davon gespeichert.</li>
+      <li>Beim Abruf fallen beim Hosting-Anbieter technisch übliche Server-Logdaten an (siehe Abschnitt 5). Die Seite setzt keine Cookies und bindet keine Dritten ein.</li>
+    </ul>
+    <p>Rechtsgrundlage ist deine Einwilligung (Art. 6 Abs. 1 lit. a DSGVO) durch das aktive Veröffentlichen. Bitte beachte: Beschreibungen und Fotos können Daten Dritter enthalten (z. B. Werkstattnamen, Kennzeichen auf Fotos). Veröffentliche nur, was du zeigen darfst.</p>
+  </section>
+
   <section>
-    <h2>8. Benachrichtigungen</h2>
+    <h2>9. Benachrichtigungen</h2>
     <p>Wenn du Benachrichtigungen über neue App-Versionen erlaubst, prüft die App im Hintergrund, ob eine neue Version vorliegt, und zeigt eine lokale Benachrichtigung an. Dabei werden keine personenbezogenen Daten an den Betreiber übertragen. Die Berechtigung kannst du jederzeit in den Browser- oder Systemeinstellungen widerrufen.</p>
   </section>
 
   <section>
-    <h2>9. Backup und Export</h2>
+    <h2>10. Backup und Export</h2>
     <p>Backup-, CSV- und Druckfunktionen erzeugen Dateien auf deinem Gerät. Wohin du sie weitergibst (z. B. über das Teilen-Menü in iCloud, Google Drive oder per E-Mail), entscheidest du; dafür gelten die Bedingungen des jeweiligen Dienstes.</p>
   </section>
 
   <section>
-    <h2>10. Speicherdauer</h2>
+    <h2>11. Speicherdauer</h2>
     <p>Lokal gespeicherte Daten bleiben bis zu deiner Löschung auf deinem Gerät. Die Server-Logdaten (Abschnitt 5) werden nach den Fristen des Hosting-Anbieters automatisch gelöscht.</p>
   </section>
 
   <section>
-    <h2>11. Deine Rechte</h2>
+    <h2>12. Deine Rechte</h2>
     <p>Du hast nach der DSGVO das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit (Backup-Export) und Widerspruch gegen Verarbeitungen auf Grundlage berechtigter Interessen. Erteilte Einwilligungen kannst du jederzeit mit Wirkung für die Zukunft widerrufen. Da deine Einträge nur auf deinem Gerät bzw. in deinem Google-Konto liegen, kannst du die meisten Rechte direkt in der App ausüben. Bei Fragen oder zu den Logdaten wende dich an die oben genannte Adresse.</p>
     <p>Du hast außerdem das Recht, dich bei einer Datenschutz-Aufsichtsbehörde zu beschweren, z. B. bei der Behörde deines Wohnortes.</p>
   </section>
 
   <section>
-    <h2>12. Änderungen</h2>
+    <h2>13. Änderungen</h2>
     <p>Diese Erklärung wird angepasst, wenn sich die App oder die Rechtslage ändert. Der aktuelle Stand steht oben.</p>
   </section>
 

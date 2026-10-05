@@ -1,0 +1,10 @@
+{
+  // Cloudflare Worker: liefert die App aus und stellt die API für das digitale Scheckheft bereit.
+  // Einrichtung: docs/scheckheft-setup.md
+  "name": "carservicetracker",
+  "main": "worker.js",
+  "compatibility_date": "2025-10-01",
+  "assets": { "directory": ".", "binding": "ASSETS" },
+  // Speicher für veröffentlichte Scheckhefte. Ohne "id" legt Wrangler den Namespace beim Deploy selbst an.
+  "kv_namespaces": [{ "binding": "BOOKS" }]
+}

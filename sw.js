@@ -2,7 +2,7 @@
 importScripts('version.js'); // sets self.APP_VERSION – single source of truth
 const CACHE = 'service-tracker-' + self.APP_VERSION;
 
-const PRECACHE = ['./', './index.html', './style.css', './app.js', './sync.js', './photos.js', './datenschutz.html', './impressum.html', './legal.js', './legal.css', './version.js', './manifest.json',
+const PRECACHE = ['./', './index.html', './style.css', './app.js', './sync.js', './book.js', './assets/qrcode.js', './photos.js', './datenschutz.html', './impressum.html', './legal.js', './legal.css', './version.js', './manifest.json',
   './assets/fonts/fonts.css', './assets/fonts/phosphor.css', './assets/fonts/Phosphor-Light.woff2',
   './assets/fonts/plus-jakarta-sans-latin-400-normal.woff2', './assets/fonts/plus-jakarta-sans-latin-500-normal.woff2',
   './assets/fonts/plus-jakarta-sans-latin-600-normal.woff2', './assets/fonts/plus-jakarta-sans-latin-700-normal.woff2',
@@ -102,6 +102,9 @@ self.addEventListener('fetch', e => {
 
   // Fremde Hosts (VIN-Dekodierung, Google Anmeldung/Drive) nie cachen – direkt ans Netz
   if (url.origin !== self.location.origin) return;
+
+  // Scheckheft-Server und öffentliche Scheckheft-Seiten nie aus dem Cache bedienen (müssen aktuell sein)
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/s/')) return;
 
   // Cache-first: App-Shell inkl. lokaler Schrift/Icons
   e.respondWith(

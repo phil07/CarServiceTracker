@@ -221,6 +221,23 @@
             <div class="photo-strip" id="vehiclePhotos"></div>
             <input type="file" id="vehiclePhotoInput" accept="image/*" multiple hidden onchange="onVehiclePhotosPicked(this)">
 
+            <h3 class="section-title">Digitales Scheckheft</h3>
+            <div class="card info-card book-card">
+                <p class="settings-hint">Veröffentliche die Wartungshistorie dieses Fahrzeugs als Webseite mit QR-Code, zum Beispiel für Werkstatt oder Käufer. Jeder mit dem Link kann sie ansehen, auch ohne die App, und sie ist immer auf dem neuesten Stand. Ohne Kosten, Notizen und Tankbuch, die FIN ist wählbar. Die Daten liegen auf dem Server dieser App (<a href="datenschutz.html#scheckheft">Datenschutz</a>).</p>
+                <div id="bookOff">
+                    <button type="button" class="btn btn-secondary" onclick="enableBook()"><i class="ph-light ph-cloud-arrow-up" data-fb="☁️" aria-hidden="true"></i> Scheckheft veröffentlichen</button>
+                </div>
+                <div id="bookOn" hidden>
+                    <div class="backup-status" id="bookStatusText" aria-live="polite"></div>
+                    <label class="check-row"><input type="checkbox" id="bookShowVin" onchange="setBookVin(this.checked)"> FIN (VIN) vollständig anzeigen</label>
+                    <div class="btn-pair">
+                        <button type="button" class="btn btn-secondary" onclick="openBookDialog()">QR-Code &amp; Link</button>
+                        <button type="button" class="btn btn-secondary" onclick="publishBookNow()"><i class="ph-light ph-arrows-clockwise" data-fb="🔄" aria-hidden="true"></i> Aktualisieren</button>
+                    </div>
+                    <button type="button" class="link-btn" onclick="disableBook()">Veröffentlichung beenden</button>
+                </div>
+            </div>
+
             <h3 class="section-title">Lackfarbe &amp; Design</h3>
             <div class="color-picker-grid" id="settingsColorGrid"></div>
 
@@ -384,6 +401,19 @@
         </form>
     </dialog>
 
+    <!-- DIGITALES SCHECKHEFT: QR-Code -->
+    <dialog id="modal-book" aria-labelledby="bookDialogTitle">
+        <h3 id="bookDialogTitle">Digitales Scheckheft</h3>
+        <div class="book-qr" id="bookQr"></div>
+        <p class="dialog-text book-url" id="bookUrl"></p>
+        <p class="dialog-text">Wer den Code scannt, sieht immer den aktuellen Stand. Drucke ihn aus oder teile den Link.</p>
+        <div class="dialog-actions">
+            <button type="button" class="btn" onclick="shareBookLink()">Link teilen</button>
+            <button type="button" class="btn btn-secondary" onclick="saveBookQr()">QR-Code als Bild speichern</button>
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-book').close()">Schließen</button>
+        </div>
+    </dialog>
+
     <!-- BESTÄTIGUNG (ersetzt window.confirm) -->
     <dialog id="modal-confirm" aria-labelledby="confirmTitle">
         <h3 id="confirmTitle"></h3>
@@ -440,6 +470,7 @@
 <script src="app.js"></script>
 <script src="photos.js"></script>
 <script src="sync.js"></script>
+<script src="book.js"></script>
 <script>
   // Nach einem Reload prüfen, ob das angestoßene Update tatsächlich griff
   (function checkUpdateResult() {

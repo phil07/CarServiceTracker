@@ -188,6 +188,8 @@ function normalizeState(raw) {
       onboardingDone: st.onboardingDone === true || hasVehicle,
       intervals: normalizeIntervals(st.intervals),
       vehiclePhotos: normalizePhotoIds(st.vehiclePhotos, 12),
+      ...(st.share && typeof st.share === 'object' && /^[\w-]{16,64}$/.test(String(st.share.id)) && /^[\w-]{20,128}$/.test(String(st.share.secret))
+        ? { share: { id: String(st.share.id), secret: String(st.share.secret), on: st.share.on === true, showVin: st.share.showVin === true } } : {}),
     },
   };
 }
@@ -299,7 +301,7 @@ function persistRaw() {
 
 function saveState() {
   stampChanges();
-  if (persistRaw()) window.scheduleSync?.();
+  if (persistRaw()) { window.scheduleSync?.(); window.scheduleBookPublish?.(); }
 }
 
 // ─── Theme (Hell / Dunkel / System) ───────────────────────────────────────────
@@ -998,6 +1000,7 @@ function bindFuelEvents() {
 function renderSettings() {
   renderVehicleInfo('settingsVehicleInfo', state.vehicle);
   renderVehiclePhotos();
+  renderBookCard?.();
   renderStats();
   renderIntervalEditor();
   buildColorGrid('settingsColorGrid', state.settings.vehicleColor, (key) => {
@@ -2106,6 +2109,7 @@ function init() {
   updateOffline();
 
   window.initSync?.();
+  window.initBook?.();
 
   // Erster Start: zuerst VIN abfragen
   if (!state.settings.onboardingDone) {

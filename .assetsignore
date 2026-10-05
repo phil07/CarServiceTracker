@@ -1,0 +1,7 @@
+.git
+.assetsignore
+wrangler.jsonc
+worker.js
+docs
+CLAUDE.md
+node_modules
