@@ -7,31 +7,31 @@
 // dark  = Akzent im dunklen Design (dunkle Schrift darauf)
 const BMW_COLORS = {
   // Silber / Grau
-  alpinweiss:   { label: 'Alpinweiß',    hex: '#e8e8e6', code: '300', light: '#475569', dark: '#E2E8F0' },
+  alpinweiss:   { label: 'Alpinweiß III',hex: '#e8e8e6', code: '300', light: '#475569', dark: '#E2E8F0' },
   arktissilber: { label: 'Arktissilber', hex: '#a9adb3', code: '309', light: '#4A6A8A', dark: '#A9C4DE' },
   hellsilber:   { label: 'Hellsilber',   hex: '#b8bec7', light: '#52637A', dark: '#BCCADB' },
   kashmirsilber:{ label: 'Kashmirsilber',hex: '#b1b4ae', light: '#5B6572', dark: '#C3CAD3' },
   titansilber:  { label: 'Titansilber',  hex: '#8a8f98', code: '354', light: '#3F5A78', dark: '#8FB0D3' },
   sterlinggrau: { label: 'Sterlinggrau', hex: '#7b7f86', code: '472', light: '#475569', dark: '#AEBBCB' },
   stahlgrau:    { label: 'Stahlgrau',    hex: '#656a72', code: '400', light: '#3B4A5C', dark: '#A3B1C2' },
-  fjordgrau:    { label: 'Fjordgrau',    hex: '#5b6672', light: '#36556E', dark: '#8FB4CF' },
+  fjordgrau:    { label: 'Fjordgrau', code: '310',    hex: '#5b6672', light: '#36556E', dark: '#8FB4CF' },
   // Schwarz
-  schwarz:      { label: 'Schwarz',      hex: '#1c1c1f', code: '668', light: '#27272A', dark: '#E4E4E7' },
-  diamantschwarz:{label: 'Diamantschwarz',hex:'#1b1d22', light: '#1F2937', dark: '#E5E7EB' },
+  schwarz:      { label: 'Schwarz II',   hex: '#1c1c1f', code: '668', light: '#27272A', dark: '#E4E4E7' },
+  diamantschwarz:{label: 'Diamantschwarz', code: '181',hex:'#1b1d22', light: '#1F2937', dark: '#E5E7EB' },
   cosmosschwarz:{ label: 'Cosmosschwarz',hex: '#101216', code: '303', light: '#18181B', dark: '#E4E4E7' },
   carbonschwarz:{ label: 'Carbonschwarz',hex: '#202328', code: '416', light: '#27272A', dark: '#E4E4E7' },
   // Blau
   orientblau:   { label: 'Orientblau',   hex: '#1e3a8a', code: '317', light: '#1D4ED8', dark: '#60A5FA' },
-  imperialblau: { label: 'Imperialblau', hex: '#1e2f6b', light: '#3730A3', dark: '#A5B4FC' },
+  imperialblau: { label: 'Imperialblau', code: 'A89', hex: '#1e2f6b', light: '#3730A3', dark: '#A5B4FC' },
   topasblau:    { label: 'Topasblau',    hex: '#3a6ea5', code: '364', light: '#1D4ED8', dark: '#7DB4F0' },
   montrealblau: { label: 'Montrealblau', hex: '#2c4a78', code: '297', light: '#1E40AF', dark: '#93C5FD' },
   biarritzblau: { label: 'Biarritzblau', hex: '#6f93b8', light: '#0369A1', dark: '#7DD3FC' },
   avusblau:     { label: 'Avusblau',     hex: '#1f4fa8', light: '#1D4ED8', dark: '#60A5FA' },
   // Rot
-  calypsorot:   { label: 'Calypsorot',   hex: '#8b1a1a', light: '#C81E1E', dark: '#F87171' },
+  calypsorot:   { label: 'Calypsorot', code: '252',   hex: '#8b1a1a', light: '#C81E1E', dark: '#F87171' },
   sienarot:     { label: 'Sienarot',     hex: '#6e1f22', light: '#B91C1C', dark: '#FCA5A5' },
   // Grün
-  bostongruen:  { label: 'Bostongrün',   hex: '#14532d', light: '#15803D', dark: '#4ADE80' },
+  bostongruen:  { label: 'Bostongrün', code: '275',   hex: '#14532d', light: '#15803D', dark: '#4ADE80' },
   oxfordgruen:  { label: 'Oxfordgrün',   hex: '#1f3f2e', code: '324', light: '#166534', dark: '#6EE7A0' },
   saphirschwarz:{ label: 'Saphirschwarz',code: '475', hex: '#16191f', light: '#1F2937', dark: '#E5E7EB' },
   spacegrau:    { label: 'Space Grau',   code: 'A52', hex: '#5d6065', light: '#3B4A5C', dark: '#A3B1C2' },
@@ -43,6 +43,33 @@ const BMW_COLORS = {
   melbournerot: { label: 'Melbournerot', code: 'A75', hex: '#a3171c', light: '#C81E1E', dark: '#F87171' },
   stahlblau:    { label: 'Stahlblau',    code: '372', hex: '#4d6783', light: '#1E40AF', dark: '#93B4E0' },
   aspensilber:  { label: 'Aspensilber',  code: '339', hex: '#a3a7ac', light: '#52637A', dark: '#BCCADB' },
+  // Weitere Serienfarben (Codes nur, wo in mind. zwei Quellen übereinstimmend belegt)
+  alpinweiss1: { label: 'Alpinweiß I', code: '146', hex: '#eeeeea', light: '#475569', dark: '#E2E8F0' },
+  alpinweiss2: { label: 'Alpinweiß II', code: '218', hex: '#f0f0ec', light: '#475569', dark: '#E2E8F0' },
+  schwarz1: { label: 'Schwarz I', code: '086', hex: '#0c0c0e', light: '#27272A', dark: '#E4E4E7' },
+  zinnoberrot: { label: 'Zinnoberrot', code: '138', hex: '#b3201f', light: '#C81E1E', dark: '#F87171' },
+  brillantrot: { label: 'Brillantrot', code: '308', hex: '#c01820', light: '#C81E1E', dark: '#F87171' },
+  mugellorot: { label: 'Mugellorot', code: '274', hex: '#a8191e', light: '#C81E1E', dark: '#F87171' },
+  hellrot: { label: 'Hellrot', code: '314', hex: '#d0191f', light: '#C81E1E', dark: '#F87171' },
+  violettrot: { label: 'Violettrot', code: '316', hex: '#8a1c3c', light: '#C81E1E', dark: '#F87171' },
+  imolarot: { label: 'Imolarot', code: '405', hex: '#b01a22', light: '#C81E1E', dark: '#F87171' },
+  bahamabeige: { label: 'Bahamabeige', code: '170', hex: '#c9b99a', light: '#92400E', dark: '#E3C9A0' },
+  delphin: { label: 'Delphin', code: '184', hex: '#8a8f96', light: '#4A6A8A', dark: '#A9C4DE' },
+  lagunengruen: { label: 'Lagunengrün', code: '266', hex: '#1f4a44', light: '#15803D', dark: '#4ADE80' },
+  monacoblau: { label: 'Monacoblau', code: 'A35', hex: '#1B3F73', light: '#1D4ED8', dark: '#60A5FA' },
+  tiefseeblau: { label: 'Tiefseeblau', code: 'A76', hex: '#16294A', light: '#1D4ED8', dark: '#60A5FA' },
+  titangrau2: { label: 'Titangrau II', code: 'A36', hex: '#5F6469', light: '#475569', dark: '#AEBBCB' },
+  sparklinggraphite: { label: 'Sparkling Graphite', code: 'A22', hex: '#4A4F55', light: '#475569', dark: '#AEBBCB' },
+  silbergrau: { label: 'Silbergrau', code: 'A08', hex: '#8D9095', light: '#4A6A8A', dark: '#A9C4DE' },
+  platinbronze: { label: 'Platinbronze', code: 'A53', hex: '#6E5F4E', light: '#92400E', dark: '#D6A77A' },
+  montegoblau: { label: 'Montegoblau', code: 'A51', hex: '#2B4A78', light: '#1D4ED8', dark: '#60A5FA' },
+  crimsonrot: { label: 'Crimson Rot', code: 'A61', hex: '#9B1B24', light: '#C81E1E', dark: '#F87171' },
+  midnightblau: { label: 'Midnightblau', code: 'B38', hex: '#1B2A4A', light: '#1D4ED8', dark: '#60A5FA' },
+  estorilblau2: { label: 'Estorilblau II', code: 'B45', hex: '#1F4E9C', light: '#1D4ED8', dark: '#60A5FA' },
+  phytonicblau: { label: 'Phytonicblau', code: 'C1M', hex: '#2D4F9A', light: '#1D4ED8', dark: '#60A5FA' },
+  portimaoblau: { label: 'Portimaoblau', code: 'C31', hex: '#2B5BA8', light: '#1D4ED8', dark: '#60A5FA' },
+  dravitgrau: { label: 'Dravitgrau', code: 'C36', hex: '#5B5F63', light: '#475569', dark: '#AEBBCB' },
+  stratusgrau: { label: 'Stratusgrau', code: '440', hex: '#7C8084', light: '#475569', dark: '#AEBBCB' },
   // Allgemeine Farben (marken-unabhängig)
   g_weiss:      { label: 'Weiß',         hex: '#f1f1ef', light: '#475569', dark: '#E2E8F0' },
   g_silber:     { label: 'Silber',       hex: '#b4b8be', light: '#4A6A8A', dark: '#A9C4DE' },
@@ -66,10 +93,48 @@ const E39_COLOR_KEYS = ['alpinweiss', 'schwarz', 'cosmosschwarz', 'carbonschwarz
   'montrealblau', 'orientblau', 'topasblau', 'stahlblau', 'oxfordgruen'];
 const GENERIC_COLOR_KEYS = ['g_weiss', 'g_silber', 'g_grau', 'g_schwarz', 'g_blau', 'g_rot', 'g_gruen', 'g_gelb', 'g_orange', 'g_braun', 'g_beige'];
 
+// Serienfarben je Baureihe (Chassis-Code). Nur Farben mit in mind. zwei Quellen übereinstimmend belegtem Code; die Listen
+// sind nicht vollständig – „Alle Farben anzeigen“ zeigt die komplette Liste. Quellen: Lackstift-/Teilehändler, Foren, Registry-Seiten.
+const SERIES_COLORS = {
+  E30: ['alpinweiss1', 'alpinweiss2', 'schwarz1', 'zinnoberrot', 'brillantrot', 'bahamabeige', 'delphin', 'diamantschwarz', 'lagunengruen'],
+  E34: ['alpinweiss2', 'alpinweiss', 'schwarz1', 'schwarz', 'brillantrot', 'mugellorot', 'hellrot', 'diamantschwarz', 'cosmosschwarz', 'calypsorot', 'montrealblau', 'arktissilber', 'fjordgrau'],
+  E36: ['alpinweiss2', 'alpinweiss', 'schwarz', 'hellrot', 'mugellorot', 'violettrot', 'imolarot', 'diamantschwarz', 'arktissilber', 'fjordgrau', 'calypsorot', 'montrealblau', 'orientblau', 'bostongruen'],
+  E38: ['alpinweiss', 'schwarz', 'titansilber', 'orientblau'],
+  E39: E39_COLOR_KEYS,
+  E46: ['alpinweiss', 'schwarz', 'imolarot', 'saphirschwarz', 'orientblau', 'titansilber', 'topasblau', 'stahlgrau'],
+  E53: ['alpinweiss', 'titansilber', 'stahlgrau', 'sterlinggrau', 'saphirschwarz', 'schwarz'],
+  E60: ['alpinweiss', 'schwarz', 'titansilber', 'silbergrau', 'titangrau2', 'saphirschwarz', 'carbonschwarz', 'orientblau', 'monacoblau', 'spacegrau', 'tiefseeblau', 'platinbronze'],
+  E65: ['alpinweiss', 'schwarz', 'titansilber', 'titangrau2', 'saphirschwarz'],
+  E70: ['alpinweiss', 'titansilber', 'saphirschwarz', 'schwarz', 'monacoblau', 'spacegrau', 'platinbronze'],
+  E83: ['alpinweiss', 'titansilber', 'saphirschwarz', 'schwarz'],
+  E85: ['saphirschwarz', 'schwarz', 'stratusgrau', 'montegoblau'],
+  E87: ['alpinweiss', 'schwarz', 'titansilber', 'saphirschwarz', 'carbonschwarz', 'spacegrau'],
+  E90: ['alpinweiss', 'schwarz', 'saphirschwarz', 'titansilber', 'sparklinggraphite', 'spacegrau', 'mineralweiss', 'monacoblau', 'montegoblau', 'tiefseeblau', 'platinbronze', 'crimsonrot'],
+  'E36/7': ['alpinweiss', 'bostongruen', 'montrealblau'],
+  F10: ['alpinweiss', 'schwarz', 'saphirschwarz', 'carbonschwarz', 'titansilber', 'tiefseeblau', 'spacegrau', 'imperialblau'],
+  F20: ['alpinweiss', 'schwarz', 'saphirschwarz', 'glaciersilber', 'midnightblau', 'tiefseeblau', 'mineralgrau', 'mineralweiss', 'estorilblau2', 'melbournerot', 'spacegrau'],
+  F30: ['alpinweiss', 'schwarz', 'saphirschwarz', 'glaciersilber', 'imperialblau', 'mineralgrau', 'mineralweiss', 'estorilblau2', 'melbournerot', 'spacegrau'],
+  G20: ['alpinweiss', 'schwarz', 'saphirschwarz', 'carbonschwarz', 'glaciersilber', 'mineralweiss', 'mineralgrau', 'melbournerot', 'portimaoblau', 'dravitgrau', 'phytonicblau'],
+  G30: ['alpinweiss', 'saphirschwarz', 'phytonicblau', 'mineralweiss'],
+};
+// Karosserie-/Facelift-Varianten → Baureihe der Palette
+const SERIES_ALIAS = { E61: 'E60', E91: 'E90', E92: 'E90', E93: 'E90', E81: 'E87', E82: 'E87', E88: 'E87', F11: 'F10', F31: 'F30', F34: 'F30', G31: 'G30', G21: 'G20' };
+
+// Baureihe des Fahrzeugs (z. B. 'E39') aus Marke/Modell/Baureihe/Chassis – leer, wenn unbekannt oder keine BMW
+function seriesCodeFor(v) {
+  v = v || {};
+  if (v.make && !/BMW/i.test(v.make)) return '';
+  const txt = [v.model, v.series, v.chassis, v.make].filter(Boolean).join(' ').toUpperCase();
+  if (/\bE36\/7\b/.test(txt) || /\bZ3\b/.test(txt)) return 'E36/7';
+  const m = txt.match(/\b([EFG]\d{2})\b/);
+  if (!m) return '';
+  const code = SERIES_ALIAS[m[1]] || m[1];
+  return SERIES_COLORS[code] ? code : '';
+}
+
 function colorKeysFor(v) {
-  const txt = [v && v.make, v && v.model, v && v.series, v && v.chassis].filter(Boolean).join(' ');
-  const isE39 = /\bE39\b/i.test(txt) && (!v.make || /BMW/i.test(v.make) || /\bE39\b/i.test(v.model || ''));
-  return isE39 ? E39_COLOR_KEYS : GENERIC_COLOR_KEYS;
+  const code = seriesCodeFor(v);
+  return code ? SERIES_COLORS[code] : GENERIC_COLOR_KEYS;
 }
 
 // ─── Kategorien ───────────────────────────────────────────────────────────────
@@ -1296,10 +1361,11 @@ function buildColorGrid(containerId, selectedKey, onSelect, vehicle) {
   const grid = document.getElementById(containerId);
   if (!grid) return;
   const base = colorKeysFor(vehicle || {});
-  const showCodes = base === E39_COLOR_KEYS || colorShowAll;
+  const seriesCode = seriesCodeFor(vehicle || {});
+  const showCodes = !!seriesCode || colorShowAll;
   // Die aktuell gewählte Farbe bleibt immer sichtbar, auch wenn sie nicht zur Palette gehört
   const keys = colorShowAll ? Object.keys(BMW_COLORS) : (base.includes(selectedKey) || !BMW_COLORS[selectedKey] ? base : [selectedKey, ...base]);
-  grid.innerHTML = (colorShowAll ? '<input type="search" class="color-search" placeholder="Farbe oder Code suchen (z.B. Orient, 475)" aria-label="Farbe suchen" autocomplete="off">' : '') + keys.map(key => { const c = BMW_COLORS[key]; return `
+  grid.innerHTML = (seriesCode && !colorShowAll ? `<p class="settings-hint" style="grid-column:1/-1;margin:0">Serienfarben ${seriesCode} (Auswahl, nicht vollständig)</p>` : '') + (colorShowAll ? '<input type="search" class="color-search" placeholder="Farbe oder Code suchen (z.B. Orient, 475)" aria-label="Farbe suchen" autocomplete="off">' : '') + keys.map(key => { const c = BMW_COLORS[key]; return `
     <button type="button" class="color-swatch-btn${selectedKey === key ? ' active' : ''}"
             title="${c.label}${showCodes && c.code ? ' (' + c.code + ')' : ''}"
             aria-label="${c.label}${showCodes && c.code ? ', Farbcode ' + c.code : ''}${selectedKey === key ? ' (aktiv)' : ''}"
