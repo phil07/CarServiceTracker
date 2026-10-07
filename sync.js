@@ -2,6 +2,8 @@
 //
 // Die Daten landen im versteckten App-Ordner („appDataFolder“) des eigenen Google Drive.
 // Es gibt keinen Server des Entwicklers; die App sieht nur ihre eigene Datei (Scope drive.appdata).
+// Für den dauerhaften Abgleich im Hintergrund holt der Worker (/api/gauth/, siehe worker.js) neue Zugriffstokens;
+// das Refresh-Token liegt nur verschlüsselt als httpOnly-Cookie im Browser des Nutzers.
 // Das Google-Anmeldeskript wird erst beim Verbinden geladen, nicht beim normalen Start.
 //
 // Einrichtung: siehe docs/google-drive-sync.md – hier nur die OAuth-Client-ID eintragen.
@@ -34,6 +36,38 @@ const GOOGLE_CLIENT_ID = '456570124356-ksovdvup3n1o9hhq6hnm3tfms1r1a0hs.apps.goo
   const setToken = (token, expiresIn) => write(TOKEN_KEY, { token, exp: Date.now() + (Number(expiresIn) || 3600) * 1000 - 60000 });
   const clearToken = () => { try { localStorage.removeItem(TOKEN_KEY); } catch (e) {} };
 
+  // ─── dauerhafte Anmeldung über den Worker (/api/gauth/) ──────────────────────
+  // Das Refresh-Token liegt verschlüsselt als httpOnly-Cookie im Browser; der Worker holt damit still
+  // neue Zugriffstokens. Ist der Worker nicht eingerichtet, gilt wie bisher ein 1-Stunden-Token.
+  const AUTH_API = '/api/gauth/';
+  let serverAuth = null; // null = unbekannt, false = Worker nicht eingerichtet
+  let refreshing = null;
+  const authPost = (action, body) => fetch(AUTH_API + action, {
+    method: 'POST', credentials: 'same-origin',
+    headers: Object.assign({ 'X-CST': '1' }, body ? { 'Content-Type': 'application/json' } : {}),
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  function refreshToken() {
+    if (serverAuth === false || !navigator.onLine) return Promise.resolve(null);
+    if (!refreshing) {
+      refreshing = (async () => {
+        try {
+          const r = await authPost('refresh');
+          if (r.status === 503 || r.status === 404 || r.status === 405) { serverAuth = false; return null; }
+          serverAuth = true;
+          if (!r.ok) return null;
+          const j = await r.json();
+          if (!j.access_token) return null;
+          setToken(j.access_token, j.expires_in);
+          return j.access_token;
+        } catch (e) { return null; }
+      })().finally(() => { refreshing = null; });
+    }
+    return refreshing;
+  }
+  async function ensureToken() { return getToken() || await refreshToken(); }
+
   // idle | syncing | ok | needs-auth | error
   let status = 'idle';
   let errorText = '';
@@ -56,6 +90,29 @@ const GOOGLE_CLIENT_ID = '456570124356-ksovdvup3n1o9hhq6hnm3tfms1r1a0hs.apps.goo
 
   async function requestToken() {
     await loadGis();
+    if (serverAuth === false) return requestTokenImplicit();
+    const res = await new Promise((resolve, reject) => {
+      const client = google.accounts.oauth2.initCodeClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: SCOPE,
+        ux_mode: 'popup',
+        callback: r => (r && r.code ? resolve(r) : reject(new Error((r && r.error) || 'Anmeldung fehlgeschlagen'))),
+        error_callback: e => reject(Object.assign(new Error('Anmeldung abgebrochen'), { code: e && e.type })),
+      });
+      client.requestCode();
+    });
+    const r = await authPost('exchange', { code: res.code });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.access_token) throw new Error(j.error || 'Anmeldung fehlgeschlagen');
+    serverAuth = true;
+    setMeta({ persistent: !!j.persistent });
+    setToken(j.access_token, j.expires_in);
+    return j.access_token;
+  }
+
+  // Fallback ohne Worker: Token-Flow, Zugriff gilt 1 Stunde
+  async function requestTokenImplicit() {
+    await loadGis();
     const res = await new Promise((resolve, reject) => {
       const client = google.accounts.oauth2.initTokenClient({
         client_id: GOOGLE_CLIENT_ID,
@@ -71,7 +128,7 @@ const GOOGLE_CLIENT_ID = '456570124356-ksovdvup3n1o9hhq6hnm3tfms1r1a0hs.apps.goo
 
   // ─── Drive-Zugriff ──────────────────────────────────────────────────────────
   async function drive(url, opts = {}) {
-    const token = getToken();
+    const token = await ensureToken();
     if (!token) throw authError();
     const r = await fetch(url, Object.assign({}, opts, { headers: Object.assign({ Authorization: 'Bearer ' + token }, opts.headers) }));
     if (r.status === 401) { clearToken(); throw authError(); }
@@ -295,7 +352,7 @@ const GOOGLE_CLIENT_ID = '456570124356-ksovdvup3n1o9hhq6hnm3tfms1r1a0hs.apps.goo
     const alive = () => { if (myEpoch !== epoch) throw Object.assign(new Error('Beendet'), { code: 'STOPPED' }); };
     setStatus('syncing');
     try {
-      if (!getToken()) {
+      if (!(await ensureToken())) {
         if (!opts.interactive) { setStatus('needs-auth'); return; }
         await requestToken();
       }
@@ -319,7 +376,6 @@ const GOOGLE_CLIENT_ID = '456570124356-ksovdvup3n1o9hhq6hnm3tfms1r1a0hs.apps.goo
     if (!syncEnabled()) return;
     clearTimeout(timer);
     timer = setTimeout(() => syncNow(), delay == null ? 4000 : delay);
-    if (!getToken()) setStatus('needs-auth');
   }
 
   // ─── Verbinden / Trennen ────────────────────────────────────────────────────
@@ -343,6 +399,7 @@ const GOOGLE_CLIENT_ID = '456570124356-ksovdvup3n1o9hhq6hnm3tfms1r1a0hs.apps.goo
     disableSync();
     try { if (token && window.google && google.accounts) google.accounts.oauth2.revoke(token, () => {}); } catch (e) {}
     clearToken();
+    authPost('logout').catch(() => {});
     renderSyncUi();
     showToast('Getrennt – die Datei in Google Drive bleibt bestehen', 'ok');
   }
@@ -357,7 +414,7 @@ const GOOGLE_CLIENT_ID = '456570124356-ksovdvup3n1o9hhq6hnm3tfms1r1a0hs.apps.goo
     paused = true; epoch++; clearTimeout(timer); queued = false;
     try {
       for (let i = 0; syncing && i < 100; i++) await new Promise(r => setTimeout(r, 100)); // laufenden Abgleich auslaufen lassen
-      if (!getToken()) await requestToken();
+      if (!(await ensureToken())) await requestToken();
       const id = getMeta().fileId || await findFileId();
       if (id) await drive(API + '/' + id, { method: 'DELETE' });
       await deleteAllCloudPhotos();
@@ -407,13 +464,13 @@ const GOOGLE_CLIENT_ID = '456570124356-ksovdvup3n1o9hhq6hnm3tfms1r1a0hs.apps.goo
   function initSync() {
     renderSyncUi();
     if (!syncEnabled()) return;
-    if (getToken()) syncNow(); else setStatus('needs-auth');
+    syncNow();
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState !== 'visible' || !syncEnabled() || !getToken()) return;
+      if (document.visibilityState !== 'visible' || !syncEnabled()) return;
       const last = Date.parse(getMeta().lastSync || 0) || 0;
       if (Date.now() - last > 60000) syncNow();
     });
-    window.addEventListener('online', () => { if (getToken()) syncNow(); });
+    window.addEventListener('online', () => syncNow());
   }
 
   Object.assign(window, { initSync, scheduleSync, syncNow, syncEnabled, connectDrive, disconnectDrive, deleteDriveData, renderSyncUi,
