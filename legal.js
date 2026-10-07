@@ -2,11 +2,11 @@
 // Hier einmal ausfüllen – beide Seiten übernehmen die Werte automatisch.
 // Leere Felder erscheinen auf den Seiten rot markiert als „bitte ergänzen“.
 const LEGAL = {
-  name:   '',   // z. B. 'Vorname Nachname'
-  street: '',   // z. B. 'Musterstraße 1'
-  city:   '',   // z. B. '12345 Musterstadt'
-  email:  '',   // Kontakt-E-Mail (öffentlich sichtbar)
-  stand:  '5. Oktober 2026', // Datum der letzten inhaltlichen Änderung
+  name:   'Philipp Fischer',   // z. B. 'Vorname Nachname'
+  street: 'Hugo-Sellheim-Straße 7',   // z. B. 'Musterstraße 1'
+  city:   '68647 Biblis',   // z. B. '12345 Musterstadt'
+  email:  'iphilipp07@gmail.com',   // Kontakt-E-Mail (öffentlich sichtbar)
+  stand:  '7. Oktober 2026', // Datum der letzten inhaltlichen Änderung
 };
 
 (function () {
