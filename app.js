@@ -70,6 +70,22 @@ const BMW_COLORS = {
   portimaoblau: { label: 'Portimaoblau', code: 'C31', hex: '#2B5BA8', light: '#1D4ED8', dark: '#60A5FA' },
   dravitgrau: { label: 'Dravitgrau', code: 'C36', hex: '#5B5F63', light: '#475569', dark: '#AEBBCB' },
   stratusgrau: { label: 'Stratusgrau', code: '440', hex: '#7C8084', light: '#475569', dark: '#AEBBCB' },
+  // Serienfarben weiterer Baureihen (Codes nur, wo in mind. zwei Quellen übereinstimmend belegt)
+  polaris: { label: 'Polaris', code: '060', hex: '#B8BCC2', light: '#4A6A8A', dark: '#A9C4DE' },
+  graphit: { label: 'Graphit', code: '087', hex: '#5A5D62', light: '#475569', dark: '#AEBBCB' },
+  arktisblau: { label: 'Arktisblau', code: '045', hex: '#4C7DA8', light: '#1D4ED8', dark: '#60A5FA' },
+  hennarot: { label: 'Henna Rot', code: '052', hex: '#8E2B2B', light: '#C81E1E', dark: '#F87171' },
+  ascotgrau: { label: 'Ascotgrau', code: '151', hex: '#8A8D8F', light: '#475569', dark: '#AEBBCB' },
+  lapisblau: { label: 'Lapisblau', code: '173', hex: '#26417A', light: '#1D4ED8', dark: '#60A5FA' },
+  bronzit: { label: 'Bronzit', code: '139', hex: '#8A6A44', light: '#92400E', dark: '#D6A77A' },
+  lachssilber: { label: 'Lachssilber', code: '203', hex: '#C5B7B0', light: '#4A6A8A', dark: '#A9C4DE' },
+  mineralsilber: { label: 'Mineralsilber', code: 'A14', hex: '#A9ACB0', light: '#4A6A8A', dark: '#A9C4DE' },
+  havanna: { label: 'Havanna', code: 'A17', hex: '#7B6A58', light: '#92400E', dark: '#D6A77A' },
+  brooklyngrau: { label: 'Brooklyn Grau', code: 'C4P', hex: '#6F737A', light: '#475569', dark: '#AEBBCB' },
+  stormbay: { label: 'Storm Bay', code: 'C3N', hex: '#6D7378', light: '#475569', dark: '#AEBBCB' },
+  misanoblau: { label: 'Misanoblau', code: 'C1D', hex: '#1F4FA0', light: '#1D4ED8', dark: '#60A5FA' },
+  sunsetorange: { label: 'Sunset Orange', code: 'C1X', hex: '#C4531F', light: '#C2410C', dark: '#FB923C' },
+  skyscrapergrau: { label: 'Skyscraper Grau', code: 'C4W', hex: '#7B7F85', light: '#475569', dark: '#AEBBCB' },
   // Allgemeine Farben (marken-unabhängig)
   g_weiss:      { label: 'Weiß',         hex: '#f1f1ef', light: '#475569', dark: '#E2E8F0' },
   g_silber:     { label: 'Silber',       hex: '#b4b8be', light: '#4A6A8A', dark: '#A9C4DE' },
@@ -115,10 +131,30 @@ const SERIES_COLORS = {
   F20: ['alpinweiss', 'schwarz', 'saphirschwarz', 'glaciersilber', 'midnightblau', 'tiefseeblau', 'mineralgrau', 'mineralweiss', 'estorilblau2', 'melbournerot', 'spacegrau'],
   F30: ['alpinweiss', 'schwarz', 'saphirschwarz', 'glaciersilber', 'imperialblau', 'mineralgrau', 'mineralweiss', 'estorilblau2', 'melbournerot', 'spacegrau'],
   G20: ['alpinweiss', 'schwarz', 'saphirschwarz', 'carbonschwarz', 'glaciersilber', 'mineralweiss', 'mineralgrau', 'melbournerot', 'portimaoblau', 'dravitgrau', 'phytonicblau'],
+  E21: ['schwarz1', 'polaris', 'arktisblau', 'hennarot', 'graphit', 'ascotgrau'],
+  E24: ['schwarz1', 'zinnoberrot', 'bronzit', 'alpinweiss1', 'bahamabeige', 'lapisblau', 'arktisblau', 'hennarot', 'polaris', 'graphit', 'delphin'],
+  E28: ['schwarz1', 'alpinweiss1', 'zinnoberrot', 'lapisblau', 'diamantschwarz', 'delphin', 'bronzit', 'lachssilber', 'arktisblau', 'polaris', 'hennarot'],
+  E31: ['alpinweiss2', 'alpinweiss', 'calypsorot', 'cosmosschwarz', 'diamantschwarz', 'zinnoberrot'],
+  E71: ['alpinweiss', 'saphirschwarz', 'carbonschwarz', 'schwarz', 'titansilber', 'spacegrau', 'mineralsilber', 'sparklinggraphite'],
+  F12: ['alpinweiss', 'saphirschwarz', 'carbonschwarz', 'titansilber', 'spacegrau', 'havanna'],
+  F22: ['alpinweiss', 'schwarz', 'saphirschwarz', 'glaciersilber', 'mineralweiss', 'mineralgrau', 'estorilblau2'],
+  F25: ['alpinweiss', 'saphirschwarz', 'mineralweiss', 'spacegrau', 'glaciersilber', 'mineralsilber'],
+  F32: ['alpinweiss', 'schwarz', 'saphirschwarz', 'glaciersilber', 'mineralweiss', 'mineralgrau', 'melbournerot', 'estorilblau2', 'imperialblau'],
+  F40: ['alpinweiss', 'saphirschwarz', 'stormbay', 'misanoblau', 'sunsetorange', 'melbournerot'],
+  F48: ['alpinweiss', 'saphirschwarz', 'mineralgrau', 'glaciersilber', 'estorilblau2', 'stormbay'],
+  G01: ['alpinweiss', 'saphirschwarz', 'carbonschwarz', 'mineralweiss', 'phytonicblau'],
+  G02: ['alpinweiss', 'saphirschwarz', 'carbonschwarz', 'mineralweiss', 'phytonicblau'],
+  G05: ['alpinweiss', 'saphirschwarz', 'carbonschwarz', 'mineralweiss', 'phytonicblau'],
+  G06: ['alpinweiss', 'saphirschwarz', 'carbonschwarz', 'mineralweiss', 'phytonicblau'],
+  G11: ['alpinweiss', 'saphirschwarz', 'carbonschwarz', 'schwarz', 'mineralweiss', 'spacegrau', 'brooklyngrau', 'phytonicblau', 'glaciersilber'],
+  G15: ['alpinweiss', 'saphirschwarz', 'carbonschwarz', 'schwarz', 'mineralweiss', 'portimaoblau', 'dravitgrau'],
+  G22: ['alpinweiss', 'saphirschwarz', 'mineralweiss', 'brooklyngrau', 'portimaoblau'],
+  G42: ['alpinweiss', 'schwarz', 'saphirschwarz', 'melbournerot', 'mineralweiss', 'brooklyngrau', 'portimaoblau', 'skyscrapergrau'],
   G30: ['alpinweiss', 'saphirschwarz', 'phytonicblau', 'mineralweiss'],
 };
 // Karosserie-/Facelift-Varianten → Baureihe der Palette
-const SERIES_ALIAS = { E61: 'E60', E91: 'E90', E92: 'E90', E93: 'E90', E81: 'E87', E82: 'E87', E88: 'E87', F11: 'F10', F31: 'F30', F34: 'F30', G31: 'G30', G21: 'G20' };
+const SERIES_ALIAS = { E61: 'E60', E91: 'E90', E92: 'E90', E93: 'E90', E81: 'E87', E82: 'E87', E88: 'E87', F11: 'F10', F31: 'F30', F34: 'F30', G31: 'G30', G21: 'G20',
+  F13: 'F12', F06: 'F12', F23: 'F22', F33: 'F32', F36: 'F32', G23: 'G22', G26: 'G22', G14: 'G15', G16: 'G15', G12: 'G11', E72: 'E71' };
 
 // Baureihe des Fahrzeugs (z. B. 'E39') aus Marke/Modell/Baureihe/Chassis – leer, wenn unbekannt oder keine BMW
 function seriesCodeFor(v) {
