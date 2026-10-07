@@ -86,6 +86,11 @@ const BMW_COLORS = {
   misanoblau: { label: 'Misanoblau', code: 'C1D', hex: '#1F4FA0', light: '#1D4ED8', dark: '#60A5FA' },
   sunsetorange: { label: 'Sunset Orange', code: 'C1X', hex: '#C4531F', light: '#C2410C', dark: '#FB923C' },
   skyscrapergrau: { label: 'Skyscraper Grau', code: 'C4W', hex: '#7B7F85', light: '#475569', dark: '#AEBBCB' },
+  orionsilber:  { label: 'Orionsilber',  code: 'A92', hex: '#A9ABAE', light: '#4A6A8A', dark: '#A9C4DE' },
+  neptunblau:   { label: 'Neptunblau',   code: 'A85', hex: '#2C3F5E', light: '#1D4ED8', dark: '#60A5FA' },
+  dunkelgraphit:{ label: 'Dunkelgraphit',hex: '#3B3E42', light: '#475569', dark: '#AEBBCB' },
+  damaskrot:    { label: 'Damaskrot',    hex: '#6B1F2A', light: '#C81E1E', dark: '#F87171' },
+  milanobeige:  { label: 'Milanobeige',  hex: '#B4A590', light: '#92400E', dark: '#E3C9A0' },
   // Allgemeine Farben (marken-unabhängig)
   g_weiss:      { label: 'Weiß',         hex: '#f1f1ef', light: '#475569', dark: '#E2E8F0' },
   g_silber:     { label: 'Silber',       hex: '#b4b8be', light: '#4A6A8A', dark: '#A9C4DE' },
@@ -150,11 +155,14 @@ const SERIES_COLORS = {
   G15: ['alpinweiss', 'saphirschwarz', 'carbonschwarz', 'schwarz', 'mineralweiss', 'portimaoblau', 'dravitgrau'],
   G22: ['alpinweiss', 'saphirschwarz', 'mineralweiss', 'brooklyngrau', 'portimaoblau'],
   G42: ['alpinweiss', 'schwarz', 'saphirschwarz', 'melbournerot', 'mineralweiss', 'brooklyngrau', 'portimaoblau', 'skyscrapergrau'],
+  E63: ['alpinweiss', 'titansilber', 'stratusgrau', 'saphirschwarz', 'monacoblau'],
+  F01: ['alpinweiss', 'schwarz', 'saphirschwarz', 'carbonschwarz', 'titansilber', 'havanna', 'imperialblau', 'mineralweiss'],
+  F07: ['alpinweiss', 'schwarz', 'saphirschwarz', 'titansilber', 'orionsilber', 'spacegrau', 'dunkelgraphit', 'imperialblau', 'neptunblau', 'milanobeige', 'damaskrot', 'mineralweiss', 'glaciersilber'],
   G30: ['alpinweiss', 'saphirschwarz', 'phytonicblau', 'mineralweiss'],
 };
 // Karosserie-/Facelift-Varianten → Baureihe der Palette
 const SERIES_ALIAS = { E61: 'E60', E91: 'E90', E92: 'E90', E93: 'E90', E81: 'E87', E82: 'E87', E88: 'E87', F11: 'F10', F31: 'F30', F34: 'F30', G31: 'G30', G21: 'G20',
-  F13: 'F12', F06: 'F12', F23: 'F22', F33: 'F32', F36: 'F32', G23: 'G22', G26: 'G22', G14: 'G15', G16: 'G15', G12: 'G11', E72: 'E71' };
+  F13: 'F12', F06: 'F12', F23: 'F22', F33: 'F32', F36: 'F32', G23: 'G22', G26: 'G22', G14: 'G15', G16: 'G15', G12: 'G11', E72: 'E71', E64: 'E63', F02: 'F01', F04: 'F01' };
 
 // Baureihe des Fahrzeugs (z. B. 'E39') aus Marke/Modell/Baureihe/Chassis – leer, wenn unbekannt oder keine BMW
 function seriesCodeFor(v) {
