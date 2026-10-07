@@ -2008,6 +2008,10 @@ async function deleteVehicle(id) {
   if (wasActive) switchTab('dashboard'); // sonst bleibt das Menü offen
 }
 
+function editVehicleData() {
+  showOnboarding();
+}
+
 // ─── Helper ───────────────────────────────────────────────────────────────────
 function todayIso() {
   return toIso(new Date());
