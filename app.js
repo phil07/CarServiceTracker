@@ -335,7 +335,7 @@ function persistRaw() {
 
 function saveState() {
   stampChanges();
-  if (persistRaw()) { window.scheduleSync?.(); window.scheduleBookPublish?.(); }
+  if (persistRaw()) { window.scheduleSync?.(); window.scheduleBookPublish?.(); window.checkReminders?.(); }
 }
 
 // ─── Theme (Hell / Dunkel / System) ───────────────────────────────────────────
@@ -1036,6 +1036,7 @@ function renderSettings() {
   renderVehicleInfo('settingsVehicleInfo', state.vehicle);
   renderVehiclePhotos();
   renderBookCard?.();
+  window.renderReminderCard?.();
   renderStats();
   renderIntervalEditor();
   buildColorGrid('settingsColorGrid', state.settings.vehicleColor, (key) => {
@@ -2175,6 +2176,7 @@ function init() {
 
   window.initSync?.();
   window.initBook?.();
+  window.initReminders?.();
 
   // Erster Start: zuerst VIN abfragen
   if (!state.settings.onboardingDone) {

@@ -221,6 +221,13 @@
             <div class="photo-strip" id="vehiclePhotos"></div>
             <input type="file" id="vehiclePhotoInput" accept="image/*" multiple hidden onchange="onVehiclePhotosPicked(this)">
 
+            <h3 class="section-title">Erinnerungen</h3>
+            <div class="card info-card sync-card">
+                <p class="settings-hint">Benachrichtigt dich, wenn eine Wartung bald fällig oder überfällig ist (nach den Intervallen unten, für alle Fahrzeuge). Die Prüfung läuft auf diesem Gerät und es werden keine Daten gesendet. Du bekommst den Hinweis beim Öffnen der App, als Zähler am App-Symbol und, wo der Browser es erlaubt (Chrome/Android mit installierter App), auch im Hintergrund.</p>
+                <label class="check-row"><input type="checkbox" id="remindOn" onchange="setReminders(this.checked)"> Erinnerungen an fällige Wartungen</label>
+                <div class="backup-status" id="remindStatus" aria-live="polite"></div>
+            </div>
+
             <h3 class="section-title">Digitales Scheckheft</h3>
             <div class="card info-card sync-card book-card">
                 <p class="settings-hint">Veröffentliche die Wartungshistorie dieses Fahrzeugs als Webseite mit QR-Code, zum Beispiel für Werkstatt oder Käufer. Jeder mit dem Link kann sie ansehen, auch ohne die App, und sie ist immer auf dem neuesten Stand. Ohne Kosten, Notizen und Tankbuch, die FIN ist wählbar. Die Daten liegen auf dem Server dieser App (<a href="datenschutz.html#scheckheft">Datenschutz</a>).</p>
@@ -471,6 +478,7 @@
 <script src="photos.js"></script>
 <script src="sync.js"></script>
 <script src="book.js"></script>
+<script src="reminders.js"></script>
 <script>
   // Nach einem Reload prüfen, ob das angestoßene Update tatsächlich griff
   (function checkUpdateResult() {

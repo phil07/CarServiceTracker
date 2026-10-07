@@ -2,7 +2,7 @@
 importScripts('version.js'); // sets self.APP_VERSION – single source of truth
 const CACHE = 'service-tracker-' + self.APP_VERSION;
 
-const PRECACHE = ['./', './index.html', './style.css', './app.js', './sync.js', './book.js', './assets/qrcode.js', './photos.js', './datenschutz.html', './impressum.html', './legal.js', './legal.css', './version.js', './manifest.json',
+const PRECACHE = ['./', './index.html', './style.css', './app.js', './sync.js', './book.js', './reminders.js', './assets/qrcode.js', './photos.js', './datenschutz.html', './impressum.html', './legal.js', './legal.css', './version.js', './manifest.json',
   './assets/fonts/fonts.css', './assets/fonts/phosphor.css', './assets/fonts/Phosphor-Light.woff2',
   './assets/fonts/plus-jakarta-sans-latin-400-normal.woff2', './assets/fonts/plus-jakarta-sans-latin-500-normal.woff2',
   './assets/fonts/plus-jakarta-sans-latin-600-normal.woff2', './assets/fonts/plus-jakarta-sans-latin-700-normal.woff2',
@@ -36,7 +36,7 @@ self.addEventListener('message', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+      Promise.all(keys.filter(k => k !== CACHE && k !== 'cst-reminders').map(k => caches.delete(k)))
     )
   );
   self.clients.claim();
@@ -47,7 +47,33 @@ self.addEventListener('activate', e => {
 // Voraussetzung: periodicSync.register() im Client + Notification-Berechtigung.
 self.addEventListener('periodicsync', e => {
   if (e.tag === 'check-update') e.waitUntil(checkForUpdates());
+  if (e.tag === 'service-due') e.waitUntil(checkServiceDue());
 });
+
+// Erinnerungen an fällige Wartungen: Momentaufnahme der datumsbasierten Fristen aus dem Cache (schreibt reminders.js)
+async function checkServiceDue() {
+  const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+  if (clients.some(c => c.visibilityState === 'visible')) return; // App sichtbar → dort läuft die Prüfung
+  try {
+    const cache = await caches.open('cst-reminders');
+    const res = await cache.match('./reminders-snapshot.json');
+    if (!res) return;
+    const snap = await res.json();
+    const d = new Date();
+    const p = n => String(n).padStart(2, '0');
+    const today = d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+    snap.notified = snap.notified || {};
+    const due = (snap.items || []).filter(i => i.from <= today && snap.notified[i.key] !== today);
+    if (!due.length) return;
+    due.forEach(i => { snap.notified[i.key] = today; });
+    const lines = due.slice(0, 5).map(i => i.category + ' – ' + i.vehicle + (i.due < today ? ' (überfällig)' : ''));
+    if (due.length > 5) lines.push('… und ' + (due.length - 5) + ' weitere');
+    await cache.put('./reminders-snapshot.json', new Response(JSON.stringify(snap), { headers: { 'Content-Type': 'application/json' } }));
+    await self.registration.showNotification(due.length === 1 ? 'Wartung fällig' : due.length + ' Wartungen fällig', {
+      body: lines.join('\n'), tag: 'service-due', renotify: true, data: { url: './' }
+    });
+  } catch (e) { console.warn('SW Erinnerungen:', e); }
+}
 
 // Online-Trigger: Sofortiger Update-Check, sobald wieder Internet da ist
 self.addEventListener('sync', e => {
