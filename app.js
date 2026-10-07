@@ -33,6 +33,14 @@ const BMW_COLORS = {
   // Grün
   bostongruen:  { label: 'Bostongrün',   hex: '#14532d', light: '#15803D', dark: '#4ADE80' },
   oxfordgruen:  { label: 'Oxfordgrün',   hex: '#1f3f2e', code: '324', light: '#166534', dark: '#6EE7A0' },
+  saphirschwarz:{ label: 'Saphirschwarz',code: '475', hex: '#16191f', light: '#1F2937', dark: '#E5E7EB' },
+  spacegrau:    { label: 'Space Grau',   code: 'A52', hex: '#5d6065', light: '#3B4A5C', dark: '#A3B1C2' },
+  mineralgrau:  { label: 'Mineralgrau',  code: 'B39', hex: '#6e7075', light: '#475569', dark: '#AEBBCB' },
+  sophistograu: { label: 'Sophistograu', code: 'A90', hex: '#4a4c52', light: '#3B4A5C', dark: '#A3B1C2' },
+  glaciersilber:{ label: 'Glaciersilber',code: 'A83', hex: '#b7bcc2', light: '#4A6A8A', dark: '#A9C4DE' },
+  mineralweiss: { label: 'Mineralweiß',  code: 'A96', hex: '#e9e8e4', light: '#475569', dark: '#E2E8F0' },
+  estorilblau:  { label: 'Estorilblau',  code: '335', hex: '#1f58a8', light: '#1D4ED8', dark: '#60A5FA' },
+  melbournerot: { label: 'Melbournerot', code: 'A75', hex: '#a3171c', light: '#C81E1E', dark: '#F87171' },
   stahlblau:    { label: 'Stahlblau',    code: '372', hex: '#4d6783', light: '#1E40AF', dark: '#93B4E0' },
   aspensilber:  { label: 'Aspensilber',  code: '339', hex: '#a3a7ac', light: '#52637A', dark: '#BCCADB' },
   // Allgemeine Farben (marken-unabhängig)
@@ -1287,10 +1295,10 @@ function buildColorGrid(containerId, selectedKey, onSelect, vehicle) {
   const grid = document.getElementById(containerId);
   if (!grid) return;
   const base = colorKeysFor(vehicle || {});
-  const showCodes = base === E39_COLOR_KEYS;
+  const showCodes = base === E39_COLOR_KEYS || colorShowAll;
   // Die aktuell gewählte Farbe bleibt immer sichtbar, auch wenn sie nicht zur Palette gehört
   const keys = colorShowAll ? Object.keys(BMW_COLORS) : (base.includes(selectedKey) || !BMW_COLORS[selectedKey] ? base : [selectedKey, ...base]);
-  grid.innerHTML = keys.map(key => { const c = BMW_COLORS[key]; return `
+  grid.innerHTML = (colorShowAll ? '<input type="search" class="color-search" placeholder="Farbe oder Code suchen (z.B. Orient, 475)" aria-label="Farbe suchen" autocomplete="off">' : '') + keys.map(key => { const c = BMW_COLORS[key]; return `
     <button type="button" class="color-swatch-btn${selectedKey === key ? ' active' : ''}"
             title="${c.label}${showCodes && c.code ? ' (' + c.code + ')' : ''}"
             aria-label="${c.label}${showCodes && c.code ? ', Farbcode ' + c.code : ''}${selectedKey === key ? ' (aktiv)' : ''}"
@@ -1300,6 +1308,14 @@ function buildColorGrid(containerId, selectedKey, onSelect, vehicle) {
       <span class="swatch-label">${c.label}</span>${showCodes && c.code ? `<span class="swatch-code">${c.code}</span>` : ''}
     </button>`; }
   ).join('') + `<button type="button" class="link-btn color-more" data-more>${colorShowAll ? 'Nur passende Farben zeigen' : 'Alle Farben anzeigen'}</button>`;
+  const search = grid.querySelector('.color-search');
+  if (search) search.oninput = () => {
+    const q = search.value.trim().toLowerCase();
+    grid.querySelectorAll('[data-color]').forEach(b => {
+      const c = BMW_COLORS[b.dataset.color];
+      b.hidden = !!q && !(c.label.toLowerCase().includes(q) || (c.code || '').toLowerCase().includes(q));
+    });
+  };
   grid.onclick = (e) => {
     if (e.target.closest('[data-more]')) { colorShowAll = !colorShowAll; buildColorGrid(containerId, selectedKey, onSelect, vehicle); return; }
     const btn = e.target.closest('[data-color]');

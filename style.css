@@ -785,3 +785,5 @@ dialog.lightbox::backdrop { background: #000; -webkit-backdrop-filter: none; bac
 
 .swatch-code { font-size: 9px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; line-height: 1; margin-top: -2px; }
 .color-more { grid-column: 1 / -1; justify-self: center; margin-top: 4px; }
+.color-search { grid-column: 1 / -1; width: 100%; padding: 12px 16px; border: 0; border-radius: 14px; background: var(--bg-elevated); color: var(--label); font: inherit; font-size: 14px; box-shadow: var(--hl), inset 0 0 0 1px var(--shell-ring); }
+.color-swatch-btn[hidden] { display: none; }
