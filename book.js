@@ -13,7 +13,8 @@
   const MAX_PHOTO_BYTES = 1536 * 1024;
 
   const read = () => { try { return JSON.parse(localStorage.getItem(STATE_KEY) || 'null') || {}; } catch (e) { return {}; } };
-  const bookState = id => Object.assign({ hash: '', up: [], at: 0 }, read()[id]);
+  const RENEW_MS = 180 * 86400000; // Server löscht nach 12 Monaten ohne Schreiben – vorher erneuern
+  const bookState = id => Object.assign({ hash: '', up: [], at: 0, pat: 0 }, read()[id]);
   const saveBookState = (id, st) => { try { const all = read(); all[id] = st; localStorage.setItem(STATE_KEY, JSON.stringify(all)); } catch (e) {} };
   const dropBookState = id => { try { const all = read(); delete all[id]; localStorage.setItem(STATE_KEY, JSON.stringify(all)); } catch (e) {} };
 
@@ -76,7 +77,9 @@
     if (!sh) return;
     const st = bookState(sh.id);
     const want = wantedPhotoIds(rec);
-    const up = new Set(st.up);
+    const now = Date.now();
+    const photosFresh = st.pat && now - st.pat < RENEW_MS;
+    const up = new Set(photosFresh ? st.up : []);
     for (const pid of want) {
       if (up.has(pid)) continue;
       const blob = await photoGet(pid);
@@ -88,10 +91,10 @@
     [...up].forEach(pid => { if (!want.includes(pid)) up.delete(pid); });
     const snap = snapshotOf(rec, up);
     const hash = canon(snap);
-    if (!force && !stale && hash === st.hash) return;
+    if (!force && !stale && hash === st.hash && st.at && now - st.at < RENEW_MS) return;
     snap.updated = Date.now();
     await call(sh.id + (stale ? '?prune=1' : ''), 'PUT', sh.secret, JSON.stringify(snap), 'application/json');
-    saveBookState(sh.id, { hash, up: [...up], at: snap.updated });
+    saveBookState(sh.id, { hash, up: [...up], at: snap.updated, pat: photosFresh ? st.pat : now });
   }
 
   async function publishAll(force) {

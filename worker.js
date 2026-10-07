@@ -10,6 +10,7 @@ const PID_RE = /^[A-Za-z0-9_-]{1,64}$/;
 const MAX_BOOK = 1024 * 1024;       // 1 MB je Scheckheft-Daten
 const MAX_PHOTO = 1536 * 1024;      // 1,5 MB je Foto
 const MAX_PHOTOS = 80;              // Fotos je Scheckheft
+const BOOK_TTL = 365 * 86400;       // Scheckheft und Fotos verfallen 12 Monate nach dem letzten Schreiben (die App erneuert alle ~6 Monate)
 
 const json = (obj, status = 200, extra = {}) => new Response(JSON.stringify(obj), {
   status,
@@ -56,7 +57,7 @@ async function api(req, env, url) {
   if (req.method === 'GET' && sub === 'photo' && PID_RE.test(parts[4] || '')) {
     const buf = await env.BOOKS.get('p:' + id + ':' + parts[4], 'arrayBuffer');
     if (!buf) return new Response('Nicht gefunden', { status: 404 });
-    return new Response(buf, { headers: { 'content-type': 'image/jpeg', 'cache-control': 'public, max-age=31536000, immutable', 'x-robots-tag': 'noindex' } });
+    return new Response(buf, { headers: { 'content-type': 'image/jpeg', 'cache-control': 'public, max-age=86400', 'x-robots-tag': 'noindex' } });
   }
 
   // ─── schreiben (mit Schlüssel) ─────────────────────────────────────────────
@@ -67,7 +68,7 @@ async function api(req, env, url) {
     if (text.length > MAX_BOOK) return json({ error: 'Zu groß' }, 413);
     let data; try { data = cleanSnapshot(JSON.parse(text)); } catch (e) { data = null; }
     if (!data) return json({ error: 'Ungültige Daten' }, 400);
-    await env.BOOKS.put('b:' + id, JSON.stringify({ hash: a.hash, data }));
+    await env.BOOKS.put('b:' + id, JSON.stringify({ hash: a.hash, data }), { expirationTtl: BOOK_TTL });
     if (url.searchParams.get('prune') === '1') { // nicht mehr verwendete Fotos entfernen
       const keep = new Set();
       const add = pid => { if (typeof pid === 'string' && PID_RE.test(pid)) keep.add(pid); };
@@ -91,8 +92,8 @@ async function api(req, env, url) {
       const list = await env.BOOKS.list({ prefix });
       if (list.keys.length >= MAX_PHOTOS) return json({ error: 'Zu viele Fotos' }, 413);
     }
-    if (!a.rec) await env.BOOKS.put('b:' + id, JSON.stringify({ hash: a.hash, data: null }));
-    await env.BOOKS.put(key, buf);
+    if (!a.rec) await env.BOOKS.put('b:' + id, JSON.stringify({ hash: a.hash, data: null }), { expirationTtl: BOOK_TTL });
+    await env.BOOKS.put(key, buf, { expirationTtl: BOOK_TTL });
     return json({ ok: true });
   }
   if (req.method === 'DELETE' && !sub) {
