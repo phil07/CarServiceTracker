@@ -31,7 +31,16 @@ arbeitet rein lokal.
 5. Die erzeugte **Client-ID** (endet auf `.apps.googleusercontent.com`) kopieren und in
    `sync.js` bei `GOOGLE_CLIENT_ID` eintragen. Die Client-ID ist öffentlich, kein Geheimnis.
    Ein Client-Secret wird **nicht** benötigt und darf nicht in die App.
-6. Neue Version ausliefern (`version.js` erhöhen). Unter „Fahrzeug & Design“ erscheint der
+6. **Dauerhafte Anmeldung (Worker-Secrets)**, damit der Abgleich ohne erneutes Bestätigen im
+   Hintergrund läuft. In der Google Cloud Console unter Clients beim Web-Client ein **Client-Secret**
+   erzeugen und beide Werte als Secrets am Worker hinterlegen (nicht ins Repo):
+   - `npx wrangler secret put GOOGLE_CLIENT_SECRET`
+   - `npx wrangler secret put GAUTH_KEY` – eine zufällige Zeichenkette (mind. 32 Zeichen),
+     z. B. aus `openssl rand -base64 48`. Damit wird das Refresh-Token im Cookie verschlüsselt.
+     Wird der Schlüssel geändert, müssen sich alle Nutzer einmal neu verbinden.
+
+   Ohne diese Secrets funktioniert die Synchronisierung weiter, aber nur mit 1-Stunden-Token (siehe Grenzen).
+7. Neue Version ausliefern (`version.js` erhöhen). Unter „Fahrzeug & Design“ erscheint der
    Abschnitt **Synchronisierung**.
 
 ## Hinweis zur Adresse `workers.dev`
@@ -65,9 +74,13 @@ den neuen Ursprung ergänzt werden.
 
 ## Grenzen
 
-- Ohne eigenen Server gibt es keinen dauerhaften Login: Das Zugriffstoken gilt **1 Stunde**.
-  Danach zeigt die App einen Hinweis „Mit Google Drive abgleichen“; ein Tipp genügt
-  (Google bestätigt meist ohne erneute Eingabe).
+- Dauerhafter Abgleich im Hintergrund: Der Worker (`/api/gauth/`) tauscht beim Verbinden den Code gegen ein
+  Refresh-Token und legt es AES-GCM-verschlüsselt als httpOnly-Cookie (`cst_grt`) im Browser ab. Danach holt die App
+  still neue Zugriffstokens; der Worker speichert nichts. Google gibt das Refresh-Token nur bei der ersten
+  Zustimmung heraus – wer der App schon vorher (1-Stunden-Variante) zugestimmt hat, entfernt den Zugriff einmal unter
+  myaccount.google.com → Sicherheit → Drittanbieter-Apps und verbindet neu.
+- Ohne Worker-Secrets gilt das Zugriffstoken nur **1 Stunde**. Danach zeigt die App einen Hinweis
+  „Mit Google Drive abgleichen“; ein Tipp genügt.
 - Gleichzeitiges Bearbeiten auf zwei Geräten ist möglich. Bei demselben Eintrag gilt die
   spätere Änderung. Das geht nach Uhrzeit der Geräte, die Uhren sollten also stimmen.
 - Die Anmeldung in einer auf den Homescreen installierten Web-App kann auf dem iPhone
