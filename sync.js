@@ -5,7 +5,7 @@
 // Das Google-Anmeldeskript wird erst beim Verbinden geladen, nicht beim normalen Start.
 //
 // Einrichtung: siehe docs/google-drive-sync.md – hier nur die OAuth-Client-ID eintragen.
-const GOOGLE_CLIENT_ID = '';
+const GOOGLE_CLIENT_ID = '456570124356-ksovdvup3n1o9hhq6hnm3tfms1r1a0hs.apps.googleusercontent.com';
 
 (function () {
   'use strict';
