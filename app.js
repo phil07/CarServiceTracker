@@ -7,24 +7,24 @@
 // dark  = Akzent im dunklen Design (dunkle Schrift darauf)
 const BMW_COLORS = {
   // Silber / Grau
-  alpinweiss:   { label: 'Alpinweiß',    hex: '#e8e8e6', light: '#475569', dark: '#E2E8F0' },
-  arktissilber: { label: 'Arktissilber', hex: '#a9adb3', light: '#4A6A8A', dark: '#A9C4DE' },
+  alpinweiss:   { label: 'Alpinweiß',    hex: '#e8e8e6', code: '300', light: '#475569', dark: '#E2E8F0' },
+  arktissilber: { label: 'Arktissilber', hex: '#a9adb3', code: '309', light: '#4A6A8A', dark: '#A9C4DE' },
   hellsilber:   { label: 'Hellsilber',   hex: '#b8bec7', light: '#52637A', dark: '#BCCADB' },
   kashmirsilber:{ label: 'Kashmirsilber',hex: '#b1b4ae', light: '#5B6572', dark: '#C3CAD3' },
-  titansilber:  { label: 'Titansilber',  hex: '#8a8f98', light: '#3F5A78', dark: '#8FB0D3' },
-  sterlinggrau: { label: 'Sterlinggrau', hex: '#7b7f86', light: '#475569', dark: '#AEBBCB' },
-  stahlgrau:    { label: 'Stahlgrau',    hex: '#656a72', light: '#3B4A5C', dark: '#A3B1C2' },
+  titansilber:  { label: 'Titansilber',  hex: '#8a8f98', code: '354', light: '#3F5A78', dark: '#8FB0D3' },
+  sterlinggrau: { label: 'Sterlinggrau', hex: '#7b7f86', code: '472', light: '#475569', dark: '#AEBBCB' },
+  stahlgrau:    { label: 'Stahlgrau',    hex: '#656a72', code: '400', light: '#3B4A5C', dark: '#A3B1C2' },
   fjordgrau:    { label: 'Fjordgrau',    hex: '#5b6672', light: '#36556E', dark: '#8FB4CF' },
   // Schwarz
-  schwarz:      { label: 'Schwarz',      hex: '#1c1c1f', light: '#27272A', dark: '#E4E4E7' },
+  schwarz:      { label: 'Schwarz',      hex: '#1c1c1f', code: '668', light: '#27272A', dark: '#E4E4E7' },
   diamantschwarz:{label: 'Diamantschwarz',hex:'#1b1d22', light: '#1F2937', dark: '#E5E7EB' },
-  cosmosschwarz:{ label: 'Cosmosschwarz',hex: '#101216', light: '#18181B', dark: '#E4E4E7' },
-  carbonschwarz:{ label: 'Carbonschwarz',hex: '#202328', light: '#27272A', dark: '#E4E4E7' },
+  cosmosschwarz:{ label: 'Cosmosschwarz',hex: '#101216', code: '303', light: '#18181B', dark: '#E4E4E7' },
+  carbonschwarz:{ label: 'Carbonschwarz',hex: '#202328', code: '416', light: '#27272A', dark: '#E4E4E7' },
   // Blau
-  orientblau:   { label: 'Orientblau',   hex: '#1e3a8a', light: '#1D4ED8', dark: '#60A5FA' },
+  orientblau:   { label: 'Orientblau',   hex: '#1e3a8a', code: '317', light: '#1D4ED8', dark: '#60A5FA' },
   imperialblau: { label: 'Imperialblau', hex: '#1e2f6b', light: '#3730A3', dark: '#A5B4FC' },
-  topasblau:    { label: 'Topasblau',    hex: '#3a6ea5', light: '#1D4ED8', dark: '#7DB4F0' },
-  montrealblau: { label: 'Montrealblau', hex: '#2c4a78', light: '#1E40AF', dark: '#93C5FD' },
+  topasblau:    { label: 'Topasblau',    hex: '#3a6ea5', code: '364', light: '#1D4ED8', dark: '#7DB4F0' },
+  montrealblau: { label: 'Montrealblau', hex: '#2c4a78', code: '297', light: '#1E40AF', dark: '#93C5FD' },
   biarritzblau: { label: 'Biarritzblau', hex: '#6f93b8', light: '#0369A1', dark: '#7DD3FC' },
   avusblau:     { label: 'Avusblau',     hex: '#1f4fa8', light: '#1D4ED8', dark: '#60A5FA' },
   // Rot
@@ -32,11 +32,37 @@ const BMW_COLORS = {
   sienarot:     { label: 'Sienarot',     hex: '#6e1f22', light: '#B91C1C', dark: '#FCA5A5' },
   // Grün
   bostongruen:  { label: 'Bostongrün',   hex: '#14532d', light: '#15803D', dark: '#4ADE80' },
-  oxfordgruen:  { label: 'Oxfordgrün',   hex: '#1f3f2e', light: '#166534', dark: '#6EE7A0' },
+  oxfordgruen:  { label: 'Oxfordgrün',   hex: '#1f3f2e', code: '324', light: '#166534', dark: '#6EE7A0' },
+  stahlblau:    { label: 'Stahlblau',    code: '372', hex: '#4d6783', light: '#1E40AF', dark: '#93B4E0' },
+  aspensilber:  { label: 'Aspensilber',  code: '339', hex: '#a3a7ac', light: '#52637A', dark: '#BCCADB' },
+  // Allgemeine Farben (marken-unabhängig)
+  g_weiss:      { label: 'Weiß',         hex: '#f1f1ef', light: '#475569', dark: '#E2E8F0' },
+  g_silber:     { label: 'Silber',       hex: '#b4b8be', light: '#4A6A8A', dark: '#A9C4DE' },
+  g_grau:       { label: 'Grau',         hex: '#70757c', light: '#475569', dark: '#AEBBCB' },
+  g_schwarz:    { label: 'Schwarz',      hex: '#1c1c1f', light: '#27272A', dark: '#E4E4E7' },
+  g_blau:       { label: 'Blau',         hex: '#2f5fb3', light: '#1D4ED8', dark: '#60A5FA' },
+  g_rot:        { label: 'Rot',          hex: '#b22222', light: '#C81E1E', dark: '#F87171' },
+  g_gruen:      { label: 'Grün',         hex: '#2f7d4a', light: '#15803D', dark: '#4ADE80' },
+  g_gelb:       { label: 'Gelb',         hex: '#e0b422', light: '#A16207', dark: '#FACC15' },
+  g_orange:     { label: 'Orange',       hex: '#e07b1f', light: '#C2410C', dark: '#FB923C' },
+  g_braun:      { label: 'Braun',        hex: '#6b4a32', light: '#92400E', dark: '#D6A77A' },
+  g_beige:      { label: 'Beige',        hex: '#c9b79c', light: '#92400E', dark: '#E3C9A0' },
   // Gelb / Beige
   dakargelb:    { label: 'Dakargelb',    hex: '#d9a521', light: '#A16207', dark: '#FACC15' },
   mojavesand:   { label: 'Mojavesand',   hex: '#a8875c', light: '#92400E', dark: '#E3A869' },
 };
+
+// Farbpaletten: Serienfarben des E39 (Code = BMW-Farbcode, am Federbein-Dom bzw. Typenschild; Quellen: BMW-Farbcode-Listen,
+// Codes können je nach Baujahr/Markt abweichen) und allgemeine Farben für alle anderen Fahrzeuge.
+const E39_COLOR_KEYS = ['alpinweiss', 'schwarz', 'cosmosschwarz', 'carbonschwarz', 'arktissilber', 'aspensilber', 'titansilber', 'sterlinggrau', 'stahlgrau',
+  'montrealblau', 'orientblau', 'topasblau', 'stahlblau', 'oxfordgruen'];
+const GENERIC_COLOR_KEYS = ['g_weiss', 'g_silber', 'g_grau', 'g_schwarz', 'g_blau', 'g_rot', 'g_gruen', 'g_gelb', 'g_orange', 'g_braun', 'g_beige'];
+
+function colorKeysFor(v) {
+  const txt = [v && v.make, v && v.model, v && v.series, v && v.chassis].filter(Boolean).join(' ');
+  const isE39 = /\bE39\b/i.test(txt) && (!v.make || /BMW/i.test(v.make) || /\bE39\b/i.test(v.model || ''));
+  return isE39 ? E39_COLOR_KEYS : GENERIC_COLOR_KEYS;
+}
 
 // ─── Kategorien ───────────────────────────────────────────────────────────────
 const CATEGORIES = {
@@ -1010,7 +1036,7 @@ function renderSettings() {
     applyTheme(key);
     renderSettings();
     showToast('Farbe geändert: ' + BMW_COLORS[key].label, 'ok');
-  });
+  }, state.vehicle);
 }
 
 const fmtEur = n => n.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
@@ -1255,20 +1281,27 @@ function bindIntervalEditor() {
   });
 }
 
-function buildColorGrid(containerId, selectedKey, onSelect) {
+let colorShowAll = false;
+
+function buildColorGrid(containerId, selectedKey, onSelect, vehicle) {
   const grid = document.getElementById(containerId);
   if (!grid) return;
-  grid.innerHTML = Object.entries(BMW_COLORS).map(([key, c]) => `
+  const base = colorKeysFor(vehicle || {});
+  const showCodes = base === E39_COLOR_KEYS;
+  // Die aktuell gewählte Farbe bleibt immer sichtbar, auch wenn sie nicht zur Palette gehört
+  const keys = colorShowAll ? Object.keys(BMW_COLORS) : (base.includes(selectedKey) || !BMW_COLORS[selectedKey] ? base : [selectedKey, ...base]);
+  grid.innerHTML = keys.map(key => { const c = BMW_COLORS[key]; return `
     <button type="button" class="color-swatch-btn${selectedKey === key ? ' active' : ''}"
-            title="${c.label}"
-            aria-label="${c.label}${selectedKey === key ? ' (aktiv)' : ''}"
+            title="${c.label}${showCodes && c.code ? ' (' + c.code + ')' : ''}"
+            aria-label="${c.label}${showCodes && c.code ? ', Farbcode ' + c.code : ''}${selectedKey === key ? ' (aktiv)' : ''}"
             aria-pressed="${selectedKey === key}"
             data-color="${key}">
       <span class="swatch-dot" style="--swatch-color:${c.hex};"></span>
-      <span class="swatch-label">${c.label}</span>
-    </button>`
-  ).join('');
+      <span class="swatch-label">${c.label}</span>${showCodes && c.code ? `<span class="swatch-code">${c.code}</span>` : ''}
+    </button>`; }
+  ).join('') + `<button type="button" class="link-btn color-more" data-more>${colorShowAll ? 'Nur passende Farben zeigen' : 'Alle Farben anzeigen'}</button>`;
   grid.onclick = (e) => {
+    if (e.target.closest('[data-more]')) { colorShowAll = !colorShowAll; buildColorGrid(containerId, selectedKey, onSelect, vehicle); return; }
     const btn = e.target.closest('[data-color]');
     if (btn) onSelect(btn.dataset.color);
   };
@@ -1850,12 +1883,19 @@ function showOnboardingDetails(decoded, source) {
   showOnboardingStep('details');
 }
 
+// Fahrzeug im Onboarding: dekodierte Daten + ggf. von Hand geänderte Modellbezeichnung
+function onboardingVehicle() {
+  const typed = (document.getElementById('onboardingModel') || {}).value || '';
+  const base = pendingVehicle || state.vehicle || {};
+  return Object.assign({}, base, { model: [base.model, typed].filter(Boolean).join(' ') });
+}
+
 function buildOnboardingColorGrid() {
   buildColorGrid('onboardingColorGrid', pendingOnboardingColor, (key) => {
     pendingOnboardingColor = key;
     applyTheme(key);
     buildOnboardingColorGrid();
-  });
+  }, onboardingVehicle());
 }
 
 function finishOnboarding(event) {

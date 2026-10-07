@@ -782,3 +782,6 @@ dialog.lightbox::backdrop { background: #000; -webkit-backdrop-filter: none; bac
 .veh-row .menu-item { flex: 1; min-width: 0; }
 .veh-del { flex-shrink: 0; width: 44px; height: 44px; border: 0; border-radius: 50%; background: none; color: var(--muted); font-size: 20px; cursor: pointer; display: grid; place-items: center; }
 .veh-del:hover, .veh-del:active { background: var(--shell); color: var(--err-fill); }
+
+.swatch-code { font-size: 9px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; line-height: 1; margin-top: -2px; }
+.color-more { grid-column: 1 / -1; justify-self: center; margin-top: 4px; }
