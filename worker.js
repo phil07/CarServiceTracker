@@ -116,9 +116,105 @@ async function asset(env, origin, path) {
   return r;
 }
 
+// ─── Google-Anmeldung für die Drive-Synchronisierung ──────────────────────────
+// Der Worker tauscht nur den Anmeldecode bzw. das Refresh-Token bei Google gegen ein kurzlebiges
+// Zugriffstoken. Das Refresh-Token liegt AES-GCM-verschlüsselt als httpOnly-Cookie im Browser des
+// Nutzers; der Worker speichert nichts und sieht keine Drive-Inhalte.
+// Secrets (wrangler secret put …): GOOGLE_CLIENT_SECRET, GAUTH_KEY (zufällige Zeichenkette, mind. 32 Zeichen)
+const GOOGLE_CLIENT_ID = '456570124356-ksovdvup3n1o9hhq6hnm3tfms1r1a0hs.apps.googleusercontent.com';
+const GAUTH_COOKIE = 'cst_grt';
+const GAUTH_MAX_AGE = 400 * 86400; // Browser-Höchstwert
+
+const b64u = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const unb64u = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+
+async function gauthKey(env) {
+  const raw = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(env.GAUTH_KEY));
+  return crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt', 'decrypt']);
+}
+
+async function seal(env, text) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await gauthKey(env), new TextEncoder().encode(text));
+  return b64u(iv) + '.' + b64u(ct);
+}
+
+async function unseal(env, s) {
+  try {
+    const [iv, ct] = s.split('.');
+    const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64u(iv) }, await gauthKey(env), unb64u(ct));
+    return new TextDecoder().decode(pt);
+  } catch (e) { return null; }
+}
+
+function readCookie(req, name) {
+  const c = (req.headers.get('cookie') || '').split(/;\s*/).find(p => p.startsWith(name + '='));
+  return c ? c.slice(name.length + 1) : null;
+}
+
+const gauthCookie = (value, maxAge) => GAUTH_COOKIE + '=' + value + '; Path=/api/gauth/; Max-Age=' + maxAge + '; HttpOnly; Secure; SameSite=Strict';
+
+async function googleToken(env, params) {
+  const r = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(Object.assign({ client_id: GOOGLE_CLIENT_ID, client_secret: env.GOOGLE_CLIENT_SECRET }, params)),
+  });
+  return { ok: r.ok, data: await r.json().catch(() => ({})) };
+}
+
+async function gauth(req, env, url) {
+  if (req.method !== 'POST') return json({ error: 'Methode nicht erlaubt' }, 405);
+  const origin = req.headers.get('origin');
+  if (req.headers.get('x-cst') !== '1' || (origin && origin !== url.origin)) return json({ error: 'Nicht erlaubt' }, 403);
+  if (!env.GOOGLE_CLIENT_SECRET || !env.GAUTH_KEY) return json({ error: 'Server nicht eingerichtet' }, 503);
+  const action = url.pathname.slice('/api/gauth/'.length);
+
+  // Anmeldecode (Popup) gegen Zugriffs- und Refresh-Token tauschen
+  if (action === 'exchange') {
+    let code; try { code = (await req.json()).code; } catch (e) {}
+    if (typeof code !== 'string' || !code || code.length > 2048) return json({ error: 'Ungültiger Code' }, 400);
+    const t = await googleToken(env, { code, grant_type: 'authorization_code', redirect_uri: 'postmessage' });
+    if (!t.ok || !t.data.access_token) return json({ error: 'Anmeldung bei Google fehlgeschlagen' }, 400);
+    const headers = {};
+    if (t.data.refresh_token) headers['set-cookie'] = gauthCookie(await seal(env, t.data.refresh_token), GAUTH_MAX_AGE);
+    return json({ access_token: t.data.access_token, expires_in: t.data.expires_in, persistent: !!(t.data.refresh_token || readCookie(req, GAUTH_COOKIE)) }, 200, headers);
+  }
+
+  // still ein neues Zugriffstoken holen
+  if (action === 'refresh') {
+    const c = readCookie(req, GAUTH_COOKIE);
+    const rt = c && await unseal(env, c);
+    if (!rt) return json({ error: 'Keine Anmeldung' }, 401, c ? { 'set-cookie': gauthCookie('', 0) } : {});
+    const t = await googleToken(env, { refresh_token: rt, grant_type: 'refresh_token' });
+    if (!t.ok || !t.data.access_token) {
+      const gone = t.data.error === 'invalid_grant'; // widerrufen oder abgelaufen
+      return json({ error: 'Anmeldung abgelaufen' }, gone ? 401 : 502, gone ? { 'set-cookie': gauthCookie('', 0) } : {});
+    }
+    return json({ access_token: t.data.access_token, expires_in: t.data.expires_in }, 200, { 'set-cookie': gauthCookie(c, GAUTH_MAX_AGE) });
+  }
+
+  // Trennen: Zugriff bei Google widerrufen, Cookie löschen
+  if (action === 'logout') {
+    const c = readCookie(req, GAUTH_COOKIE);
+    const rt = c && await unseal(env, c);
+    if (rt) {
+      await fetch('https://oauth2.googleapis.com/revoke', {
+        method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ token: rt }),
+      }).catch(() => {});
+    }
+    return json({ ok: true }, 200, { 'set-cookie': gauthCookie('', 0) });
+  }
+  return json({ error: 'Nicht gefunden' }, 404);
+}
+
 export default {
   async fetch(req, env) {
     const url = new URL(req.url);
+    if (url.pathname.startsWith('/api/gauth/')) {
+      try { return await gauth(req, env, url); }
+      catch (e) { return json({ error: 'Serverfehler' }, 500); }
+    }
     if (url.pathname.startsWith('/api/book/')) {
       try { return await api(req, env, url); }
       catch (e) { return json({ error: 'Serverfehler' }, 500); }
