@@ -6,7 +6,7 @@ const LEGAL = {
   street: 'Hugo-Sellheim-Straße 7',   // z. B. 'Musterstraße 1'
   city:   '68647 Biblis',   // z. B. '12345 Musterstadt'
   email:  'iphilipp07@gmail.com',   // Kontakt-E-Mail (öffentlich sichtbar)
-  stand:  '7. Oktober 2026', // Datum der letzten inhaltlichen Änderung
+  stand:  '8. Oktober 2026', // Datum der letzten inhaltlichen Änderung
 };
 
 (function () {
