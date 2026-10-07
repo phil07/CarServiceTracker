@@ -1357,15 +1357,22 @@ function bindIntervalEditor() {
 
 let colorShowAll = false;
 
+let colorQuery = '';
+
 function buildColorGrid(containerId, selectedKey, onSelect, vehicle) {
   const grid = document.getElementById(containerId);
   if (!grid) return;
   const base = colorKeysFor(vehicle || {});
   const seriesCode = seriesCodeFor(vehicle || {});
-  const showCodes = !!seriesCode || colorShowAll;
   // Die aktuell gewählte Farbe bleibt immer sichtbar, auch wenn sie nicht zur Palette gehört
-  const keys = colorShowAll ? Object.keys(BMW_COLORS) : (base.includes(selectedKey) || !BMW_COLORS[selectedKey] ? base : [selectedKey, ...base]);
-  grid.innerHTML = (seriesCode && !colorShowAll ? `<p class="settings-hint" style="grid-column:1/-1;margin:0">Serienfarben ${seriesCode} (Auswahl, nicht vollständig)</p>` : '') + (colorShowAll ? '<input type="search" class="color-search" placeholder="Farbe oder Code suchen (z.B. Orient, 475)" aria-label="Farbe suchen" autocomplete="off">' : '') + keys.map(key => { const c = BMW_COLORS[key]; return `
+  const baseKeys = base.includes(selectedKey) || !BMW_COLORS[selectedKey] ? base : [selectedKey, ...base];
+  // Suche: durchsucht immer alle BMW-Farben (Name oder Code), auch wenn nur die passenden Farben angezeigt werden
+  const keysFor = q => {
+    if (colorShowAll && !q) return Object.keys(BMW_COLORS);
+    if (!q) return baseKeys;
+    return Object.keys(BMW_COLORS).filter(k => { const c = BMW_COLORS[k]; return c.label.toLowerCase().includes(q) || (c.code || '').toLowerCase().includes(q); });
+  };
+  const swatches = (keys, showCodes) => keys.map(key => { const c = BMW_COLORS[key]; return `
     <button type="button" class="color-swatch-btn${selectedKey === key ? ' active' : ''}"
             title="${c.label}${showCodes && c.code ? ' (' + c.code + ')' : ''}"
             aria-label="${c.label}${showCodes && c.code ? ', Farbcode ' + c.code : ''}${selectedKey === key ? ' (aktiv)' : ''}"
@@ -1373,16 +1380,22 @@ function buildColorGrid(containerId, selectedKey, onSelect, vehicle) {
             data-color="${key}">
       <span class="swatch-dot" style="--swatch-color:${c.hex};"></span>
       <span class="swatch-label">${c.label}</span>${showCodes && c.code ? `<span class="swatch-code">${c.code}</span>` : ''}
-    </button>`; }
-  ).join('') + `<button type="button" class="link-btn color-more" data-more>${colorShowAll ? 'Nur passende Farben zeigen' : 'Alle Farben anzeigen'}</button>`;
-  const search = grid.querySelector('.color-search');
-  if (search) search.oninput = () => {
-    const q = search.value.trim().toLowerCase();
-    grid.querySelectorAll('[data-color]').forEach(b => {
-      const c = BMW_COLORS[b.dataset.color];
-      b.hidden = !!q && !(c.label.toLowerCase().includes(q) || (c.code || '').toLowerCase().includes(q));
-    });
+    </button>`; }).join('');
+  const body = () => {
+    const q = colorQuery.trim().toLowerCase();
+    const keys = keysFor(q);
+    const showCodes = !!seriesCode || colorShowAll || !!q;
+    const hint = seriesCode && !colorShowAll && !q ? `<p class="settings-hint color-hint" style="grid-column:1/-1;margin:0">Serienfarben ${seriesCode} (Auswahl, nicht vollständig)</p>` : '';
+    const empty = q && !keys.length ? '<p class="settings-hint color-hint" style="grid-column:1/-1;margin:0">Keine Farbe gefunden.</p>' : '';
+    return hint + empty + swatches(keys, showCodes);
   };
+  grid.innerHTML = `<input type="search" class="color-search" placeholder="Farbe oder Code suchen (z.B. Orient, 475)" aria-label="Farbe suchen" autocomplete="off" value="${colorQuery.replace(/"/g, '&quot;')}">`
+    + '<span class="color-items" style="display:contents"></span>'
+    + `<button type="button" class="link-btn color-more" data-more>${colorShowAll ? 'Nur passende Farben zeigen' : 'Alle Farben anzeigen'}</button>`;
+  const items = grid.querySelector('.color-items');
+  items.innerHTML = body();
+  const search = grid.querySelector('.color-search');
+  search.oninput = () => { colorQuery = search.value; items.innerHTML = body(); };
   grid.onclick = (e) => {
     if (e.target.closest('[data-more]')) { colorShowAll = !colorShowAll; buildColorGrid(containerId, selectedKey, onSelect, vehicle); return; }
     const btn = e.target.closest('[data-color]');
