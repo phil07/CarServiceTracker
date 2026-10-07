@@ -1370,7 +1370,8 @@ function buildColorGrid(containerId, selectedKey, onSelect, vehicle) {
   const keysFor = q => {
     if (colorShowAll && !q) return Object.keys(BMW_COLORS);
     if (!q) return baseKeys;
-    return Object.keys(BMW_COLORS).filter(k => { const c = BMW_COLORS[k]; return c.label.toLowerCase().includes(q) || (c.code || '').toLowerCase().includes(q); });
+    return Object.keys(BMW_COLORS).filter(k => { const c = BMW_COLORS[k]; if (seriesCode && k.startsWith('g_')) return false; // allgemeine Farben nicht bei erkannter BMW-Baureihe
+      return c.label.toLowerCase().includes(q) || (c.code || '').toLowerCase().includes(q); });
   };
   const swatches = (keys, showCodes) => keys.map(key => { const c = BMW_COLORS[key]; return `
     <button type="button" class="color-swatch-btn${selectedKey === key ? ' active' : ''}"
@@ -1399,7 +1400,7 @@ function buildColorGrid(containerId, selectedKey, onSelect, vehicle) {
   grid.onclick = (e) => {
     if (e.target.closest('[data-more]')) { colorShowAll = !colorShowAll; buildColorGrid(containerId, selectedKey, onSelect, vehicle); return; }
     const btn = e.target.closest('[data-color]');
-    if (btn) onSelect(btn.dataset.color);
+    if (btn) { colorQuery = ''; onSelect(btn.dataset.color); }
   };
 }
 
