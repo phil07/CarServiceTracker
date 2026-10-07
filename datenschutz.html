@@ -37,7 +37,7 @@
 
   <section>
     <h2>4. Lokale Speicherung auf deinem Gerät</h2>
-    <p>Die App nutzt den lokalen Speicher deines Browsers (localStorage, IndexedDB) und den Zwischenspeicher einer installierten Web-App (Service Worker), damit sie auch offline funktioniert. Das ist für die ausdrücklich von dir genutzte Funktion technisch erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG); eine Einwilligung ist dafür nicht nötig. Es werden keine Cookies zu Werbe- oder Analysezwecken gesetzt.</p>
+    <p>Die App nutzt den lokalen Speicher deines Browsers (localStorage, IndexedDB) und den Zwischenspeicher einer installierten Web-App (Service Worker), damit sie auch offline funktioniert. Das ist für die ausdrücklich von dir genutzte Funktion technisch erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG); eine Einwilligung ist dafür nicht nötig. Es werden keine Cookies zu Werbe- oder Analysezwecken gesetzt. Nur wenn du die optionale Google-Drive-Synchronisierung nutzt, wird ein technisch notwendiges Cookie gesetzt (Abschnitt 7).</p>
     <p>Du kannst die Daten jederzeit in der App löschen („Zurücksetzen“) oder über die Einstellungen deines Browsers entfernen. Beachte: Ohne Sicherung sind gelöschte Daten unwiederbringlich weg.</p>
   </section>
 
@@ -58,7 +58,9 @@
     <ul>
       <li>Erst in diesem Moment lädt die App ein Anmeldeskript von Google (<span>accounts.google.com</span>). Du meldest dich bei Google an und erlaubst der App den Zugriff auf ihren <strong>versteckten App-Ordner</strong> in deinem Google Drive (Berechtigung „drive.appdata“). Auf andere Dateien in deinem Drive hat die App keinen Zugriff.</li>
       <li>Deine Daten (Einträge, Fahrzeugdaten, Einstellungen) und Fotos werden dort als Dateien abgelegt und zwischen deinen Geräten abgeglichen. Sie liegen in deinem Google-Konto, <strong>nicht</strong> beim Betreiber der App; der Betreiber hat darauf keinen Zugriff.</li>
-      <li>Das Zugriffstoken von Google wird für kurze Zeit (etwa eine Stunde) lokal im Browser gespeichert.</li>
+      <li>Damit der Abgleich dauerhaft im Hintergrund laufen kann, tauscht der Server dieser App (Cloudflare Workers, Abschnitt 5) beim Verbinden einmalig den Anmeldecode von Google gegen einen <strong>Dauerschlüssel (Refresh-Token)</strong>. Dieser wird verschlüsselt als technisch notwendiges Cookie („cst_grt“, nur für diese App, für Skripte nicht lesbar) in deinem Browser gespeichert, nicht auf dem Server.</li>
+      <li>Bei einem Abgleich sendet dein Browser dieses Cookie an den Server, der damit bei Google ein kurzlebiges Zugriffstoken (etwa eine Stunde gültig) abruft und an die App zurückgibt. Das Zugriffstoken wird lokal im Browser gespeichert. Der Server speichert weder den Schlüssel noch Inhalte deines Google Drive und hat keinen Einblick in deine Daten.</li>
+      <li>Mit „Trennen“ wird der Zugriff bei Google widerrufen und das Cookie gelöscht. Das Cookie läuft spätestens nach etwa 13 Monaten ohne Nutzung ab.</li>
       <li>Für die Verarbeitung durch Google gelten die Datenschutzbestimmungen von Google (Google Ireland Limited bzw. Google LLC): policies.google.com/privacy.</li>
     </ul>
     <p>Rechtsgrundlage ist deine Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), die du durch das aktive Verbinden erteilst. Du kannst sie jederzeit widerrufen: In der App über „Trennen“ bzw. „Daten in Google Drive löschen“, zusätzlich in deinem Google-Konto unter „Sicherheit → Drittanbieter-Apps mit Kontozugriff“. Die Nutzung der App ist auch ohne Synchronisierung vollständig möglich.</p>
@@ -89,7 +91,7 @@
 
   <section>
     <h2>11. Speicherdauer</h2>
-    <p>Lokal gespeicherte Daten bleiben bis zu deiner Löschung auf deinem Gerät. Die Server-Logdaten (Abschnitt 5) werden nach den Fristen des Hosting-Anbieters automatisch gelöscht.</p>
+    <p>Lokal gespeicherte Daten bleiben bis zu deiner Löschung auf deinem Gerät. Das Anmelde-Cookie der Google-Drive-Synchronisierung wird beim Trennen gelöscht und läuft sonst nach etwa 13 Monaten ohne Nutzung ab. Die Server-Logdaten (Abschnitt 5) werden nach den Fristen des Hosting-Anbieters automatisch gelöscht.</p>
   </section>
 
   <section>
