@@ -334,6 +334,11 @@ function normalizeState(raw) {
   const meta = {};
   if (toInt(rm.vehicleAt, 1))  meta.vehicleAt  = toInt(rm.vehicleAt, 1);
   if (toInt(rm.settingsAt, 1)) meta.settingsAt = toInt(rm.settingsAt, 1);
+  if (rm.fieldAt && typeof rm.fieldAt === 'object') { // Änderungszeit je Feld ('v.<Feld>' Fahrzeug, 's.<Feld>' Einstellungen) für den Abgleich
+    const fa = {};
+    Object.keys(rm.fieldAt).forEach(k => { const t = toInt(rm.fieldAt[k], 1); if (t && /^[vs]\.\w{1,40}$/.test(k)) fa[k] = t; });
+    if (Object.keys(fa).length) meta.fieldAt = fa;
+  }
 
   const st = raw.settings && typeof raw.settings === 'object' ? raw.settings : {};
   const hasVehicle = !!(vehicle.vin || vehicle.make || vehicle.model || vehicle.chassis);
@@ -416,8 +421,18 @@ const canon = o => JSON.stringify(o, (k, v) => v && typeof v === 'object' && !Ar
   ? Object.keys(v).sort().reduce((r, key) => (r[key] = v[key], r), {}) : v);
 const sigEntry = e => { const { updatedAt, ...rest } = e; return canon(rest); };
 
+// Signaturen aller Fahrzeug- und Einstellungsfelder (für die Änderungszeit je Feld)
+function fieldSigs(rec) {
+  const m = new Map();
+  Object.keys(rec.vehicle).forEach(k => m.set('v.' + k, canon(rec.vehicle[k])));
+  Object.keys(rec.settings).forEach(k => m.set('s.' + k, canon(rec.settings[k])));
+  return m;
+}
+// Zeitstempel für Änderungen: bei aktiver Synchronisierung auf die Zeit des Servers korrigiert (falsch gehende Uhr)
+const nowMs = () => (window.syncClock ? window.syncClock() : Date.now());
+
 function snapOf(rec) {
-  const sn = { entries: new Map(), vehicle: canon(rec.vehicle), settings: canon(rec.settings) };
+  const sn = { entries: new Map(), vehicle: canon(rec.vehicle), settings: canon(rec.settings), fields: fieldSigs(rec) };
   rec.serviceHistory.concat(rec.fuelLog).forEach(e => sn.entries.set(e.id, sigEntry(e)));
   return sn;
 }
@@ -428,11 +443,12 @@ function buildSnap() {
 }
 
 function stampChanges() {
-  const now = Date.now();
+  const now = nowMs();
   store.deletedVehicles = store.deletedVehicles || {};
   store.vehicles.forEach(rec => {
     let sn = snaps.get(rec.id);
-    if (!sn) { sn = { entries: new Map(), vehicle: '', settings: '' }; snaps.set(rec.id, sn); } // neues Fahrzeug: alles ist neu
+    const fresh = !sn;
+    if (!sn) { sn = { entries: new Map(), vehicle: '', settings: '', fields: new Map() }; snaps.set(rec.id, sn); } // neues Fahrzeug: alles ist neu
     rec.deleted = rec.deleted || {};
     rec.meta = rec.meta || {};
     if (store.deletedVehicles[rec.id]) { delete store.deletedVehicles[rec.id]; rec.meta.vehicleAt = now; } // wieder eingespielt
@@ -449,6 +465,15 @@ function stampChanges() {
     if (v !== sn.vehicle) { sn.vehicle = v; rec.meta.vehicleAt = now; }
     const st = canon(rec.settings);
     if (st !== sn.settings) { sn.settings = st; rec.meta.settingsAt = now; }
+    // Änderungszeit je Feld; leere Werte eines neuen Fahrzeugs zählen nicht als Änderung (sie sollen fremde Werte nicht überschreiben)
+    const cur = fieldSigs(rec), fa = rec.meta.fieldAt || (rec.meta.fieldAt = {});
+    cur.forEach((sig, k) => {
+      if (sn.fields.get(k) === sig) return;
+      if (fresh && /^(""|null|\[\]|\{\}|0|false)$/.test(sig)) return;
+      fa[k] = now;
+    });
+    sn.fields.forEach((sig, k) => { if (!cur.has(k)) fa[k] = now; }); // Feld wurde entfernt (z. B. Notiz geleert)
+    sn.fields = cur;
     const cutoff = now - 180 * 86400000; // Löschmarken nach ~6 Monaten verwerfen
     Object.keys(rec.deleted).forEach(id => { if (rec.deleted[id] < cutoff) delete rec.deleted[id]; });
   });

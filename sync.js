@@ -148,20 +148,39 @@ const GOOGLE_CLIENT_ID = '456570124356-ksovdvup3n1o9hhq6hnm3tfms1r1a0hs.apps.goo
     return normalizeStore(JSON.parse(await r.text()));
   }
 
+  // Uhr dieses Geräts gegenüber dem Server: Änderungszeiten sollen auf allen Geräten vergleichbar sein, auch bei falsch gehender Uhr
+  const syncClock = () => Date.now() + (Number(getMeta().clockOffset) || 0);
+  function noteServerTime(iso) {
+    const t = Date.parse(iso);
+    if (!isFinite(t)) return;
+    const off = t - Date.now();
+    setMeta({ clockOffset: Math.abs(off) < 2000 ? 0 : off }); // unter 2 s Abweichung: Geräteuhr verwenden
+  }
+
+  // Version der Datei auf dem Server (ändert sich mit jedem Schreiben) + Serverzeit
+  async function fileVersion(id) {
+    const r = await drive(API + '/' + id + '?fields=version,modifiedTime');
+    const j = await r.json();
+    return j;
+  }
+
   async function uploadRemote(id, payload) {
     const body = JSON.stringify(payload);
     if (id) {
-      await drive(UPLOAD + '/' + id + '?uploadType=media', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body });
+      const r = await drive(UPLOAD + '/' + id + '?uploadType=media&fields=id,modifiedTime', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body });
+      try { noteServerTime((await r.json()).modifiedTime); } catch (e) {}
       return id;
     }
     const boundary = 'cst' + Date.now().toString(36);
     const multipart = '--' + boundary + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'
       + JSON.stringify({ name: FILE_NAME, parents: ['appDataFolder'] })
       + '\r\n--' + boundary + '\r\nContent-Type: application/json\r\n\r\n' + body + '\r\n--' + boundary + '--';
-    const r = await drive(UPLOAD + '?uploadType=multipart&fields=id', {
+    const r = await drive(UPLOAD + '?uploadType=multipart&fields=id,modifiedTime', {
       method: 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + boundary }, body: multipart,
     });
-    return (await r.json()).id;
+    const j = await r.json();
+    noteServerTime(j.modifiedTime);
+    return j.id;
   }
 
   // ─── Fotos (je Bild eine Datei „photo-<id>.jpg“ im App-Ordner) ─────────────
@@ -244,14 +263,32 @@ const GOOGLE_CLIENT_ID = '456570124356-ksovdvup3n1o9hhq6hnm3tfms1r1a0hs.apps.goo
     const pick = (la, ra, lEmpty, rEmpty) => la !== ra ? (la > ra ? 'l' : 'r') : lEmpty !== rEmpty ? (lEmpty ? 'r' : 'l') : 'l';
     const v = pick(lm.vehicleAt || 0, rm.vehicleAt || 0, emptyVehicle(local.vehicle), emptyVehicle(remote.vehicle));
     const s = pick(lm.settingsAt || 0, rm.settingsAt || 0, !local.settings.onboardingDone, !remote.settings.onboardingDone);
+    // Fahrzeugdaten und Einstellungen feldweise: je Feld gewinnt die neuere Änderung (ältere Stände ohne Feldzeiten: Zeit des Gesamtobjekts)
+    const lf = lm.fieldAt || {}, rf = rm.fieldAt || {};
+    const mergeFields = (prefix, lo, ro, whole, lWhole, rWhole) => {
+      const out = {};
+      new Set([...Object.keys(lo), ...Object.keys(ro)]).forEach(k => {
+        // Hat eine Seite Feldzeiten (neuer Stand), heißt „ohne Zeit“ = seit dem Abgleich unverändert (0); ältere Stände nutzen die Zeit des Gesamtobjekts
+        const lt = lf[prefix + k] || (Object.keys(lf).length ? 0 : lWhole), rt = rf[prefix + k] || (Object.keys(rf).length ? 0 : rWhole);
+        let takeLocal = lt !== rt ? lt > rt : whole === 'l';
+        if (lt === rt && (k in lo) !== (k in ro)) takeLocal = k in lo; // gleichauf: das vorhandene Feld behalten
+        const src = takeLocal ? lo : ro;
+        if (k in src) out[k] = src[k]; // fehlt das Feld auf der gewinnenden Seite, wurde es dort entfernt
+      });
+      return out;
+    };
+    const vehicle  = mergeFields('v.', local.vehicle,  remote.vehicle,  v, lm.vehicleAt  || 0, rm.vehicleAt  || 0);
+    const settings = mergeFields('s.', local.settings, remote.settings, s, lm.settingsAt || 0, rm.settingsAt || 0);
+    const fieldAt = Object.assign({}, rf);
+    Object.keys(lf).forEach(k => { fieldAt[k] = Math.max(fieldAt[k] || 0, lf[k]); });
     return normalizeState({
       id: local.id,
-      vehicle:        v === 'l' ? local.vehicle : remote.vehicle,
-      settings:       s === 'l' ? local.settings : remote.settings,
+      vehicle,
+      settings,
       serviceHistory: mergeList(local.serviceHistory, remote.serviceHistory).filter(alive),
       fuelLog:        mergeList(local.fuelLog, remote.fuelLog).filter(alive),
       deleted,
-      meta: { vehicleAt: Math.max(lm.vehicleAt || 0, rm.vehicleAt || 0), settingsAt: Math.max(lm.settingsAt || 0, rm.settingsAt || 0) },
+      meta: { vehicleAt: Math.max(lm.vehicleAt || 0, rm.vehicleAt || 0), settingsAt: Math.max(lm.settingsAt || 0, rm.settingsAt || 0), fieldAt },
     });
   }
 
@@ -323,22 +360,37 @@ const GOOGLE_CLIENT_ID = '456570124356-ksovdvup3n1o9hhq6hnm3tfms1r1a0hs.apps.goo
   async function runSync(alive) {
     const meta = getMeta();
     let id = meta.fileId || await findFileId();
-    let remote = null;
-    if (id) {
-      try { remote = await downloadRemote(id); }
-      catch (e) {
-        if (e.status !== 404) throw e;
-        id = await findFileId();
-        remote = id ? await downloadRemote(id) : null;
+    // Hat ein anderes Gerät zwischen Herunterladen und Hochladen geschrieben, wird neu zusammengeführt (höchstens 3 Versuche),
+    // damit dessen neuere Daten nicht überschrieben werden.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      let remote = null, version = null;
+      if (id) {
+        try {
+          const vInfo = await fileVersion(id);
+          version = vInfo.version;
+          remote = await downloadRemote(id);
+        } catch (e) {
+          if (e.status !== 404) throw e;
+          id = await findFileId();
+          version = null;
+          remote = id ? await downloadRemote(id) : null;
+        }
       }
+
+      let merged = store;
+      if (remote) merged = mergeStates(store, remote, !!getMeta().linked);
+
+      alive();
+      if (!same(merged, store)) adoptState(merged);
+      if (remote && same(merged, remote)) break; // Server ist schon aktuell
+      if (id && version != null) { // zwischenzeitlich verändert? dann neu zusammenführen statt überschreiben
+        let now = null;
+        try { now = (await fileVersion(id)).version; } catch (e) {}
+        if (now !== null && now !== version && attempt < 2) continue;
+      }
+      id = await uploadRemote(id, payloadOf(merged));
+      break;
     }
-
-    let merged = store;
-    if (remote) merged = mergeStates(store, remote, !!meta.linked);
-
-    alive();
-    if (!same(merged, store)) adoptState(merged);
-    if (!remote || !same(merged, remote)) id = await uploadRemote(id, payloadOf(merged));
     alive();
     setMeta({ fileId: id, linked: true, lastSync: new Date().toISOString() });
     await syncPhotos(alive);
@@ -468,11 +520,21 @@ const GOOGLE_CLIENT_ID = '456570124356-ksovdvup3n1o9hhq6hnm3tfms1r1a0hs.apps.goo
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState !== 'visible' || !syncEnabled()) return;
       const last = Date.parse(getMeta().lastSync || 0) || 0;
-      if (Date.now() - last > 60000) syncNow();
+      if (Date.now() - last > 15000) syncNow();
     });
+    window.addEventListener('focus', () => {
+      const last = Date.parse(getMeta().lastSync || 0) || 0;
+      if (syncEnabled() && Date.now() - last > 15000) syncNow();
+    });
+    // Solange die App offen ist, regelmäßig nachsehen, ob ein anderes Gerät neuere Daten hochgeladen hat
+    setInterval(() => {
+      if (document.visibilityState !== 'visible' || !syncEnabled()) return;
+      if (document.querySelector('dialog[open]')) return; // nicht mitten in der Eingabe umschalten
+      syncNow();
+    }, 90000);
     window.addEventListener('online', () => syncNow());
   }
 
-  Object.assign(window, { initSync, scheduleSync, syncNow, syncEnabled, connectDrive, disconnectDrive, deleteDriveData, renderSyncUi,
+  Object.assign(window, { syncClock, initSync, scheduleSync, syncNow, syncEnabled, connectDrive, disconnectDrive, deleteDriveData, renderSyncUi,
     syncNowInteractive: () => syncNow({ interactive: true }) });
 })();
