@@ -787,3 +787,22 @@ dialog.lightbox::backdrop { background: #000; -webkit-backdrop-filter: none; bac
 .color-more { grid-column: 1 / -1; justify-self: center; margin-top: 4px; }
 .color-search { grid-column: 1 / -1; width: 100%; padding: 12px 16px; border: 0; border-radius: 14px; background: var(--bg-elevated); color: var(--label); font: inherit; font-size: 14px; box-shadow: var(--hl), inset 0 0 0 1px var(--shell-ring); }
 .color-swatch-btn[hidden] { display: none; }
+
+/* Beleg-Markierung an Fotos */
+.photo-tag { position: absolute; left: 4px; bottom: 4px; padding: 2px 8px; border: 0; border-radius: 99px; font: inherit; font-size: 10px; font-weight: 700; cursor: pointer;
+    background: rgba(0,0,0,.55); color: #fff; }
+.photo-tag.on { background: var(--primary, #3F5A78); }
+.photo-tag.static { pointer-events: none; }
+.deadline-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--shell-ring); }
+.deadline-row:last-child { border-bottom: 0; }
+.deadline-row > div:first-child { flex: 1; min-width: 0; }
+.deadline-row small { display: block; color: var(--muted); }
+.deadline-row .link-btn { white-space: nowrap; }
+.deadline-row.is-due strong { color: var(--err-text, #C40013); }
+.custom-color-row { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+.custom-color-row input[type=color] { width: 44px; height: 44px; padding: 0; border: 0; border-radius: 12px; background: none; cursor: pointer; }
+.custom-color-row.active .swatch-label { font-weight: 700; }
+.notes-input { width: 100%; }
+.detail-extra { margin: 10px 0 2px; }
+.detail-extra .info-row { flex-direction: column; align-items: flex-start; gap: 2px; padding: 8px 0; }
+.detail-extra .info-row strong { white-space: pre-wrap; font-weight: 600; }

@@ -168,6 +168,8 @@
 
             <button type="button" class="card fuel-card" id="fuelCard" onclick="switchTab('fuel')" hidden></button>
 
+            <div id="deadlineBox" hidden></div>
+
             <h3 class="section-title" id="upcomingTitle">Wartungen</h3>
             <div class="upcoming-grid" id="upcomingGrid"></div>
 
@@ -221,6 +223,19 @@
             <div class="photo-strip" id="vehiclePhotos"></div>
             <input type="file" id="vehiclePhotoInput" accept="image/*" multiple hidden onchange="onVehiclePhotosPicked(this)">
 
+            <h3 class="section-title">Fristen</h3>
+            <div class="card info-card">
+                <p class="settings-hint">Eigene Termine, die nicht aus Serviceeinträgen entstehen, zum Beispiel Versicherung, Kfz-Steuer oder Reifenwechsel. Wiederkehrende Fristen rücken mit „Erledigt“ automatisch weiter. Sie erscheinen auf dem Dashboard und in den Erinnerungen.</p>
+                <div id="deadlineList"></div>
+                <button type="button" class="btn btn-secondary" onclick="openDeadline()"><i class="ph-light ph-calendar-plus" data-fb="📅" aria-hidden="true"></i> Frist hinzufügen</button>
+            </div>
+
+            <h3 class="section-title">Notizen zum Fahrzeug</h3>
+            <div class="card info-card">
+                <p class="settings-hint">Freier Text, zum Beispiel Reifendruck, Ölsorte, Besonderheiten. Bleibt privat und wird nicht im Scheckheft veröffentlicht.</p>
+                <textarea id="vehicleNotes" class="notes-input" rows="4" maxlength="3000" placeholder="z.B. Reifendruck 2,4 bar, Öl 5W-30 LL-01, Schlüssel im Handschuhfach" onchange="saveNotes(this)"></textarea>
+            </div>
+
             <h3 class="section-title">Erinnerungen</h3>
             <div class="card info-card sync-card">
                 <p class="settings-hint">Benachrichtigt dich, wenn eine Wartung bald fällig oder überfällig ist (nach den Intervallen unten, für alle Fahrzeuge). Die Prüfung läuft auf diesem Gerät und es werden keine Daten gesendet. Du bekommst den Hinweis beim Öffnen der App, als Zähler am App-Symbol und, wo der Browser es erlaubt (Chrome/Android mit installierter App), auch im Hintergrund.</p>
@@ -237,6 +252,10 @@
                 <div id="bookOn" hidden>
                     <div class="backup-status" id="bookStatusText" aria-live="polite"></div>
                     <label class="check-row"><input type="checkbox" id="bookShowVin" onchange="setBookVin(this.checked)"> FIN (VIN) vollständig anzeigen</label>
+                    <div class="form-group">
+                        <label for="bookUntil">Link läuft ab am <span class="opt">optional · z.B. für einen Verkauf</span></label>
+                        <input type="date" id="bookUntil" onchange="setBookUntil(this.value)">
+                    </div>
                     <div class="btn-pair">
                         <button type="button" class="btn btn-secondary" onclick="openBookDialog()">QR-Code &amp; Link</button>
                         <button type="button" class="btn btn-secondary" onclick="publishBookNow()"><i class="ph-light ph-arrows-clockwise" data-fb="🔄" aria-hidden="true"></i> Aktualisieren</button>
@@ -247,10 +266,20 @@
 
             <h3 class="section-title">Lackfarbe &amp; Design</h3>
             <div class="color-picker-grid" id="settingsColorGrid"></div>
+            <label class="custom-color-row" id="customColorRow">
+                <input type="color" id="customColorInput" onchange="setCustomColor(this.value)" aria-label="Eigene Lackfarbe wählen">
+                <span class="swatch-label" id="customColorLabel">Eigene Farbe wählen</span>
+            </label>
 
             <h3 class="section-title">Wartungsintervalle</h3>
             <p class="settings-hint">Lege fest, wann eine Wartung wieder fällig wird. Leer lassen = wird nicht auf dem Dashboard verfolgt. Die Fälligkeit rechnet sich aus dem letzten Eintrag.</p>
             <div class="card interval-card" id="intervalEditor"></div>
+
+            <h3 class="section-title">Sicherheitskopie</h3>
+            <div class="card info-card">
+                <p class="settings-hint">Vor dem Löschen, Zurücksetzen oder Einspielen eines Backups und einmal täglich legt die App eine Kopie der Daten in diesem Browser ab (ohne Fotos). Sie ersetzt kein Backup, hilft aber bei versehentlichem Löschen.</p>
+                <div id="safetyBox"></div>
+            </div>
 
             <div id="syncCard" hidden>
                 <h3 class="section-title">Synchronisierung</h3>
@@ -330,7 +359,16 @@
                     <textarea id="form-description" rows="3" placeholder="z.B. Ölwechsel 5W-40, Ölfilter, Innenraumfilter getauscht…" required></textarea>
                 </div>
                 <div class="form-group">
-                    <label>Fotos <span class="opt">optional · Rechnung, Produkt, Einbau</span></label>
+                    <label for="form-parts">Teile / Material <span class="opt">optional · z.B. Öl 5W-40, Filter-Nr.</span></label>
+                    <textarea id="form-parts" rows="2" maxlength="600" placeholder="z.B. Castrol Edge 5W-30 LL (6,5 l), Mann HU 925/4 x"></textarea>
+                    <button type="button" class="link-btn" id="copyPartsBtn" onclick="copyPartsFromLast()">Vom letzten Eintrag dieser Kategorie übernehmen</button>
+                </div>
+                <div class="form-group">
+                    <label for="form-note">Notiz <span class="opt">optional · privat, wird nicht im Scheckheft veröffentlicht</span></label>
+                    <textarea id="form-note" rows="2" maxlength="1000" placeholder="z.B. Schraube am Ölfilter war fest, Lager prüfen beim nächsten Mal"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Fotos &amp; Belege <span class="opt">optional · „Beleg“ markiert Rechnungen, sie bleiben privat</span></label>
                     <div class="photo-strip" id="formPhotos"></div>
                     <input type="file" id="formPhotoInput" accept="image/*" multiple hidden onchange="onFormPhotosPicked(this)">
                 </div>
@@ -338,6 +376,34 @@
             <div class="dialog-actions">
                 <button type="submit" class="btn">Speichern</button>
                 <button type="button" class="btn btn-secondary" onclick="closeAddEntry()">Abbrechen</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="modal-deadline" aria-labelledby="deadlineTitle">
+        <h3 id="deadlineTitle">Neue Frist</h3>
+        <form id="deadlineForm" class="dialog-form" onsubmit="saveDeadline(event)">
+            <div class="dialog-body">
+                <div class="form-group">
+                    <label for="dl-title">Bezeichnung</label>
+                    <input type="text" id="dl-title" maxlength="60" list="dl-suggest" placeholder="z.B. Kfz-Versicherung kündigen" required>
+                    <datalist id="dl-suggest"><option value="Kfz-Versicherung"><option value="Kfz-Steuer"><option value="Reifenwechsel Sommer"><option value="Reifenwechsel Winter"><option value="Hauptuntersuchung (TÜV)"><option value="Abgasuntersuchung"><option value="Verbandskasten prüfen"><option value="Autobahnvignette"></datalist>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="dl-date">Fällig am</label>
+                        <input type="date" id="dl-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="dl-months">Wiederholung</label>
+                        <select id="dl-months"><option value="0">einmalig</option><option value="6">alle 6 Monate</option><option value="12">jährlich</option><option value="24">alle 2 Jahre</option></select>
+                    </div>
+                </div>
+            </div>
+            <div class="dialog-actions">
+                <button type="submit" class="btn">Speichern</button>
+                <button type="button" class="btn btn-secondary btn-danger" id="dl-delete" onclick="deleteDeadlineFromForm()">Löschen</button>
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-deadline').close()">Abbrechen</button>
             </div>
         </form>
     </dialog>
@@ -350,6 +416,7 @@
         </div>
         <p class="detail-desc" id="detailDesc"></p>
         <div class="chip-line" id="detailMeta"></div>
+        <div class="detail-extra" id="detailExtra" hidden></div>
         <div class="photo-strip" id="detailPhotos" hidden></div>
         <div class="dialog-actions">
             <button type="button" class="btn" onclick="editEntryFromDetail()">Bearbeiten</button>
@@ -479,6 +546,7 @@
 <script src="sync.js"></script>
 <script src="book.js"></script>
 <script src="reminders.js"></script>
+<script src="extras.js"></script>
 <script>
   // Nach einem Reload prüfen, ob das angestoßene Update tatsächlich griff
   (function checkUpdateResult() {

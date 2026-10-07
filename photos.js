@@ -183,16 +183,17 @@
   function dropPending() {
     formPhotos.forEach(p => { if (p.blob && urls.has(p.id)) { URL.revokeObjectURL(urls.get(p.id)); urls.delete(p.id); } });
   }
-  function formPhotosReset(ids) {
+  function formPhotosReset(ids, receipts) {
     dropPending();
-    formPhotos = (ids || []).map(id => ({ id, blob: null }));
+    formPhotos = (ids || []).map(id => ({ id, blob: null, receipt: (receipts || []).includes(id) }));
     renderFormPhotos();
   }
   function renderFormPhotos() {
     const el = document.getElementById('formPhotos');
     if (!el) return;
     el.innerHTML = thumbsHtml(formPhotos.map(p => p.id), id =>
-      `<button type="button" class="photo-remove" data-remove="${esc(id)}" aria-label="Foto entfernen"><i class="ph-light ph-x" data-fb="✕" aria-hidden="true"></i></button>`)
+      `<button type="button" class="photo-remove" data-remove="${esc(id)}" aria-label="Foto entfernen"><i class="ph-light ph-x" data-fb="✕" aria-hidden="true"></i></button>`
+      + `<button type="button" class="photo-tag${(formPhotos.find(p => p.id === id) || {}).receipt ? ' on' : ''}" data-receipt="${esc(id)}" aria-pressed="${!!(formPhotos.find(p => p.id === id) || {}).receipt}" title="Als Beleg markieren – Belege werden nicht im Scheckheft veröffentlicht">Beleg</button>`)
       + (formPhotos.length < MAX_ENTRY
       ? `<button type="button" class="photo-add" data-add aria-label="Foto hinzufügen"><i class="ph-light ph-camera" data-fb="📷" aria-hidden="true"></i><span>Foto</span></button>` : '');
     hydratePhotos(el);
@@ -207,6 +208,8 @@
     if (!el) return;
     el.addEventListener('click', ev => {
       if (ev.target.closest('[data-add]')) return document.getElementById('formPhotoInput').click();
+      const rc = ev.target.closest('[data-receipt]');
+      if (rc) { const p = formPhotos.find(x => x.id === rc.dataset.receipt); if (p) { p.receipt = !p.receipt; renderFormPhotos(); } return; }
       const rm = ev.target.closest('[data-remove]');
       if (rm) {
         const p = formPhotos.find(x => x.id === rm.dataset.remove);
@@ -224,6 +227,7 @@
     for (const p of formPhotos) if (p.blob) { await photoPut(p.id, p.blob); p.blob = null; }
     return formPhotos.map(p => p.id);
   }
+  const formReceiptIds = () => formPhotos.filter(p => p.receipt).map(p => p.id);
 
   // ─── Fahrzeugfotos (Einstellungen + Dashboard) ──────────────────────────────
   const vehicleIds = () => (state.settings.vehiclePhotos = state.settings.vehiclePhotos || []);
@@ -276,7 +280,8 @@
     if (!el) return;
     const ids = (entry && entry.photos) || [];
     el.hidden = !ids.length;
-    el.innerHTML = thumbsHtml(ids);
+    const rec = (entry && entry.receipts) || [];
+    el.innerHTML = thumbsHtml(ids, id => rec.includes(id) ? '<span class="photo-tag on static">Beleg</span>' : '');
     el.onclick = ev => { const op = ev.target.closest('[data-open]'); if (op) openLightbox(ids, Number(op.dataset.open)); };
     hydratePhotos(el);
   }
@@ -315,7 +320,7 @@
   Object.assign(window, {
     photoPut, photoGet, photoDel, photoUrl, gcPhotos, clearPhotos, hydratePhotos,
     openLightbox, lightboxStep, closeLightbox, lightboxDelete, lightboxCover,
-    formPhotosReset, formPhotosCommit, onFormPhotosPicked,
+    formPhotosReset, formPhotosCommit, formReceiptIds, onFormPhotosPicked,
     renderVehiclePhotos, onVehiclePhotosPicked, renderHeroPhoto, openHeroPhoto, renderDetailPhotos,
     photosForBackup, restorePhotos, referencedPhotoIds: referencedIds,
   });

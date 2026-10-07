@@ -55,6 +55,7 @@
     try {
       const r = await fetch('/api/book/' + encodeURIComponent(id), { cache: 'no-store' });
       if (r.status === 404) { app.innerHTML = '<p class="state">Dieses Scheckheft existiert nicht (mehr) oder wurde nicht veröffentlicht.</p>'; return; }
+      if (r.status === 410) { app.innerHTML = '<p class="state">Dieser Link ist abgelaufen. Bitte beim Fahrzeughalter einen neuen anfragen.</p>'; return; }
       if (!r.ok) throw new Error(r.status);
       data = await r.json();
       setAccent(data.accent);

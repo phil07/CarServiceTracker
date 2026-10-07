@@ -29,15 +29,16 @@
     const sh = rec.settings.share;
     const v = rec.vehicle;
     const ok = id => up.has(id);
-    const col = BMW_COLORS[rec.settings.vehicleColor] || {};
+    const col = colorOfSettings(rec.settings);
     const entries = rec.serviceHistory.map(e => {
       const o = { date: e.date, km: e.km, category: e.category, categoryLabel: (CATEGORIES[e.category] || {}).label || e.category, description: e.description };
       if (e.shop) o.shop = e.shop;
-      const ph = (e.photos || []).filter(ok); if (ph.length) o.photos = ph;
+      const ph = (e.photos || []).filter(id => ok(id) && !(e.receipts || []).includes(id)); if (ph.length) o.photos = ph; // Belege bleiben privat
       return o;
     }).sort((a, b) => a.date.localeCompare(b.date) || a.km - b.km);
     return {
       v: 1,
+      ...(sh && sh.until ? { until: Date.parse(sh.until + 'T23:59:59') } : {}),
       accent: { light: col.light, dark: col.dark },
       vehicle: {
         title: vehicleTitle(v), chassis: v.chassis || '', firstRegistration: v.firstRegistration || '', currentKm: v.currentKm || 0,
@@ -50,7 +51,7 @@
 
   function wantedPhotoIds(rec) {
     const ids = (rec.settings.vehiclePhotos || []).slice(0, MAX_VEHICLE_PHOTOS).slice();
-    rec.serviceHistory.forEach(e => (e.photos || []).forEach(id => ids.push(id)));
+    rec.serviceHistory.forEach(e => (e.photos || []).forEach(id => { if (!(e.receipts || []).includes(id)) ids.push(id); }));
     return [...new Set(ids)];
   }
 
@@ -75,6 +76,7 @@
   async function publishRecord(rec, force) {
     const sh = sharing(rec);
     if (!sh) return;
+    if (sh.until && todayIso() > sh.until) return; // Link abgelaufen – nichts mehr hochladen
     const st = bookState(sh.id);
     const want = wantedPhotoIds(rec);
     const now = Date.now();
@@ -187,6 +189,14 @@
     scheduleBookPublish(300);
   }
 
+  function setBookUntil(v) {
+    if (!state.settings.share) return;
+    if (v && parseDate(v)) state.settings.share.until = v; else delete state.settings.share.until;
+    saveState();
+    renderBookCard();
+    scheduleBookPublish(300);
+  }
+
   function publishBookNow() { publishAll(true); }
 
   // ─── QR-Code ────────────────────────────────────────────────────────────────
@@ -279,9 +289,13 @@
     if (!sh) return;
     const st = bookState(sh.id), s = status[sh.id] || '';
     const el = document.getElementById('bookStatusText');
-    el.textContent = s === 'busy' ? 'Wird veröffentlicht …'
+    const until = document.getElementById('bookUntil');
+    if (until) { until.min = todayIso(); until.value = sh.until || ''; }
+    const gone = sh.until && todayIso() > sh.until;
+    el.textContent = gone ? 'Link abgelaufen seit ' + formatDate(sh.until) + ' – Datum ändern oder Veröffentlichung beenden'
+      : s === 'busy' ? 'Wird veröffentlicht …'
       : s.startsWith('error:') ? 'Fehler: ' + s.slice(6) + ' – wird beim nächsten Speichern erneut versucht'
-      : 'Veröffentlicht' + (st.at ? ' · Stand ' + new Date(st.at).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }) : '');
+      : 'Veröffentlicht' + (sh.until ? ' bis ' + formatDate(sh.until) : '') + (st.at ? ' · Stand ' + new Date(st.at).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }) : '');
     el.classList.toggle('is-due', s.startsWith('error:'));
     document.getElementById('bookShowVin').checked = !!sh.showVin;
   }
@@ -292,5 +306,5 @@
     if (store.vehicles.some(sharing)) scheduleBookPublish(2500);
   }
 
-  Object.assign(window, { dropBookFor, initBook, scheduleBookPublish, renderBookCard, enableBook, disableBook, setBookVin, publishBookNow, openBookDialog, shareBookLink, saveBookQr });
+  Object.assign(window, { dropBookFor, initBook, scheduleBookPublish, renderBookCard, enableBook, disableBook, setBookVin, setBookUntil, publishBookNow, openBookDialog, shareBookLink, saveBookQr });
 })();

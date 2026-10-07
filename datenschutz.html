@@ -34,7 +34,7 @@
 
   <section>
     <h2>3. Welche Daten die App verarbeitet</h2>
-    <p>Alles, was du einträgst: Fahrzeugdaten (z. B. Fahrgestellnummer/VIN, Hersteller, Modell, Erstzulassung, Kilometerstand), Service- und Tankeinträge mit Datum, Kilometerstand, Kosten, Werkstatt und Beschreibung, Fotos sowie Einstellungen (z. B. Lackfarbe, Wartungsintervalle). Die Fahrgestellnummer kann einer Person zuordenbar sein und gilt deshalb als personenbezogenes Datum.</p>
+    <p>Alles, was du einträgst: Fahrzeugdaten (z. B. Fahrgestellnummer/VIN, Hersteller, Modell, Erstzulassung, Kilometerstand), Service- und Tankeinträge mit Datum, Kilometerstand, Kosten, Werkstatt, Beschreibung, verwendeten Teilen und Notizen, Fotos und Belege, eigene Fristen (z. B. Versicherung), Fahrzeugnotizen sowie Einstellungen (z. B. Lackfarbe, Wartungsintervalle). Die Fahrgestellnummer kann einer Person zuordenbar sein und gilt deshalb als personenbezogenes Datum.</p>
     <p>Diese Daten werden standardmäßig ausschließlich lokal in deinem Browser gespeichert, damit die App funktioniert. Der Betreiber erhält sie nicht und kann sie nicht einsehen. Ausnahmen entstehen nur, wenn du die Funktionen aus den Abschnitten 6 bis 8 nutzt.</p>
   </section>
 
@@ -43,7 +43,7 @@
     <p>Die App nutzt den lokalen Speicher deines Browsers (localStorage, IndexedDB) und den Zwischenspeicher einer installierten Web-App (Service Worker), damit sie auch offline funktioniert. Das ist für die ausdrücklich von dir genutzte Funktion technisch erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG); eine Einwilligung ist dafür nicht nötig. Es werden keine Cookies zu Werbe- oder Analysezwecken gesetzt. Nur wenn du die optionale Google-Drive-Synchronisierung nutzt, wird ein Cookie gesetzt, das für den von dir ausdrücklich gewünschten Dienst erforderlich ist (§ 25 Abs. 2 Nr. 2 TDDDG, Abschnitt 7).</p>
     <p>Im Einzelnen speichert die App auf deinem Gerät:</p>
     <ul>
-      <li><strong>localStorage:</strong> deine Fahrzeug- und Serviceeinträge, Design-Einstellung, Backup-Hinweise, Synchronisierungs-Status samt Zugriffstoken (Abschnitt 7), Scheckheft-Status, Einstellung der Erinnerungen.</li>
+      <li><strong>localStorage:</strong> deine Fahrzeug- und Serviceeinträge, Design-Einstellung, Backup-Hinweise, Synchronisierungs-Status samt Zugriffstoken (Abschnitt 7), Scheckheft-Status, Einstellung der Erinnerungen sowie bis zu zwei Sicherheitskopien deiner Daten (ohne Fotos), die vor dem Löschen, Zurücksetzen oder Einspielen eines Backups bzw. einmal täglich angelegt werden. Sie bleiben in diesem Browser und werden mit dem Löschen der Browserdaten entfernt.</li>
       <li><strong>IndexedDB:</strong> deine Fotos.</li>
       <li><strong>Zwischenspeicher (Cache) des Service Workers:</strong> die App-Dateien für den Offline-Betrieb sowie eine kleine Momentaufnahme fälliger Wartungen für die Erinnerungen (Fahrzeugbezeichnung, Kategorie, Fälligkeitsdatum).</li>
     </ul>
@@ -79,9 +79,10 @@
     <h2>8. Optionales digitales Scheckheft (öffentlicher Link)</h2>
     <p>Wenn du in den Einstellungen „Scheckheft veröffentlichen“ wählst, passiert Folgendes:</p>
     <ul>
-      <li>Die App überträgt eine Momentaufnahme des gewählten Fahrzeugs an den Server dieser App (Cloudflare Workers und Workers KV): Fahrzeugbezeichnung, Baureihe, Erstzulassung, Kilometerstand, Lackfarbe, einen Zeitstempel, die Wartungseinträge (Datum, Kilometerstand, Kategorie, Beschreibung, Werkstatt) sowie die Fotos der Wartungen und des Fahrzeugs. <strong>Nicht</strong> übertragen werden Kosten, Notizen und das Tankbuch. Die FIN wird nur übertragen, wenn du sie ausdrücklich freigibst.</li>
+      <li>Die App überträgt eine Momentaufnahme des gewählten Fahrzeugs an den Server dieser App (Cloudflare Workers und Workers KV): Fahrzeugbezeichnung, Baureihe, Erstzulassung, Kilometerstand, Lackfarbe, einen Zeitstempel, die Wartungseinträge (Datum, Kilometerstand, Kategorie, Beschreibung, Werkstatt) sowie die Fotos der Wartungen und des Fahrzeugs. <strong>Nicht</strong> übertragen werden Kosten, Notizen und das Tankbuch. Die FIN wird nur übertragen, wenn du sie ausdrücklich freigibst. Fotos, die du im Eintrag als „Beleg“ markierst, werden ebenfalls nicht übertragen.</li>
       <li>Das Scheckheft ist unter einer nicht erratbaren Adresse (QR-Code/Link) für <strong>jeden abrufbar, der den Link kennt</strong>, auch ohne Anmeldung. Wem du den Link oder QR-Code gibst, entscheidest du. Suchmaschinen werden per „noindex“ angewiesen, die Seite nicht aufzunehmen.</li>
       <li>Änderungen in der App werden automatisch aktualisiert. Mit „Veröffentlichung beenden“ werden die Daten und Fotos des Scheckhefts vom Server gelöscht; bereits ausgegebene Links und QR-Codes funktionieren danach nicht mehr. Gelingt das Löschen nicht sofort (z. B. offline), wird es spätestens durch die automatische Löschfrist (siehe Abschnitt 11) erledigt; bereits geladene Fotos können bis zu einen Tag lang im Zwischenspeicher von Browsern oder Netzwerken verbleiben.</li>
+      <li><strong>Ablaufdatum:</strong> Du kannst für den Link ein Ablaufdatum festlegen (z. B. für einen Verkauf). Danach ruft der Server das Scheckheft nicht mehr aus; die Daten werden spätestens sieben Tage nach dem Ablaufdatum gelöscht.</li>
       <li><strong>Automatische Löschung:</strong> Scheckheft und Fotos werden 12 Monate nach der letzten Aktualisierung automatisch vom Server gelöscht. Solange du die App nutzt, erneuert sie das Scheckheft automatisch rechtzeitig. Es bleiben pro Scheckheft höchstens 80 Fotos mit je höchstens 1,5 MB.</li>
       <li>Ein geheimer Schlüssel, der nur in deiner App (und ggf. in deinem Backup und deiner Google-Drive-Synchronisierung) liegt, berechtigt zum Ändern und Löschen. Auf dem Server wird nur ein Hash davon gespeichert.</li>
       <li>Beim Abruf fallen beim Hosting-Anbieter technisch übliche Server-Logdaten an (siehe Abschnitt 5). Die Seite setzt keine Cookies und bindet keine Dritten ein.</li>

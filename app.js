@@ -243,6 +243,23 @@ function normalizePhotoIds(raw, max) {
   return Array.isArray(raw) ? [...new Set(raw.map(String).filter(id => /^[\w-]+$/.test(id)))].slice(0, max) : [];
 }
 
+const validHex = h => typeof h === 'string' && /^#[0-9a-f]{6}$/i.test(h);
+
+// Eigene Fristen (Versicherung, Reifenwechsel …): { id, title, date, months } – months > 0 = wiederkehrend
+function normalizeDeadlines(raw) {
+  const out = [], seen = new Set();
+  (Array.isArray(raw) ? raw : []).forEach(d => {
+    if (!d || typeof d !== 'object' || out.length >= 30) return;
+    const title = String(d.title || '').trim().slice(0, 60), date = String(d.date || '');
+    if (!title || !parseDate(date)) return;
+    let id = String(d.id || '');
+    if (!/^[\w-]+$/.test(id) || seen.has(id)) id = uid();
+    seen.add(id);
+    out.push({ id, title, date, months: toInt(d.months, 1) || 0 });
+  });
+  return out;
+}
+
 function normalizeIntervals(raw) {
   const src = raw && typeof raw === 'object' ? raw : DEFAULT_INTERVALS;
   const out = {};
@@ -285,8 +302,10 @@ function normalizeState(raw) {
     const cost = Number(e.cost);
     if (e.cost !== '' && e.cost != null && isFinite(cost) && cost >= 0) entry.cost = Math.round(cost * 100) / 100;
     if (e.shop) entry.shop = String(e.shop).trim();
-    if (e.note) entry.note = String(e.note).trim();
+    if (e.note) entry.note = String(e.note).trim().slice(0, 1000);
+    if (e.parts) entry.parts = String(e.parts).trim().slice(0, 600);
     const ph = normalizePhotoIds(e.photos, 6); if (ph.length) entry.photos = ph;
+    const rc = normalizePhotoIds(e.receipts, 6).filter(id => ph.includes(id)); if (rc.length) entry.receipts = rc; // Belege = Teilmenge der Fotos, bleiben privat
     const ua = toInt(e.updatedAt, 1); if (ua) entry.updatedAt = ua;
     serviceHistory.push(entry);
   });
@@ -327,12 +346,16 @@ function normalizeState(raw) {
     deleted,
     meta,
     settings: {
-      vehicleColor: BMW_COLORS[st.vehicleColor] ? st.vehicleColor : 'titansilber',
+      vehicleColor: BMW_COLORS[st.vehicleColor] || (st.vehicleColor === 'custom' && validHex(st.customColor)) ? st.vehicleColor : 'titansilber',
+      ...(validHex(st.customColor) ? { customColor: String(st.customColor).toLowerCase() } : {}),
+      ...(typeof st.notes === 'string' && st.notes.trim() ? { notes: st.notes.slice(0, 3000) } : {}),
+      deadlines: normalizeDeadlines(st.deadlines),
       onboardingDone: st.onboardingDone === true || hasVehicle,
       intervals: normalizeIntervals(st.intervals),
       vehiclePhotos: normalizePhotoIds(st.vehiclePhotos, 12),
       ...(st.share && typeof st.share === 'object' && /^[\w-]{16,64}$/.test(String(st.share.id)) && /^[\w-]{20,128}$/.test(String(st.share.secret))
-        ? { share: { id: String(st.share.id), secret: String(st.share.secret), on: st.share.on === true, showVin: st.share.showVin === true } } : {}),
+        ? { share: { id: String(st.share.id), secret: String(st.share.secret), on: st.share.on === true, showVin: st.share.showVin === true,
+          ...(parseDate(String(st.share.until || '')) ? { until: String(st.share.until) } : {}) } } : {}),
     },
   };
 }
@@ -487,9 +510,19 @@ function contrastAdjust(hex, bg, dir) {
   return rgbToHex(target);
 }
 
+// Farbobjekt { label, hex, light, dark } zu den Einstellungen eines Fahrzeugs (auch für die eigene Farbe)
+function colorOfSettings(st) {
+  st = st || {};
+  if (st.vehicleColor === 'custom' && validHex(st.customColor)) {
+    const hex = st.customColor.toLowerCase();
+    return { label: 'Eigene Farbe', hex, light: contrastAdjust(hex, '#EEF0F3', -1), dark: contrastAdjust(hex, '#0B0C0F', 1) };
+  }
+  return BMW_COLORS[st.vehicleColor] || BMW_COLORS.titansilber;
+}
+
 // Fahrzeugfarbe → Akzentfarbe der App
 function applyTheme(colorKey) {
-  const c = BMW_COLORS[colorKey] || BMW_COLORS.titansilber;
+  const c = colorKey === 'custom' ? colorOfSettings(state.settings) : (BMW_COLORS[colorKey] || BMW_COLORS.titansilber);
   const r = document.documentElement.style;
   // Lackfarbe exakt als Akzent (Flächen); Text-/Kontrastfarben werden daraus abgeleitet
   const bgL = '#EEF0F3', bgD = '#0B0C0F';
@@ -678,6 +711,7 @@ function fuelChart(points, avg, max = 8) {
 
 function renderDashboard() {
   const v = state.vehicle;
+  window.renderDeadlines?.();
   renderHeroPhoto();
 
   const eyebrow = document.getElementById('dashboardEyebrow');
@@ -808,7 +842,7 @@ function renderHistory() {
   if (historySearchVal.trim()) {
     const q = historySearchVal.toLowerCase();
     items = items.filter(e =>
-      [e.category, e.description, e.shop || '', formatDate(e.date), String(e.km), e.km.toLocaleString('de-DE')]
+      [e.category, e.description, e.shop || '', e.parts || '', e.note || '', formatDate(e.date), String(e.km), e.km.toLocaleString('de-DE')]
         .join(' ').toLowerCase().includes(q)
     );
   }
@@ -832,7 +866,7 @@ function renderHistory() {
           <div class="list-sub">${esc(e.description)}</div>
         </div>
         <div class="list-meta">
-          ${e.photos && e.photos.length ? `<i class="ph-light ph-camera list-cam" data-fb="📷" aria-label="${e.photos.length} Foto(s)"></i>` : ''}
+          ${e.photos && e.photos.length ? `<i class="ph-light ph-camera list-cam" data-fb="📷" aria-label="${e.photos.length} Foto(s)"></i>` : ''}${e.receipts && e.receipts.length ? `<i class="ph-light ph-receipt list-cam" data-fb="🧾" aria-label="Beleg vorhanden"></i>` : ''}
           <div>${formatDate(e.date)}</div>
           <div>${e.km.toLocaleString('de-DE')} km</div>
         </div>
@@ -876,6 +910,10 @@ function openHistoryDetail(id) {
     `<span class="meta-chip">${formatDate(e.date)}</span><span class="meta-chip">${e.km.toLocaleString('de-DE')} km</span>` +
     (e.cost != null ? `<span class="meta-chip">${fmtEur(e.cost)}</span>` : '') +
     (e.shop ? `<span class="meta-chip"><span>${esc(e.shop)}</span></span>` : '');
+  const extra = document.getElementById('detailExtra');
+  extra.hidden = !(e.parts || e.note);
+  extra.innerHTML = (e.parts ? `<div class="info-row"><span>Teile / Material</span><strong>${esc(e.parts)}</strong></div>` : '')
+    + (e.note ? `<div class="info-row"><span>Notiz</span><strong>${esc(e.note)}</strong></div>` : '');
   renderDetailPhotos(e);
   resetDeleteConfirm();
   document.getElementById('modal-entry-detail').showModal();
@@ -928,8 +966,19 @@ function openAddEntry(entry) {
   document.getElementById('form-description').value = edit ? edit.description : '';
   document.getElementById('form-cost').value        = edit && edit.cost != null ? edit.cost : '';
   document.getElementById('form-shop').value        = edit ? (edit.shop || '') : '';
-  formPhotosReset(edit ? edit.photos : []);
+  document.getElementById('form-parts').value       = edit ? (edit.parts || '') : '';
+  document.getElementById('form-note').value        = edit ? (edit.note || '') : '';
+  formPhotosReset(edit ? edit.photos : [], edit ? edit.receipts : []);
   document.getElementById('modal-add-entry').showModal();
+}
+
+// Teile/Material vom letzten Eintrag derselben Kategorie übernehmen (Öl, Filter … bleiben meist gleich)
+function copyPartsFromLast() {
+  const cat = document.getElementById('form-category').value;
+  const prev = [...state.serviceHistory].filter(e => e.category === cat && e.parts && e.id !== editingId).sort(byRecent)[0];
+  if (!prev) { showToast('Kein früherer Eintrag mit Teilen in dieser Kategorie', 'warn'); return; }
+  document.getElementById('form-parts').value = prev.parts;
+  showToast('Teile vom ' + formatDate(prev.date) + ' übernommen', 'ok');
 }
 
 function closeAddEntry() {
@@ -960,6 +1009,8 @@ async function handleFormSubmit(event) {
   const costRaw     = document.getElementById('form-cost').value;
   const cost        = costRaw === '' ? null : Math.round(parseFloat(costRaw) * 100) / 100;
   const shop        = document.getElementById('form-shop').value.trim();
+  const parts       = document.getElementById('form-parts').value.trim();
+  const note        = document.getElementById('form-note').value.trim();
 
   if (!date)               { showToast('Datum fehlt', 'err'); return; }
   if (cost !== null && (isNaN(cost) || cost < 0)) { showToast('Ungültiger Betrag', 'err'); return; }
@@ -973,10 +1024,14 @@ async function handleFormSubmit(event) {
   const fields = { date, km, category, description };
   if (cost !== null) fields.cost = cost;
   if (shop) fields.shop = shop;
+  if (parts) fields.parts = parts;
+  if (note) fields.note = note;
   const photos = await formPhotosCommit();
   if (photos.length) fields.photos = photos;
+  const receipts = formReceiptIds().filter(id => photos.includes(id));
+  if (receipts.length) fields.receipts = receipts;
   if (existing) {
-    delete existing.cost; delete existing.shop; delete existing.photos;
+    delete existing.cost; delete existing.shop; delete existing.photos; delete existing.parts; delete existing.note; delete existing.receipts;
     Object.assign(existing, fields);
   } else state.serviceHistory.push(Object.assign({ id: uid() }, fields));
   if (km > state.vehicle.currentKm) state.vehicle.currentKm = km;
@@ -1148,6 +1203,7 @@ function renderSettings() {
   window.renderReminderCard?.();
   renderStats();
   renderIntervalEditor();
+  window.renderExtras?.();
   buildColorGrid('settingsColorGrid', state.settings.vehicleColor, (key) => {
     state.settings.vehicleColor = key;
     saveState();
@@ -1289,9 +1345,9 @@ function historyFileTag() {
 // CSV für Excel (Semikolon, UTF-8-BOM, Zahlen im deutschen Format)
 function exportCsv() {
   const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-  const rows = [['Datum', 'Kilometer', 'Kategorie', 'Beschreibung', 'Kosten (EUR)', 'Werkstatt']];
+  const rows = [['Datum', 'Kilometer', 'Kategorie', 'Beschreibung', 'Kosten (EUR)', 'Werkstatt', 'Teile / Material', 'Notiz']];
   [...state.serviceHistory].sort(byRecent).forEach(e => rows.push([
-    formatDate(e.date), e.km, e.category, e.description, e.cost != null ? String(e.cost).replace('.', ',') : '', e.shop || '',
+    formatDate(e.date), e.km, e.category, e.description, e.cost != null ? String(e.cost).replace('.', ',') : '', e.shop || '', e.parts || '', e.note || '',
   ]));
   download('service-tracker-' + historyFileTag() + '-' + todayIso() + '.csv',
     '\ufeff' + rows.map(r => r.map(q).join(';')).join('\r\n'), 'text/csv;charset=utf-8');
@@ -1314,19 +1370,24 @@ function exportFuelCsv() {
   showToast('Tank-CSV exportiert', 'ok');
 }
 
-// Druckansicht (Scheckheft) – über „Als PDF speichern“ im Druckdialog
+// Druckansicht (Scheckheft/Verkaufsmappe) – über „Als PDF speichern“ im Druckdialog
 function printHistory() {
   const v = state.vehicle;
   const sorted = [...state.serviceHistory].sort(byRecent);
   const total = sorted.reduce((t, e) => t + (e.cost || 0), 0);
+  const byYear = {};
+  sorted.forEach(e => { if (e.cost) byYear[e.date.slice(0, 4)] = (byYear[e.date.slice(0, 4)] || 0) + e.cost; });
+  const facts = [['VIN', v.vin], ['Chassis', !v.vin && v.chassis], ['Baureihe', v.series], ['Karosserie', v.body], ['Erstzulassung', v.firstRegistration && formatDate(v.firstRegistration)],
+    ['Kilometerstand', v.currentKm ? v.currentKm.toLocaleString('de-DE') + ' km' : ''], ['Einträge', String(sorted.length)]].filter(r => r[1]);
   document.getElementById('printArea').innerHTML = `
     <h1>${esc(vehicleTitle(v) || 'Service-Historie')}</h1>
-    <p>${esc([v.vin ? 'VIN ' + v.vin : v.chassis ? 'Chassis ' + v.chassis : '', v.firstRegistration ? 'EZ ' + formatDate(v.firstRegistration) : '', v.currentKm.toLocaleString('de-DE') + ' km', 'Stand ' + formatDate(todayIso())].filter(Boolean).join(' · '))}</p>
+    <p>Wartungshistorie · Stand ${formatDate(todayIso())}</p>
+    <table class="print-facts">${facts.map(([k, val]) => `<tr><th>${esc(k)}</th><td>${esc(val)}</td></tr>`).join('')}</table>
     <table>
-      <thead><tr><th>Datum</th><th>km</th><th>Kategorie</th><th>Arbeiten</th><th>Werkstatt</th><th>Kosten</th></tr></thead>
-      <tbody>${sorted.map(e => `<tr><td>${formatDate(e.date)}</td><td>${e.km.toLocaleString('de-DE')}</td><td>${esc(e.category)}</td><td>${esc(e.description)}</td><td>${esc(e.shop || '')}</td><td>${e.cost != null ? fmtEur(e.cost) : ''}</td></tr>`).join('')}</tbody>
+      <thead><tr><th>Datum</th><th>km</th><th>Kategorie</th><th>Arbeiten / Teile</th><th>Werkstatt</th><th>Kosten</th></tr></thead>
+      <tbody>${sorted.map(e => `<tr><td>${formatDate(e.date)}</td><td>${e.km.toLocaleString('de-DE')}</td><td>${esc(e.category)}</td><td>${esc(e.description)}${e.parts ? `<br><small>Teile: ${esc(e.parts)}</small>` : ''}${e.receipts && e.receipts.length ? '<br><small>Beleg vorhanden</small>' : ''}</td><td>${esc(e.shop || '')}</td><td>${e.cost != null ? fmtEur(e.cost) : ''}</td></tr>`).join('')}</tbody>
     </table>
-    ${total ? `<p><strong>Gesamtkosten: ${fmtEur(total)}</strong></p>` : ''}`;
+    ${total ? `<p><strong>Gesamtkosten: ${fmtEur(total)}</strong>${Object.keys(byYear).length > 1 ? '<br><small>' + Object.keys(byYear).sort().map(y => y + ': ' + fmtEur(byYear[y])).join(' · ') + '</small>' : ''}</p>` : ''}`;
   window.print();
 }
 
@@ -1632,6 +1693,7 @@ function importData(input) {
         ok: 'Einspielen', danger: true,
       });
       if (!ok) return;
+      window.safetyCopy?.('event', 'Vor dem Einspielen eines Backups');
       const previous = { store, state };
       store = next; state = activeRecord();
       try {
@@ -1661,6 +1723,7 @@ async function resetDataPrompt() {
     ok: 'Zurücksetzen', danger: true,
   });
   if (!ok) return;
+  window.safetyCopy?.('event', 'Vor dem Zurücksetzen');
   localStorage.removeItem(STORAGE_KEY);
   clearPhotos();
   store.vehicles = [blankRecord()];
@@ -2171,6 +2234,7 @@ async function deleteVehicle(id) {
     ok: 'Löschen', danger: true,
   });
   if (!ok) return;
+  window.safetyCopy?.('event', 'Vor dem Löschen von „' + (vehicleTitle(rec.vehicle) || 'Fahrzeug') + '“');
   await window.dropBookFor?.(rec);
   const wasActive = rec === state;
   const i = store.vehicles.indexOf(rec);
@@ -2301,6 +2365,7 @@ function init() {
   window.initSync?.();
   window.initBook?.();
   window.initReminders?.();
+  window.initExtras?.();
 
   // Erster Start: zuerst VIN abfragen
   if (!state.settings.onboardingDone) {

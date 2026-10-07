@@ -39,8 +39,14 @@ async function authorize(req, env, id, create) {
 
 function cleanSnapshot(raw) {
   if (!raw || typeof raw !== 'object' || !Array.isArray(raw.entries) || !raw.vehicle || typeof raw.vehicle !== 'object') return null;
+  if (raw.until != null && !(Number.isFinite(raw.until) && raw.until > 0)) delete raw.until;
   return raw;
 }
+
+// Optionales Ablaufdatum des Links (Verkaufsmappe): danach antwortet der Server mit „410 Abgelaufen“
+const expired = data => !!data.until && Date.now() > data.until;
+// Speicherfrist: höchstens 12 Monate, bei gesetztem Ablaufdatum 7 Tage darüber hinaus (mindestens 60 s, Mindestwert von KV)
+const bookTtl = data => data.until ? Math.max(60, Math.min(BOOK_TTL, Math.round((data.until - Date.now()) / 1000) + 7 * 86400)) : BOOK_TTL;
 
 async function api(req, env, url) {
   const parts = url.pathname.split('/').filter(Boolean); // api, book, :id, [photo, :pid]
@@ -52,9 +58,13 @@ async function api(req, env, url) {
   if (req.method === 'GET' && !sub) {
     const rec = await env.BOOKS.get('b:' + id, 'json');
     if (!rec || !rec.data) return json({ error: 'Nicht gefunden' }, 404);
+    if (expired(rec.data)) return json({ error: 'Abgelaufen' }, 410);
     return json(rec.data);
   }
   if (req.method === 'GET' && sub === 'photo' && PID_RE.test(parts[4] || '')) {
+    const meta = await env.BOOKS.get('b:' + id, 'json');
+    if (!meta || !meta.data) return new Response('Nicht gefunden', { status: 404 });
+    if (expired(meta.data)) return new Response('Abgelaufen', { status: 410 });
     const buf = await env.BOOKS.get('p:' + id + ':' + parts[4], 'arrayBuffer');
     if (!buf) return new Response('Nicht gefunden', { status: 404 });
     return new Response(buf, { headers: { 'content-type': 'image/jpeg', 'cache-control': 'public, max-age=86400', 'x-robots-tag': 'noindex' } });
@@ -68,7 +78,7 @@ async function api(req, env, url) {
     if (text.length > MAX_BOOK) return json({ error: 'Zu groß' }, 413);
     let data; try { data = cleanSnapshot(JSON.parse(text)); } catch (e) { data = null; }
     if (!data) return json({ error: 'Ungültige Daten' }, 400);
-    await env.BOOKS.put('b:' + id, JSON.stringify({ hash: a.hash, data }), { expirationTtl: BOOK_TTL });
+    await env.BOOKS.put('b:' + id, JSON.stringify({ hash: a.hash, data }), { expirationTtl: bookTtl(data) });
     if (url.searchParams.get('prune') === '1') { // nicht mehr verwendete Fotos entfernen
       const keep = new Set();
       const add = pid => { if (typeof pid === 'string' && PID_RE.test(pid)) keep.add(pid); };

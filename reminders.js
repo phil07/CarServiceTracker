@@ -44,6 +44,18 @@
             from,
           });
         }
+        for (const d of window.deadlineItems ? deadlineItems(rec) : []) { // eigene Fristen
+          if (d.from > todayIso()) continue;
+          items.push({
+            key: rec.id + '|D:' + d.id,
+            vehicle: vehicleTitle(rec.vehicle) || 'Fahrzeug',
+            category: d.title,
+            overdue: daysUntil(d.date) < 0,
+            text: formatDate(d.date),
+            due: d.date,
+            from: d.from,
+          });
+        }
       }
     } finally { state = keep; }
     return items;
@@ -62,6 +74,9 @@
           const d = parseDate(svc.dueDate);
           d.setDate(d.getDate() - Math.round(Math.max(30, svc.interval.months * 30 * 0.15)));
           out.push({ key: rec.id + '|' + svc.category, vehicle: vehicleTitle(rec.vehicle) || 'Fahrzeug', category: svc.category, from: toIso(d), due: svc.dueDate });
+        }
+        for (const d of window.deadlineItems ? deadlineItems(rec) : []) {
+          out.push({ key: rec.id + '|D:' + d.id, vehicle: vehicleTitle(rec.vehicle) || 'Fahrzeug', category: d.title, from: d.from, due: d.date });
         }
       }
     } finally { state = keep; }
