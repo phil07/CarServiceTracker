@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drehmomente — Vorschlag A</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f4f4f5;
+    --surface: #ffffff;
+    --text: #18181b;
+    --text-secondary: #71717a;
+    --accent: #3F5A78;
+    --accent-light: #e8edf3;
+    --border: #e4e4e7;
+    --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+    --shadow-lg: 0 4px 12px rgba(0,0,0,.08), 0 1px 3px rgba(0,0,0,.04);
+    --radius: 16px;
+    --info-bg: #eef3f9;
+    --info-border: #c5d5e8;
+    --torque-color: #3F5A78;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f0f11;
+      --surface: #1c1c1f;
+      --text: #f4f4f5;
+      --text-secondary: #a1a1aa;
+      --accent: #7da1c4;
+      --accent-light: #1e2a38;
+      --border: #2c2c30;
+      --shadow: 0 1px 3px rgba(0,0,0,.3), 0 1px 2px rgba(0,0,0,.2);
+      --shadow-lg: 0 4px 12px rgba(0,0,0,.3), 0 1px 3px rgba(0,0,0,.2);
+      --info-bg: #1a2332;
+      --info-border: #2a3a4e;
+      --torque-color: #7da1c4;
+    }
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    background: #e0e0e4;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 32px 16px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    body { background: #09090b; }
+  }
+
+  .phone-frame {
+    width: 100%;
+    max-width: 420px;
+    background: var(--bg);
+    border-radius: 32px;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,.15), 0 0 0 1px rgba(0,0,0,.06);
+    min-height: 780px;
+    position: relative;
+  }
+
+  /* Floating island header */
+  .header {
+    margin: 12px 12px 0;
+    background: var(--accent);
+    border-radius: 20px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .header-back {
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+  }
+
+  .header-back svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .header-title {
+    color: #fff;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  /* Content area */
+  .content {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* Info banner */
+  .info-banner {
+    background: var(--info-bg);
+    border: 1px solid var(--info-border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .info-icon {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    color: var(--accent);
+    margin-top: 1px;
+  }
+
+  .info-text {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+  }
+
+  .info-text strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  /* Search field */
+  .search-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .search-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding-left: 4px;
+  }
+
+  .search-field {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px 12px 42px;
+    font-size: 15px;
+    font-family: inherit;
+    color: var(--text);
+    box-shadow: var(--shadow);
+    position: relative;
+    outline: none;
+    width: 100%;
+  }
+
+  .search-input-wrap {
+    position: relative;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    color: var(--text-secondary);
+    pointer-events: none;
+  }
+
+  /* Result cards */
+  .results-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding-left: 4px;
+  }
+
+  .results {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .torque-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: var(--shadow);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .torque-card-left {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .torque-card-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.35;
+    margin-bottom: 6px;
+  }
+
+  .torque-card-note {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+
+  .torque-card-right {
+    flex-shrink: 0;
+    text-align: right;
+  }
+
+  .torque-value {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--torque-color);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+
+  .torque-unit {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+
+  /* Footer */
+  .footer {
+    padding: 20px 16px 24px;
+    text-align: center;
+  }
+
+  .footer-text {
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    opacity: 0.7;
+  }
+
+  /* Badge label */
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 2px 7px;
+    border-radius: 6px;
+    background: var(--accent-light);
+    color: var(--accent);
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+</style>
+</head>
+<body>
+
+<div class="phone-frame">
+  <!-- Floating island header -->
+  <div class="header">
+    <div class="header-back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </div>
+    <div class="header-title">Drehmomente</div>
+  </div>
+
+  <div class="content">
+    <!-- Info banner -->
+    <div class="info-banner">
+      <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="16" x2="12" y2="12"/>
+        <line x1="12" y1="8" x2="12.01" y2="8"/>
+      </svg>
+      <div class="info-text">
+        <strong>Fahrzeug erkannt: BMW 530i (E39) &middot; M54 Motor</strong><br>
+        Drehmomente werden automatisch f&uuml;r dein Modell gefiltert.
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div class="search-wrapper">
+      <div class="search-label">Bauteil suchen</div>
+      <div class="search-input-wrap">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input class="search-field" type="text" placeholder="Thermostat" readonly>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="results-label">3 Ergebnisse</div>
+
+    <div class="results">
+      <div class="torque-card">
+        <div class="torque-card-left">
+          <div class="torque-card-name">Thermostat-Geh&auml;use an Motorblock</div>
+          <div class="torque-card-note">Stufe 1: handfest + 90&deg;</div>
+        </div>
+        <div class="torque-card-right">
+          <div class="torque-value">10</div>
+          <div class="torque-unit">Nm</div>
+        </div>
+      </div>
+
+      <div class="torque-card">
+        <div class="torque-card-left">
+          <div class="torque-card-name">Thermostat-Deckel</div>
+          <div class="torque-card-note">Gleichm&auml;&szlig;ig &uuml;ber Kreuz anziehen</div>
+        </div>
+        <div class="torque-card-right">
+          <div class="torque-value">8</div>
+          <div class="torque-unit">Nm</div>
+        </div>
+      </div>
+
+      <div class="torque-card">
+        <div class="torque-card-left">
+          <div class="torque-card-name">K&uuml;hlmittelschlauch-Schelle am Thermostat</div>
+          <div class="torque-card-note">Federband-Schelle, nicht &uuml;berdrehen</div>
+        </div>
+        <div class="torque-card-right">
+          <div class="torque-value">3,5</div>
+          <div class="torque-unit">Nm</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-text">Daten von BMW Torque &middot; ISTA 4.61.40</div>
+  </div>
+</div>
+
+</body>
+</html>
