@@ -1,23 +1,62 @@
-# Service-Tracker
+<div align="center">
+
+# 🚗 Service-Tracker
+
+### Maintenance, costs, and fuel log for your car – offline, no account
+
+Keep track of due maintenance, analyze costs and consumption, share your service book – as an installable web app.
+
+<img src="https://img.shields.io/badge/PWA-installable-5A0FC8?style=for-the-badge&logo=pwa&logoColor=white" alt="PWA"/>
+<img src="https://img.shields.io/badge/Offline-first-1F6FEB?style=for-the-badge" alt="Offline first"/>
+<img src="https://img.shields.io/badge/Build-none-2ea44f?style=for-the-badge" alt="No build"/>
+<img src="https://img.shields.io/badge/Cloudflare-Workers-F38020?style=for-the-badge&logo=cloudflare&logoColor=white" alt="Cloudflare Workers"/>
+<img src="https://img.shields.io/badge/Google_Drive-Sync_optional-4285F4?style=for-the-badge&logo=googledrive&logoColor=white" alt="Google Drive"/>
 
 [Deutsch](README.md) · **English**
 
-A maintenance, cost, and fuel log for your own car as an installable web app (PWA). It runs entirely in the browser, works offline, and stores data locally – syncing through your own Google Drive is optional.
+[Features](#-features) · [Quick start](#-quick-start) · [Project structure](#-project-structure) · [Deployment](#-deployment) · [Privacy](#-privacy)
 
-Built for a BMW E39, usable for any vehicle.
+<br/>
 
-## Features
+<table>
+<tr>
+<td align="center"><img src="docs/screenshots/dashboard.jpg" width="220" alt="Dashboard"/><br/><sub><b>Dashboard</b></sub></td>
+<td align="center"><img src="docs/screenshots/historie.jpg" width="220" alt="Historie"/><br/><sub><b>Service history</b></sub></td>
+<td align="center"><img src="docs/screenshots/tankbuch.jpg" width="220" alt="Tankbuch"/><br/><sub><b>Fuel log</b></sub></td>
+<td align="center"><img src="docs/screenshots/statistik.jpg" width="220" alt="Statistik"/><br/><sub><b>Statistics</b></sub></td>
+</tr>
+</table>
 
-- **Dashboard** with due maintenance per vehicle (OK, due soon, overdue)
-- **Maintenance history** with costs, mileage, notes, and photos
-- **Fuel log** and **statistics** on costs and consumption
-- **Custom deadlines** (e.g. inspection, insurance) and vehicle notes
-- **Multiple vehicles**; the paint color sets the accent color, theme light, dark, or automatic
-- **Reminders** for due maintenance via notification and app badge, all handled locally
-- **Digital service book**: a public snapshot of the vehicle (without costs, notes, and fuel log) at `/s/<id>`, shareable by link
-- **Backup**: backup file, in-browser safety copy, optional Google Drive sync (app folder only)
+</div>
 
-## Quick start
+<br/>
+
+## 🔧 Why Service-Tracker?
+
+Built for a BMW E39, usable for **any vehicle**. The app runs entirely in the browser, works offline, and stores data locally. Syncing through your own Google Drive is optional – there is no developer server that sees your data.
+
+| | |
+| --- | --- |
+| 📴 **Offline first** | Service worker and local storage, usable in the workshop without reception |
+| 🔒 **Your data stays with you** | Local in the browser; Drive sync only in the hidden app folder of your account |
+| 🔔 **Never forget** | Reminders for due maintenance and your own deadlines |
+| ⚡ **No build** | Plain HTML, CSS, and JavaScript – a static server is enough |
+
+## ✨ Features
+
+| Feature | Description |
+| --- | --- |
+| **Dashboard** | Due maintenance per vehicle: OK, due soon, overdue |
+| **Maintenance history** | Entries with costs, mileage, workshop, notes, and photos, with search and category filter |
+| **Fuel log** | Record refuels, consumption in l/100 km and price per liter |
+| **Statistics** | Total costs, per year, per 100 km, and by category |
+| **Custom deadlines** | E.g. insurance or inspection, one-off or recurring |
+| **Multiple vehicles** | Paint color as accent color, theme light, dark, or automatic |
+| **Reminders** | Notification on open and app badge, all handled locally without a server |
+| **Digital service book** | Public snapshot of the vehicle (without costs, notes, and fuel log) at `/s/<id>`, shareable by link |
+| **Backup** | Backup file, in-browser safety copy, optional Google Drive sync |
+
+## 🚀 Quick start
 
 No dependencies, no build. Serve the folder with a local HTTP server:
 
@@ -25,9 +64,11 @@ No dependencies, no build. Serve the folder with a local HTTP server:
 python -m http.server 8765
 ```
 
-Then open `http://localhost:8765`. Service workers and PWA installation require HTTP(S). The digital service book and Google sign-in run through the worker (see Deployment).
+Then open `http://localhost:8765`. Service workers and PWA installation require HTTP(S). The digital service book and Google sign-in run through the worker (see [Deployment](#-deployment)).
 
-## Project structure
+**Install as an app:** use *Install* or *Add to Home Screen* in the browser menu.
+
+## 🧱 Project structure
 
 | File | Purpose |
 | --- | --- |
@@ -39,9 +80,9 @@ Then open `http://localhost:8765`. Service workers and PWA installation require 
 | `sw.js`, `version.js`, `manifest.json` | Offline cache, version number, PWA manifest |
 | `datenschutz.html`, `impressum.html`, `legal.*` | Legal pages |
 | `assets/` | Fonts and QR-code library |
-| `docs/` | Setup guides (German) |
+| `docs/` | Setup guides (German) and screenshots |
 
-## Deployment
+## ☁️ Deployment
 
 The app is served as a Cloudflare Worker with static assets:
 
@@ -49,14 +90,16 @@ The app is served as a Cloudflare Worker with static assets:
 npx wrangler deploy
 ```
 
-Service book setup (KV storage): [docs/scheckheft-setup.md](docs/scheckheft-setup.md)
-Google Drive sync (OAuth client): [docs/google-drive-sync.md](docs/google-drive-sync.md)
+| Topic | Guide |
+| --- | --- |
+| Digital service book (KV storage) | [docs/scheckheft-setup.md](docs/scheckheft-setup.md) |
+| Google Drive sync (OAuth client) | [docs/google-drive-sync.md](docs/google-drive-sync.md) |
 
-## Privacy
+## 🔐 Privacy
 
-Vehicle data stays in the browser until you enable Drive sync or the service book yourself. Drive sync uses the hidden app folder in your own account; there is no developer server with access to your data. The service book publishes only what you explicitly share.
+Vehicle data stays in the browser until you enable Drive sync or the service book yourself. Drive sync uses the hidden app folder in your own account; there is no developer server with access to your data. The service book publishes only what you explicitly share. **Back up your data regularly**, because clearing browser data removes it.
 
-## Contributing
+## 🤝 Contributing
 
 - Only the `main` branch exists; commit directly to it, no pull requests.
 - On every push that changes app files (`index.html`, `app.js`, `style.css`, `sw.js`, `manifest.json`), increase `APP_VERSION` in `version.js` by one. Installed apps use it to detect the new build.
