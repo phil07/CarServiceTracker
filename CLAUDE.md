@@ -8,4 +8,4 @@
 
 # Design
 
-- Visual style follows the Japan2026 PWA ("Bezel" layer: Plus Jakarta Sans, floating island header, full-screen menu, double-bezel cards, pill CTAs, light/dark/auto theme). The accent color comes from the selected vehicle paint color (`BMW_COLORS` in `app.js` → `--car-light` / `--car-dark`).
+- Visual style follows the Trip Planer PWA (repo `Trip_Planer`, "Bezel" layer: Plus Jakarta Sans, floating island header, full-screen menu, double-bezel cards, pill CTAs, light/dark/auto theme). The accent color comes from the selected vehicle paint color (`BMW_COLORS` in `app.js` → `--car-light` / `--car-dark`).
