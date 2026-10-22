@@ -1,5 +1,7 @@
 # Service-Tracker
 
+**Deutsch** · [English](README.en.md)
+
 Wartungs-, Kosten- und Tankbuch für das eigene Auto als installierbare Web-App (PWA). Läuft vollständig im Browser, funktioniert offline und speichert die Daten lokal – ein Abgleich über den eigenen Google Drive ist optional.
 
 Entstanden für einen BMW E39, nutzbar für beliebige Fahrzeuge.
