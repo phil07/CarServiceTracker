@@ -11,6 +11,7 @@ Keep track of due maintenance, analyze costs and consumption, share your service
 <img src="https://img.shields.io/badge/Build-none-2ea44f?style=for-the-badge" alt="No build"/>
 <img src="https://img.shields.io/badge/Cloudflare-Workers-F38020?style=for-the-badge&logo=cloudflare&logoColor=white" alt="Cloudflare Workers"/>
 <img src="https://img.shields.io/badge/Google_Drive-Sync_optional-4285F4?style=for-the-badge&logo=googledrive&logoColor=white" alt="Google Drive"/>
+<a href="https://github.com/phil07/carservicetracker/actions/workflows/test.yml"><img src="https://img.shields.io/github/actions/workflow/status/phil07/carservicetracker/test.yml?branch=main&style=for-the-badge&label=Tests" alt="Tests"/></a>
 
 [Deutsch](README.md) · **English**
 
@@ -81,6 +82,7 @@ Then open `http://localhost:8765`. Service workers and PWA installation require 
 | `datenschutz.html`, `impressum.html`, `legal.*` | Legal pages |
 | `assets/` | Fonts and QR-code library |
 | `docs/` | Setup guides (German) and screenshots |
+| `tests/`, `package.json` | Unit and browser tests |
 
 ## ☁️ Deployment
 
@@ -94,6 +96,16 @@ npx wrangler deploy
 | --- | --- |
 | Digital service book (KV storage) | [docs/scheckheft-setup.md](docs/scheckheft-setup.md) |
 | Google Drive sync (OAuth client) | [docs/google-drive-sync.md](docs/google-drive-sync.md) |
+
+## 🧪 Tests
+
+```bash
+npm test                # unit tests (fast, no browser)
+npm install             # once: playwright-core
+npm run test:e2e        # browser tests against the real app (needs Chromium)
+```
+
+The unit tests cover data validation and import, date math, service status, fuel consumption, VIN decoding, the backup reminder, the Drive merge logic, and the Cloudflare worker (booklet API, keys, photos, Google sign-in). The browser tests start a local server, block the network, and cover menu, history, adding and deleting entries, fuel log, and backup export/import. Both run in GitHub Actions on every push to `main`.
 
 ## 🔐 Privacy
 

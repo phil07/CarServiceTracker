@@ -11,6 +11,7 @@ Fällige Wartungen im Blick, Kosten und Verbrauch auswerten, Scheckheft teilen �
 <img src="https://img.shields.io/badge/Build-keiner-2ea44f?style=for-the-badge" alt="Kein Build"/>
 <img src="https://img.shields.io/badge/Cloudflare-Workers-F38020?style=for-the-badge&logo=cloudflare&logoColor=white" alt="Cloudflare Workers"/>
 <img src="https://img.shields.io/badge/Google_Drive-Sync_optional-4285F4?style=for-the-badge&logo=googledrive&logoColor=white" alt="Google Drive"/>
+<a href="https://github.com/phil07/carservicetracker/actions/workflows/test.yml"><img src="https://img.shields.io/github/actions/workflow/status/phil07/carservicetracker/test.yml?branch=main&style=for-the-badge&label=Tests" alt="Tests"/></a>
 
 **Deutsch** · [English](README.en.md)
 
@@ -81,6 +82,7 @@ Anschließend `http://localhost:8765` öffnen. Service Worker und PWA-Installati
 | `datenschutz.html`, `impressum.html`, `legal.*` | Rechtliche Seiten |
 | `assets/` | Schriften und QR-Code-Bibliothek |
 | `docs/` | Einrichtungsanleitungen und Screenshots |
+| `tests/`, `package.json` | Unit- und Browser-Tests |
 
 ## ☁️ Deployment
 
@@ -94,6 +96,16 @@ npx wrangler deploy
 | --- | --- |
 | Digitales Scheckheft (KV-Speicher) | [docs/scheckheft-setup.md](docs/scheckheft-setup.md) |
 | Google-Drive-Abgleich (OAuth-Client) | [docs/google-drive-sync.md](docs/google-drive-sync.md) |
+
+## 🧪 Tests
+
+```bash
+npm test                # Unit-Tests (schnell, ohne Browser)
+npm install             # einmalig: playwright-core
+npm run test:e2e        # Browser-Tests gegen die echte App (Chromium nötig)
+```
+
+Die Unit-Tests prüfen Datenprüfung und Import, Datumsrechnung, Wartungsstatus, Verbrauch, VIN-Erkennung, Sicherungs-Erinnerung, das Zusammenführen beim Drive-Abgleich und den Cloudflare-Worker (Scheckheft-API, Schlüssel, Fotos, Google-Anmeldung). Die Browser-Tests starten einen lokalen Server, sperren das Netzwerk und prüfen u. a. Menü, Historie, Eintrag anlegen und löschen, Tankbuch, Backup-Export und -Import. Bei jedem Push auf `main` läuft beides in GitHub Actions.
 
 ## 🔐 Datenschutz
 

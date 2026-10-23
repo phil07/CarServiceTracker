@@ -1,0 +1,3 @@
+# Abhängigkeiten und Browser-Downloads der Tests
+node_modules/
+.pw-browsers/
