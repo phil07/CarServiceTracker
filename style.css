@@ -51,7 +51,7 @@ html { -webkit-text-size-adjust: 100%; }
 button, input, select, textarea { font-family: inherit; }
 
 body {
-    font-family: var(--font); background: var(--bg); margin: 0; color: var(--label);
+    font-family: var(--font); background: radial-gradient(circle at top right, var(--bg-secondary), var(--bg)); margin: 0; color: var(--label);
     display: flex; justify-content: center; align-items: center;
     min-height: 100vh; min-height: 100dvh; min-height: calc(var(--vh, 1vh) * 100);
     font-size: var(--fs-body); -webkit-font-smoothing: antialiased;
@@ -86,12 +86,12 @@ body.offline #offline-bar { display: block; }
 
 /* ── Schwebende Insel-Kopfzeile ── */
 .app-header {
-    position: relative; z-index: var(--z-header); flex-shrink: 0;
+    position: sticky; top: calc(10px + env(safe-area-inset-top)); z-index: var(--z-header); flex-shrink: 0;
     display: flex; align-items: center; justify-content: space-between;
     margin: calc(10px + env(safe-area-inset-top)) 16px 6px; padding: 6px;
     border-radius: 999px; color: var(--label);
-    background: color-mix(in srgb, var(--bg-elevated) 74%, transparent);
-    -webkit-backdrop-filter: blur(20px) saturate(160%); backdrop-filter: blur(20px) saturate(160%);
+    background: color-mix(in srgb, var(--bg-elevated) 82%, transparent);
+    -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%);
     box-shadow: var(--amb), inset 0 0 0 1px var(--shell-ring);
     transition: background .5s var(--ease-out), box-shadow .5s var(--ease-out);
 }
@@ -124,7 +124,9 @@ body.offline #offline-bar { display: block; }
 .card {
     background: var(--bg-elevated); border: 0; border-radius: 26px;
     box-shadow: var(--hl), 0 0 0 6px var(--card-shell), 0 0 0 7px var(--card-ring), var(--amb);
+    transition: transform .4s var(--ease-out), box-shadow .4s var(--ease-out);
 }
+.card:active { transform: scale(.98); box-shadow: var(--hl), 0 0 0 6px var(--card-shell), 0 0 0 7px var(--card-ring), 0 4px 12px -4px rgba(0,0,0,.2); }
 
 /* ── Eyebrow + große Headline ── */
 .home-intro { padding: 4px 2px 18px; }
@@ -234,9 +236,9 @@ button.list-row:active { background: var(--bg-secondary); }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; position: relative;
     width: 100%; min-height: 54px; margin-top: 12px; padding: 13px 20px; border: 0; border-radius: 999px; cursor: pointer;
     background: var(--primary-fill); color: var(--on-primary); font-size: var(--fs-callout); font-weight: 700; letter-spacing: -.01em;
-    box-shadow: var(--amb-accent); transition: transform .5s var(--ease-out), background .3s, box-shadow .5s var(--ease-out); }
-.btn:hover { filter: brightness(1.05); }
-.btn:active { transform: scale(.98); }
+    box-shadow: var(--amb-accent), 0 0 0 1px var(--primary-edge); transition: transform .5s var(--ease-spring), background .3s, box-shadow .5s var(--ease-out); }
+.btn:hover { filter: brightness(1.05); transform: translateY(-1px); }
+.btn:active { transform: scale(.96); }
 .btn[disabled] { opacity: .6; cursor: progress; box-shadow: none; }
 .btn-secondary, .btn.btn-secondary { background: var(--bg-secondary); color: var(--label); box-shadow: inset 0 0 0 1px var(--shell-ring); }
 .btn-secondary:hover { background: var(--bg-secondary-press); filter: none; }
@@ -261,13 +263,13 @@ button.list-row:active { background: var(--bg-secondary); }
 /* FAB: Akzent-Kreis mit innerem Knopf */
 .fab {
     position: absolute; right: 22px; bottom: calc(24px + env(safe-area-inset-bottom)); z-index: var(--z-fab);
-    width: 58px; height: 58px; padding: 0; border: 0; border-radius: 999px; cursor: pointer;
+    width: 64px; height: 64px; padding: 0; border: 0; border-radius: 999px; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     background: var(--primary-fill); color: var(--on-primary);
-    box-shadow: var(--amb-accent), 0 0 0 6px var(--card-shell), 0 0 0 7px var(--card-ring);
-    transition: transform .5s var(--ease-out);
+    box-shadow: var(--amb-accent), 0 0 0 2px var(--primary-edge);
+    transition: transform .4s var(--ease-spring), background .3s, box-shadow .4s var(--ease-out);
 }
-.fab svg { width: 42px; height: 42px; padding: 10px; border-radius: 999px; background: var(--knob); transition: transform .6s var(--ease-spring); }
+.fab svg { width: 32px; height: 32px; padding: 10px; border-radius: 999px; background: var(--knob); transition: transform .6s var(--ease-spring); }
 .fab:hover svg { transform: translate(2px,-2px) scale(1.05); }
 .fab:active { transform: scale(.94); }
 
