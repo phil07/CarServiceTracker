@@ -281,24 +281,6 @@
                 <div id="safetyBox"></div>
             </div>
 
-            <div id="syncCard" hidden>
-                <h3 class="section-title">Synchronisierung</h3>
-                <div class="card info-card sync-card">
-                    <p class="settings-hint">Gleiche deine Daten über alle Geräte ab, mit deinem eigenen Google Drive. Daten und Fotos liegen in einem versteckten App-Ordner deines Kontos – es gibt keinen Server des Entwicklers, und die App sieht nur ihre eigenen Dateien. Die Fotos belegen etwas Speicher in deinem Drive. Beim Verbinden wird ein Skript von Google geladen (<a href="datenschutz.html#sync">Datenschutz</a>).</p>
-                    <div class="backup-status" id="syncStatusText"></div>
-                    <div id="syncConnect">
-                        <button type="button" class="btn btn-secondary" data-sync-btn onclick="connectDrive()"><i class="ph-light ph-cloud-arrow-up" data-fb="☁️" aria-hidden="true"></i> Mit Google Drive verbinden</button>
-                    </div>
-                    <div id="syncActions" hidden>
-                        <div class="btn-pair">
-                            <button type="button" class="btn btn-secondary" data-sync-btn onclick="syncNowInteractive()"><i class="ph-light ph-arrows-clockwise" data-fb="🔄" aria-hidden="true"></i> Jetzt abgleichen</button>
-                            <button type="button" class="btn btn-secondary" onclick="disconnectDrive()">Trennen</button>
-                        </div>
-                        <button type="button" class="link-btn" onclick="deleteDriveData()">Daten in Google Drive löschen</button>
-                    </div>
-                </div>
-            </div>
-
             <h3 class="section-title">Kosten &amp; Export</h3>
             <div class="card info-card" id="statsCard"></div>
             <div class="btn-pair">
@@ -525,10 +507,25 @@
                 <button type="button" id="btnCheckUpdate" onclick="checkForUpdate()" aria-label="Auf Update prüfen">Prüfen</button>
             </div>
             <button type="button" id="btnNotifyUpdates" class="btn-icon btn-notify" onclick="enableUpdateNotifications()" aria-pressed="false"><i class="ph-light ph-bell-slash" data-fb="🔕" aria-hidden="true"></i> <span>Bei neuer Version benachrichtigen</span></button>
+            <div class="menu-group-label">Backup &amp; Import</div>
             <div class="btn-row">
                 <button type="button" class="btn-icon" onclick="exportData()"><i class="ph-light ph-download-simple" aria-hidden="true"></i> Backup</button>
                 <button type="button" class="btn-icon" onclick="document.getElementById('importFile').click()"><i class="ph-light ph-upload-simple" aria-hidden="true"></i> Wiederherstellen</button>
                 <input type="file" id="importFile" accept=".json,application/json" hidden onchange="importData(this)">
+            </div>
+            <div id="syncCard" hidden>
+                <div class="menu-group-label">Google Drive</div>
+                <div class="backup-status" id="syncStatusText"></div>
+                <div id="syncConnect">
+                    <button type="button" class="btn-icon" data-sync-btn onclick="connectDrive()"><i class="ph-light ph-cloud-arrow-up" data-fb="☁️" aria-hidden="true"></i> Mit Google Drive verbinden</button>
+                </div>
+                <div id="syncActions" hidden>
+                    <div class="btn-row">
+                        <button type="button" class="btn-icon" data-sync-btn onclick="syncNowInteractive()"><i class="ph-light ph-arrows-clockwise" data-fb="🔄" aria-hidden="true"></i> Abgleichen</button>
+                        <button type="button" class="btn-icon" onclick="disconnectDrive()">Trennen</button>
+                    </div>
+                    <button type="button" class="link-btn" onclick="deleteDriveData()">Daten in Google Drive löschen</button>
+                </div>
             </div>
             <div class="backup-status" id="backupStatus" aria-live="polite"></div>
             <div class="backup-status" id="storageStatus"></div>
