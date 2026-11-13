@@ -219,6 +219,18 @@ async function gauth(req, env, url) {
   return json({ error: 'Nicht gefunden' }, 404);
 }
 
+// Ursprung der nativen App (Capacitor auf Android, androidScheme https).
+const NATIVE_ORIGIN = 'https://localhost';
+function corsHeaders(origin) {
+  return {
+    'access-control-allow-origin': origin,
+    'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'access-control-allow-headers': '*',
+    'access-control-max-age': '600',
+    'vary': 'origin',
+  };
+}
+
 export default {
   async fetch(req, env) {
     const url = new URL(req.url);
@@ -227,8 +239,17 @@ export default {
       catch (e) { return json({ error: 'Serverfehler' }, 500); }
     }
     if (url.pathname.startsWith('/api/book/')) {
-      try { return await api(req, env, url); }
-      catch (e) { return json({ error: 'Serverfehler' }, 500); }
+      // Die native App (Capacitor) lädt die Oberfläche von https://localhost und braucht CORS für die API.
+      const origin = req.headers.get('origin');
+      const cors = origin === NATIVE_ORIGIN;
+      if (cors && req.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders(origin) });
+      try {
+        const res = await api(req, env, url);
+        if (!cors) return res;
+        const h = new Headers(res.headers);
+        for (const [k, v] of Object.entries(corsHeaders(origin))) h.set(k, v);
+        return new Response(res.body, { status: res.status, headers: h });
+      } catch (e) { return json({ error: 'Serverfehler' }, 500); }
     }
     // Scheckheft-Seite: /s/<id> → scheckheft.html (Adresse nicht an Dritte weitergeben)
     if (/^\/s\/[A-Za-z0-9_-]{16,64}\/?$/.test(url.pathname) && req.method === 'GET') {

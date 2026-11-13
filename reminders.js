@@ -15,7 +15,10 @@
 
   const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
   const save = o => { try { localStorage.setItem(KEY, JSON.stringify(o)); } catch (e) {} };
-  const canNotify = () => 'Notification' in window && Notification.permission === 'granted';
+  // Native App (Capacitor): Benachrichtigungen über das Plugin statt über den Browser.
+  const isNativeApp = () => !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+  const nativeNotifications = () => window.Capacitor.Plugins.LocalNotifications;
+  const canNotify = () => isNativeApp() || ('Notification' in window && Notification.permission === 'granted');
 
   // Alle erinnerungswürdigen Wartungen aller Fahrzeuge (rechnet je Fahrzeug mit dem globalen `state`)
   function collect() {
@@ -118,8 +121,12 @@
     s.day = today; s.sig = sig; save(s);
     const m = message(items);
     try {
-      const reg = await navigator.serviceWorker.ready;
-      await reg.showNotification(m.title, { body: m.body, tag: 'service-due', renotify: true, data: { url: './' } });
+      if (isNativeApp()) {
+        await nativeNotifications().schedule({ notifications: [{ id: 4711, title: m.title, body: m.body, schedule: { at: new Date(Date.now() + 500) } }] });
+      } else {
+        const reg = await navigator.serviceWorker.ready;
+        await reg.showNotification(m.title, { body: m.body, tag: 'service-due', renotify: true, data: { url: './' } });
+      }
     } catch (e) { console.warn('Benachrichtigung:', e); }
   }
 
@@ -141,7 +148,11 @@
   async function setOn(on) {
     const s = load();
     if (on) {
-      if (!('Notification' in window)) { showToast('Benachrichtigungen werden hier nicht unterstützt – du siehst fällige Wartungen weiter im Dashboard', 'warn'); }
+      if (isNativeApp()) {
+        const p = await nativeNotifications().requestPermissions();
+        if (p.display !== 'granted') showToast('Benachrichtigungen sind blockiert – in den Android-Einstellungen der App erlauben.', 'warn');
+      }
+      else if (!('Notification' in window)) { showToast('Benachrichtigungen werden hier nicht unterstützt – du siehst fällige Wartungen weiter im Dashboard', 'warn'); }
       else {
         let perm = Notification.permission;
         if (perm === 'default') perm = await Notification.requestPermission();

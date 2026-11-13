@@ -13,6 +13,7 @@
     "playwright-core": "^1.55.0"
   },
   "dependencies": {
-    "@capacitor/core": "^7.6.10"
+    "@capacitor/core": "^7.6.10",
+    "@capacitor/local-notifications": "^7.0.7"
   }
 }
