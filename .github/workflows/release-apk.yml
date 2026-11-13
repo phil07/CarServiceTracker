@@ -44,6 +44,15 @@ jobs:
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
             gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "$TAG" --generate-notes
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Web-Dateien für die App bauen (Capacitor)
+        run: |
+          npm install --no-audit --no-fund
+          npm run cap:sync
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -58,7 +67,6 @@ jobs:
         run: |
           N=$(echo "$TAG" | grep -o '[0-9]\+' | head -1)
           sed -i -E "s/versionCode [0-9]+/versionCode $N/; s/versionName \"[^\"]*\"/versionName \"$TAG\"/" android/app/build.gradle
-          sed -i -E "s/\"appVersionCode\": [0-9]+/\"appVersionCode\": $N/; s/\"appVersionName\": \"[^\"]*\"/\"appVersionName\": \"$TAG\"/" android/twa-manifest.json
           echo "versionCode $N, versionName $TAG"
 
       - name: Keystore schreiben

@@ -1,0 +1,6 @@
+{
+  "appId": "de.philipp07.carservicetracker",
+  "appName": "Service-Tracker",
+  "webDir": "www",
+  "server": { "androidScheme": "https" }
+}

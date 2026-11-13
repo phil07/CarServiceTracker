@@ -53,7 +53,7 @@
   async function load() {
     if (!id) { app.innerHTML = '<p class="state">Ungültiger Link.</p>'; return; }
     try {
-      const r = await fetch('/api/book/' + encodeURIComponent(id), { cache: 'no-store' });
+      const r = await fetch((self.API_BASE || '') + '/api/book/' + encodeURIComponent(id), { cache: 'no-store' });
       if (r.status === 404) { app.innerHTML = '<p class="state">Dieses Scheckheft existiert nicht (mehr) oder wurde nicht veröffentlicht.</p>'; return; }
       if (r.status === 410) { app.innerHTML = '<p class="state">Dieser Link ist abgelaufen. Bitte beim Fahrzeughalter einen neuen anfragen.</p>'; return; }
       if (!r.ok) throw new Error(r.status);

@@ -1,3 +1,7 @@
 # Abhängigkeiten und Browser-Downloads der Tests
 node_modules/
 .pw-browsers/
+
+# Generierte Web-Dateien für Capacitor und lokale Lock-Datei
+www/
+package-lock.json

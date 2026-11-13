@@ -39,7 +39,7 @@ const GOOGLE_CLIENT_ID = '456570124356-ksovdvup3n1o9hhq6hnm3tfms1r1a0hs.apps.goo
   // ─── dauerhafte Anmeldung über den Worker (/api/gauth/) ──────────────────────
   // Das Refresh-Token liegt verschlüsselt als httpOnly-Cookie im Browser; der Worker holt damit still
   // neue Zugriffstokens. Ist der Worker nicht eingerichtet, gilt wie bisher ein 1-Stunden-Token.
-  const AUTH_API = '/api/gauth/';
+  const AUTH_API = (self.API_BASE || '') + '/api/gauth/';
   let serverAuth = null; // null = unbekannt, false = Worker nicht eingerichtet
   let refreshing = null;
   const authPost = (action, body) => fetch(AUTH_API + action, {

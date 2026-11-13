@@ -8,7 +8,7 @@
   'use strict';
 
   const STATE_KEY = 'cst_book'; // { [id]: { hash, up: [Foto-ids auf dem Server], at } }
-  const API = '/api/book/';
+  const API = (self.API_BASE || '') + '/api/book/';
   const MAX_VEHICLE_PHOTOS = 12;
   const MAX_PHOTO_BYTES = 1536 * 1024;
 
