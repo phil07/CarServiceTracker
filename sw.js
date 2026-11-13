@@ -2,7 +2,7 @@
 importScripts('version.js'); // sets self.APP_VERSION – single source of truth
 const CACHE = 'service-tracker-' + self.APP_VERSION;
 
-const PRECACHE = ['./', './index.html', './style.css', './app.js', './sync.js', './book.js', './reminders.js', './extras.js', './assets/qrcode.js', './photos.js', './datenschutz.html', './impressum.html', './legal.js', './legal.css', './version.js', './manifest.json',
+const PRECACHE = ['./', './index.html', './style.css', './app.js', './sync.js', './book.js', './reminders.js', './extras.js', './release-check.js', './assets/qrcode.js', './photos.js', './datenschutz.html', './impressum.html', './legal.js', './legal.css', './version.js', './manifest.json',
   './assets/fonts/fonts.css', './assets/fonts/phosphor.css', './assets/fonts/Phosphor-Light.woff2',
   './assets/fonts/plus-jakarta-sans-latin-400-normal.woff2', './assets/fonts/plus-jakarta-sans-latin-500-normal.woff2',
   './assets/fonts/plus-jakarta-sans-latin-600-normal.woff2', './assets/fonts/plus-jakarta-sans-latin-700-normal.woff2',

@@ -1,0 +1,83 @@
+name: Release-APK
+
+# Baut bei jeder veröffentlichten GitHub-Release eine signierte APK und hängt sie an die Release.
+# Die App prüft diese Release beim Start (release-check.js) und verlinkt die APK.
+#
+# Benötigte Repository-Secrets (Settings → Secrets and variables → Actions):
+#   ANDROID_KEYSTORE_BASE64  – Keystore als Base64 (base64 -w0 carservicetracker.keystore)
+#   ANDROID_KEYSTORE_PASSWORD
+#   ANDROID_KEY_ALIAS        – carservicetracker
+#   ANDROID_KEY_PASSWORD
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release-Tag, für den die APK gebaut und angehängt wird (z. B. v55)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    name: APK bauen und an die Release anhängen
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Android-Build-Tools installieren
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.1.0"
+
+      - name: Versionsnummer aus dem Tag setzen
+        run: |
+          N=$(echo "$TAG" | grep -o '[0-9]\+' | head -1)
+          test -n "$N"
+          sed -i -E "s/versionCode [0-9]+/versionCode $N/; s/versionName \"[^\"]*\"/versionName \"$TAG\"/" android/app/build.gradle
+          sed -i -E "s/\"appVersionCode\": [0-9]+/\"appVersionCode\": $N/; s/\"appVersionName\": \"[^\"]*\"/\"appVersionName\": \"$TAG\"/" android/twa-manifest.json
+          echo "APK-Version: $TAG (versionCode $N)"
+
+      - name: Keystore schreiben
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.keystore"
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+
+      - name: APK bauen (unsigniert)
+        working-directory: android
+        run: |
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: APK ausrichten und signieren
+        env:
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          BT="$ANDROID_HOME/build-tools/36.1.0"
+          "$BT/zipalign" -f -p 4 android/app/build/outputs/apk/release/app-release-unsigned.apk "$RUNNER_TEMP/aligned.apk"
+          "$BT/apksigner" sign --ks "$RUNNER_TEMP/release.keystore" --ks-key-alias "$KEY_ALIAS" \
+            --ks-pass env:KS_PASS --key-pass env:KEY_PASS \
+            --out "$RUNNER_TEMP/Service-Tracker-$TAG.apk" "$RUNNER_TEMP/aligned.apk"
+          "$BT/apksigner" verify "$RUNNER_TEMP/Service-Tracker-$TAG.apk"
+
+      - name: APK an die Release anhängen
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "$TAG" "$RUNNER_TEMP/Service-Tracker-$TAG.apk" --clobber --repo "$GITHUB_REPOSITORY"

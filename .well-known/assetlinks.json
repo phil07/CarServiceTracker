@@ -1,0 +1,10 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "de.philipp07.carservicetracker",
+      "sha256_cert_fingerprints": ["40:23:D0:9F:52:A3:F8:A3:D9:8C:AB:0C:CE:BF:64:FC:97:44:26:C0:C2:04:39:2D:19:7F:D9:40:B3:DE:CB:8F"]
+    }
+  }
+]

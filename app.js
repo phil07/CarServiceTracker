@@ -2390,6 +2390,7 @@ function init() {
   window.initSync?.();
   window.initBook?.();
   window.initReminders?.();
+  window.initReleaseCheck?.();
   window.initExtras?.();
 
   // Erster Start: zuerst VIN abfragen
