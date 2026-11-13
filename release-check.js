@@ -152,6 +152,36 @@
     }
   }
 
+
+  // Schalter „Bei neuer Version benachrichtigen“ in der nativen App (ohne Service Worker).
+  window.nativeUpdateToggle = async function () {
+    const plug = window.Capacitor.Plugins;
+    const on = localStorage.getItem('st_update_notify') !== '1';
+    if (on) {
+      const perm = (await plug.LocalNotifications.requestPermissions()).display;
+      if (perm !== 'granted') return toast('Benachrichtigungen sind blockiert – in den Android-Einstellungen erlauben', 'err');
+    }
+    localStorage.setItem('st_update_notify', on ? '1' : '0');
+    await plug.ReminderStore.setUpdateCheck({ enabled: on, version: self.APP_VERSION });
+    const btn = document.getElementById('btnNotifyUpdates');
+    if (btn) {
+      const tx = btn.querySelector('span');
+      if (tx) tx.textContent = on ? 'Update-Benachrichtigungen aktiv' : 'Bei neuer Version benachrichtigen';
+      btn.setAttribute('aria-pressed', String(on));
+    }
+    toast(on ? 'Du wirst über neue Versionen benachrichtigt' : 'Versions-Benachrichtigung aus', 'ok');
+  };
+  // Button-Text beim Start passend zum gespeicherten Schalter setzen.
+  document.addEventListener('DOMContentLoaded', () => {
+    if (!isNative()) return;
+    const btn = document.getElementById('btnNotifyUpdates');
+    const on = readStore('st_update_notify') === '1';
+    if (btn) {
+      const tx = btn.querySelector('span');
+      if (tx) tx.textContent = on ? 'Update-Benachrichtigungen aktiv' : 'Bei neuer Version benachrichtigen';
+      btn.setAttribute('aria-pressed', String(on));
+    }
+  });
   window.initReleaseCheck = checkForRelease;
   window.checkReleaseNow = checkReleaseNow;
 })();

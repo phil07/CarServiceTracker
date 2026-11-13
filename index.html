@@ -619,6 +619,7 @@
     }
 
     window.enableUpdateNotifications = async function () {
+      if (window.Capacitor?.isNativePlatform?.()) return window.nativeUpdateToggle();
       if (!('Notification' in window)) {
         showResultToast('Benachrichtigungen werden hier nicht unterstützt', 'err');
         return;
@@ -634,6 +635,14 @@
       }
     };
 
+    function updateNativeNotifyButton() {
+      const b = document.getElementById('btnNotifyUpdates');
+      if (!b) return;
+      const on = localStorage.getItem('st_update_notify') === '1';
+      const tx = b.querySelector('span');
+      if (tx) tx.textContent = on ? 'Update-Benachrichtigungen aktiv' : 'Bei neuer Version benachrichtigen';
+      b.setAttribute('aria-pressed', String(on));
+    }
     function updateNotifyButton() {
       const b = document.getElementById('btnNotifyUpdates');
       if (!b) return;
@@ -646,10 +655,12 @@
     }
     window.addEventListener('load', () => {
       updateNotifyButton();
+      if (window.Capacitor?.isNativePlatform?.()) updateNativeNotifyButton();
       if ('Notification' in window && Notification.permission === 'granted') registerBackgroundUpdateCheck();
     });
   } else {
     window.enableUpdateNotifications = function () {
+      if (window.Capacitor?.isNativePlatform?.()) return window.nativeUpdateToggle();
       showResultToast('Benachrichtigungen werden hier nicht unterstützt', 'err');
     };
   }

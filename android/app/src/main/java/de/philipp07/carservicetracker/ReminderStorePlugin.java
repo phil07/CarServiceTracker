@@ -4,6 +4,8 @@ import android.content.Context;
 import android.content.SharedPreferences;
 
 import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.NetworkType;
+import androidx.work.Constraints;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
@@ -40,6 +42,22 @@ public class ReminderStorePlugin extends Plugin {
     public void clear(PluginCall call) {
         prefs(getContext()).edit().remove(KEY_JSON).apply();
         WorkManager.getInstance(getContext()).cancelUniqueWork(WORK_NAME);
+        call.resolve();
+    }
+
+    // Schalter „Bei neuer Version benachrichtigen“: prüft alle 12 Stunden auf neue GitHub-Releases.
+    @PluginMethod
+    public void setUpdateCheck(PluginCall call) {
+        boolean enabled = call.getBoolean("enabled", false);
+        String version = call.getString("version", "");
+        prefs(getContext()).edit().putBoolean("updateNotify", enabled).putString("currentVersion", version).apply();
+        if (enabled) {
+            Constraints c = new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build();
+            PeriodicWorkRequest work = new PeriodicWorkRequest.Builder(ReleaseCheckWorker.class, 12, TimeUnit.HOURS).setConstraints(c).build();
+            WorkManager.getInstance(getContext()).enqueueUniquePeriodicWork("release-check", ExistingPeriodicWorkPolicy.KEEP, work);
+        } else {
+            WorkManager.getInstance(getContext()).cancelUniqueWork("release-check");
+        }
         call.resolve();
     }
 
