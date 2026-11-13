@@ -1,6 +1,8 @@
 name: Release-APK
 
-# Baut bei jeder veröffentlichten GitHub-Release eine signierte APK und hängt sie an die Release.
+# Baut bei jedem Push auf main eine signierte APK für die Version aus version.js (APP_VERSION).
+# Gibt es die Release zu dieser Version noch nicht, wird sie auf dem Push-Commit angelegt.
+# Die APK wird an diese Release angehängt (bei erneutem Push derselben Version ersetzt).
 # Die App prüft diese Release beim Start (release-check.js) und verlinkt die APK.
 #
 # Benötigte Repository-Secrets (Settings → Secrets and variables → Actions):
@@ -11,35 +13,36 @@ name: Release-APK
 
 on:
   push:
-    tags: ['v*']
-  release:
-    types: [published]
+    branches: [main]
   workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Release-Tag, für den die APK gebaut und angehängt wird (z. B. v55)'
-        required: true
 
 permissions:
   contents: write
+
+concurrency:
+  group: release-apk
+  cancel-in-progress: false
 
 jobs:
   apk:
     name: APK bauen und an die Release anhängen
     runs-on: ubuntu-latest
-    env:
-      TAG: ${{ github.event.release.tag_name || inputs.tag }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ env.TAG }}
 
-      - name: Release anlegen, falls der Tag ohne Release gepusht wurde
+      - name: Version aus version.js lesen
+        run: |
+          TAG=$(grep -o "APP_VERSION = '[^']*'" version.js | grep -o "v[0-9][0-9.]*")
+          test -n "$TAG"
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          echo "Version: $TAG"
+
+      - name: Release anlegen, falls es sie für diese Version noch nicht gibt
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
-            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes --verify-tag
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "$TAG" --generate-notes
 
       - uses: actions/setup-java@v4
         with:
@@ -51,19 +54,18 @@ jobs:
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.1.0"
 
-      - name: Versionsnummer aus dem Tag setzen
+      - name: Versionsnummer in das Android-Projekt schreiben
         run: |
           N=$(echo "$TAG" | grep -o '[0-9]\+' | head -1)
-          test -n "$N"
           sed -i -E "s/versionCode [0-9]+/versionCode $N/; s/versionName \"[^\"]*\"/versionName \"$TAG\"/" android/app/build.gradle
           sed -i -E "s/\"appVersionCode\": [0-9]+/\"appVersionCode\": $N/; s/\"appVersionName\": \"[^\"]*\"/\"appVersionName\": \"$TAG\"/" android/twa-manifest.json
-          echo "APK-Version: $TAG (versionCode $N)"
+          echo "versionCode $N, versionName $TAG"
 
       - name: Keystore schreiben
-        run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.keystore"
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
 
       - name: APK bauen (unsigniert)
         working-directory: android
