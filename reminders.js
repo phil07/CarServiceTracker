@@ -87,6 +87,14 @@
   }
 
   async function writeSnapshot(on) {
+    // Native App: der Hintergrund-Job liest die Momentaufnahme aus dem nativen Speicher.
+    if (isNativeApp()) {
+      try {
+        const store = window.Capacitor.Plugins.ReminderStore;
+        if (!on) return await store.clear();
+        return await store.setSnapshot({ json: JSON.stringify({ items: futureItems(), at: todayIso() }) });
+      } catch (e) { console.warn('Erinnerungs-Snapshot (nativ):', e); return; }
+    }
     if (!('caches' in window)) return;
     try {
       const c = await caches.open(SNAP_CACHE);
