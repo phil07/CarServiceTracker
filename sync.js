@@ -49,7 +49,7 @@ const GOOGLE_CLIENT_ID = '456570124356-ksovdvup3n1o9hhq6hnm3tfms1r1a0hs.apps.goo
   });
 
   function refreshToken() {
-    if (serverAuth === false || !navigator.onLine) return Promise.resolve(null);
+    if (serverAuth === false || !navigator.onLine || isNativeApp()) return Promise.resolve(null);
     if (!refreshing) {
       refreshing = (async () => {
         try {
@@ -88,7 +88,21 @@ const GOOGLE_CLIENT_ID = '456570124356-ksovdvup3n1o9hhq6hnm3tfms1r1a0hs.apps.goo
     });
   }
 
+  // Native App (Capacitor): Anmeldung über das Google-Plugin, das Zugriffstoken gilt 1 Stunde.
+  const isNativeApp = () => !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+  async function requestTokenNative() {
+    const G = window.Capacitor.Plugins.GoogleAuth;
+    await G.initialize({ clientId: GOOGLE_CLIENT_ID, scopes: [SCOPE], grantOfflineAccess: false });
+    const user = await G.signIn();
+    const token = user && user.authentication && user.authentication.accessToken;
+    if (!token) throw new Error('Anmeldung bei Google fehlgeschlagen');
+    setMeta({ persistent: false });
+    setToken(token, 3600);
+    return token;
+  }
+
   async function requestToken() {
+    if (isNativeApp()) return requestTokenNative();
     await loadGis();
     if (serverAuth === false) return requestTokenImplicit();
     const res = await new Promise((resolve, reject) => {

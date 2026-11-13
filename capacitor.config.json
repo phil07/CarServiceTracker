@@ -2,5 +2,16 @@
   "appId": "de.philipp07.carservicetracker",
   "appName": "Service-Tracker",
   "webDir": "www",
-  "server": { "androidScheme": "https" }
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "GoogleAuth": {
+      "scopes": [
+        "https://www.googleapis.com/auth/drive.appdata"
+      ],
+      "serverClientId": "456570124356-ksovdvup3n1o9hhq6hnm3tfms1r1a0hs.apps.googleusercontent.com",
+      "forceCodeForRefreshToken": false
+    }
+  }
 }
