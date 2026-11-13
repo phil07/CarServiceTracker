@@ -38,6 +38,13 @@
     link.href = apkUrl;
     link.rel = 'noopener';
     link.textContent = 'APK laden';
+    // In der nativen App lädt die WebView APKs nicht; der System-Browser übernimmt den Download.
+    link.addEventListener('click', e => {
+      const browser = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Browser;
+      if (!browser || !(window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) return;
+      e.preventDefault();
+      browser.open({ url: apkUrl });
+    });
     link.style.cssText = 'padding:8px 14px;border-radius:999px;background:var(--accent,#B45309);color:#fff;text-decoration:none;font-weight:600;';
 
     const close = document.createElement('button');
