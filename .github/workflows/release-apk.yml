@@ -10,6 +10,8 @@ name: Release-APK
 #   ANDROID_KEY_PASSWORD
 
 on:
+  push:
+    tags: ['v*']
   release:
     types: [published]
   workflow_dispatch:
@@ -31,6 +33,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.TAG }}
+
+      - name: Release anlegen, falls der Tag ohne Release gepusht wurde
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes --verify-tag
 
       - uses: actions/setup-java@v4
         with:
