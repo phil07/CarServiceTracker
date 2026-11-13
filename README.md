@@ -110,8 +110,3 @@ Die Unit-Tests prüfen Datenprüfung und Import, Datumsrechnung, Wartungsstatus,
 ## 🔐 Datenschutz
 
 Fahrzeugdaten bleiben im Browser, bis du den Drive-Abgleich oder das Scheckheft selbst aktivierst. Der Drive-Abgleich nutzt den versteckten App-Ordner im eigenen Konto; es gibt keinen Server des Entwicklers mit Zugriff auf die Daten. Das Scheckheft veröffentlicht nur, was du ausdrücklich teilst. **Sichere deine Daten regelmäßig**, denn das Löschen von Browserdaten entfernt sie.
-
-## 🤝 Mitarbeiten
-
-- Nur der Branch `main` existiert; direkt dorthin committen, keine Pull Requests.
-- Bei jedem Push, der App-Dateien ändert (`index.html`, `app.js`, `style.css`, `sw.js`, `manifest.json`), `APP_VERSION` in `version.js` um eins erhöhen. Daran erkennen installierte Apps den neuen Stand.
