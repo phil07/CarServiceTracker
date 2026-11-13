@@ -61,6 +61,47 @@
     document.body.appendChild(bar);
   }
 
+  function toast(msg, variant) {
+    const t = document.createElement('div');
+    t.textContent = msg;
+    t.className = 'sys-toast sys-toast--' + (variant === 'ok' ? 'ok' : 'err');
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 4000);
+  }
+
+  // Liefert die neueste Release mit APK oder null, wenn es keine neuere gibt.
+  async function fetchNewerRelease(current) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    try {
+      const res = await fetch('https://api.github.com/repos/' + REPO + '/releases/latest', {
+        headers: { Accept: 'application/vnd.github+json' },
+        signal: controller.signal,
+      });
+      if (!res.ok) throw new Error('GitHub ' + res.status);
+      const release = await res.json();
+      const tag = release.tag_name || '';
+      if (versionNumber(tag) <= versionNumber(current)) return { newer: false, tag };
+      const apk = (release.assets || []).find(a => /\.apk$/i.test(a.name));
+      return { newer: true, tag, apkUrl: apk && apk.browser_download_url };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  // Manuell über „Prüfen“ (native App): zeigt immer ein Ergebnis.
+  async function checkReleaseNow() {
+    try {
+      const r = await fetchNewerRelease(self.APP_VERSION);
+      if (!r.newer) return toast('Du bist bereits auf der aktuellsten Version (' + self.APP_VERSION + ')', 'ok');
+      if (!r.apkUrl) return toast('Version ' + r.tag + ' ist da, aber noch ohne APK', 'err');
+      writeStore(DISMISS_KEY, '');
+      showBanner(r.tag, r.apkUrl);
+    } catch (e) {
+      toast('Update-Prüfung fehlgeschlagen', 'err');
+    }
+  }
+
   async function checkForRelease() {
     if (!navigator.onLine) return;
     const current = self.APP_VERSION;
@@ -92,4 +133,5 @@
   }
 
   window.initReleaseCheck = checkForRelease;
+  window.checkReleaseNow = checkReleaseNow;
 })();

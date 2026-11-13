@@ -688,6 +688,7 @@
   async function checkForUpdate() {
     var btn = document.getElementById('btnCheckUpdate');
     if (btn && btn.disabled) return;
+    if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) return window.checkReleaseNow?.();
     if (btn) { btn.disabled = true; btn.textContent = '…'; }
     try {
       if (!('serviceWorker' in navigator)) {
