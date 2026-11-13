@@ -1,8 +1,8 @@
 name: Release-APK
 
 # Baut bei jedem Push auf main eine signierte APK für die Version aus version.js (APP_VERSION).
-# Gibt es die Release zu dieser Version noch nicht, wird sie auf dem Push-Commit angelegt.
-# Die APK wird an diese Release angehängt (bei erneutem Push derselben Version ersetzt).
+# Die Release entsteht erst, wenn die APK fertig und signiert ist; sie enthält die APK sofort.
+# Bei erneutem Push derselben Version wird die APK in der bestehenden Release ersetzt.
 # Die App prüft diese Release beim Start (release-check.js) und verlinkt die APK.
 #
 # Benötigte Repository-Secrets (Settings → Secrets and variables → Actions):
@@ -36,22 +36,6 @@ jobs:
           test -n "$TAG"
           echo "TAG=$TAG" >> "$GITHUB_ENV"
           echo "Version: $TAG"
-
-      - name: Release anlegen, falls es sie für diese Version noch nicht gibt
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
-            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "$TAG" --generate-notes
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Web-Dateien für die App bauen (Capacitor)
-        run: |
-          npm install --no-audit --no-fund
-          npm run cap:sync
 
       - uses: actions/setup-java@v4
         with:
@@ -95,8 +79,13 @@ jobs:
             --out "$RUNNER_TEMP/Service-Tracker-$TAG.apk" "$RUNNER_TEMP/aligned.apk"
           "$BT/apksigner" verify "$RUNNER_TEMP/Service-Tracker-$TAG.apk"
 
-      - name: APK an die Release anhängen
+      - name: Release mit APK veröffentlichen (erst wenn die APK fertig ist)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload "$TAG" "$RUNNER_TEMP/Service-Tracker-$TAG.apk" --clobber --repo "$GITHUB_REPOSITORY"
+          APK="$RUNNER_TEMP/Service-Tracker-$TAG.apk"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" "$APK" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "$TAG" --generate-notes
+          fi
