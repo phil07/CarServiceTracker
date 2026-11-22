@@ -37,6 +37,15 @@ jobs:
           echo "TAG=$TAG" >> "$GITHUB_ENV"
           echo "Version: $TAG"
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Web-Dateien für die App bauen (Capacitor)
+        run: |
+          npm install --no-audit --no-fund
+          npm run cap:sync
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
